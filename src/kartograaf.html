@@ -75,6 +75,7 @@ input[type=range]{width:100%;accent-color:var(--accent);margin:0}
 input[type=checkbox],input[type=radio]{accent-color:var(--accent);margin:0}
 .note{margin:0;font-size:13px;color:var(--muted);line-height:1.4}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
+.gumpick{margin:-4px 0 4px 26px}
 .chip{border:1px solid var(--rule);background:var(--chip);border-radius:20px;padding:4px 11px;font-size:13px}
 .chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
 .swatches{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
@@ -106,6 +107,9 @@ input[type=checkbox],input[type=radio]{accent-color:var(--accent);margin:0}
 fieldset{border:0;padding:0;margin:0;display:grid;gap:7px}
 legend{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin-bottom:6px;padding:0}
 .opt{display:flex;gap:8px;align-items:center;font-size:15px}
+.updbar{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:85;background:var(--panel);border:1px solid var(--rule);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.25);padding:12px 14px;display:grid;gap:6px;max-width:min(380px,calc(100% - 32px));font-size:14px}
+.updbar strong{font-family:var(--f-display);font-weight:400;font-size:20px}
+@media (max-width:760px){.updbar{left:16px;right:16px;max-width:none;bottom:calc(84px + env(safe-area-inset-bottom,0px))}}
 .toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:8px 14px;border-radius:8px;font-size:14px;z-index:90;max-width:calc(100% - 32px);text-align:center}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .only-narrow{display:none}
@@ -329,9 +333,13 @@ body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
     <section class="sec" id="secGum" hidden>
       <h3>Wat de gum wist</h3>
       <label class="check"><input type="checkbox" id="gumTerr" checked> Ondergrond</label>
+      <div class="chips gumpick" id="gumPick-terr" hidden></div>
       <label class="check"><input type="checkbox" id="gumStamps" checked> Symbolen</label>
+      <div class="chips gumpick" id="gumPick-stamps" hidden></div>
       <label class="check"><input type="checkbox" id="gumLines" checked> Lijnen (wegen, rivieren, grenzen)</label>
+      <div class="chips gumpick" id="gumPick-lines" hidden></div>
       <label class="check"><input type="checkbox" id="gumLabels"> Tekst</label>
+      <p class="note">Kies een soort om alleen die weg te gommen, bv. enkel naaldbomen. Met Alles gom je de hele groep.</p>
       <p class="note" id="gumNote"></p>
     </section>
     <section class="sec" id="secLine" hidden>
@@ -470,7 +478,7 @@ body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
     <div class="seg" id="upTabs" style="justify-self:start;flex-wrap:wrap">
       <button type="button" data-tab="assets" aria-pressed="true">Mijn assets</button>
       <button type="button" data-tab="import" aria-pressed="false">Map of zip importeren</button>
-      <button type="button" data-tab="lib" aria-pressed="false">Back-up</button>
+      <button type="button" data-tab="lib" aria-pressed="false">Back-up en updates</button>
     </div>
     <div id="tabAssets" style="display:grid;gap:16px">
     <p class="note">Upload je eigen bomen, bergen, gebouwen of ondergronden en sorteer ze per type. Je vindt ze daarna terug bij Symbolen, in de strooipenselen en bij Ondergrond.</p>
@@ -522,6 +530,10 @@ body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
       <p class="note" id="libInfo"></p>
       <h3 style="margin:6px 0 0;font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)">Herstelpunten</h3>
       <div id="libBackup" style="display:grid;gap:8px"></div>
+      <h3 style="margin:6px 0 0;font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)">Updates</h3>
+      <p class="note" id="updInfo"></p>
+      <label class="check" id="updAutoRow"><input type="checkbox" id="updAuto" checked> Eén keer per dag op GitHub kijken of er een nieuwe versie is</label>
+      <div class="btns" id="updRow"><button type="button" class="btn" id="updNow">Nu zoeken naar updates</button></div>
     </div>
     <div class="btns end"><button type="button" class="btn primary" id="upClose">Klaar</button></div>
   </div>
@@ -574,6 +586,11 @@ body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
 </div>
 <input type="file" id="fileIn" accept=".json,application/json,text/plain,application/octet-stream" hidden>
 <div class="toast" id="toast" hidden></div>
+<div class="updbar" id="updBar" role="status" hidden>
+  <strong>Nieuwe versie</strong>
+  <span id="updText"></span>
+  <div class="btns"><button type="button" class="btn primary" id="updGet">Downloaden</button><button type="button" class="btn" id="updNews">Wat is er nieuw?</button><button type="button" class="btn" id="updLater">Later</button></div>
+</div>
 
 <script>
 (() => {
@@ -595,7 +612,7 @@ const PALETTES = {
 let CUR = PALETTES.inkt;
 const rgb = c => `rgb(${c[0]},${c[1]},${c[2]})`;
 function applyPalette(name) {
-  CUR = PALETTES[name] || PALETTES.inkt; INKC = rgb(CUR.ink); PAPERC = rgb(CUR.paper);
+  CUR = PALETTES[name] || PALETTES.inkt; INKC = rgb(CUR.ink); PAPERC = rgb(CUR.paper); objEpoch++;
   const app = document.getElementById('app'); app.style.setProperty('--paper', PAPERC); app.style.setProperty('--paper-ink', INKC);
 }
 const fillFor = a => CUR.fill[a.key] || CUR.fill[a.cat] || PAPERC;
@@ -1177,9 +1194,9 @@ function collides(key, x, y, size, list, dens) {
   }
   return false;
 }
-function drawObjects(g, d, skipLabel) {
+function drawObjects(g, d, skipLabel, stamps = stampOrder(d)) {
   for (const l of d.lines) drawLine(g, l, d.kind);
-  for (const s of stampOrder(d)) drawAsset(g, s.a, s.x, s.y, s.s, s.r, s.f, s.v, s.c);
+  for (const s of stamps) drawAsset(g, s.a, s.x, s.y, s.s, s.r, s.f, s.v, s.c);
   for (const L of d.labels) if (L.id !== skipLabel) drawLabel(g, L);
 }
 
@@ -1562,6 +1579,56 @@ function resize() {
 }
 new ResizeObserver(resize).observe(stage);
 
+/* Symbols, lines and labels live in their own screen-sized layer: a frame where they did not change only copies it,
+   so moving the brush over a map with thousands of trees stays smooth. Brushes that add or remove symbols report
+   the spots they touched (objDirty), and only those spots are drawn again. */
+const objL = { cv: document.createElement('canvas'), base: null, ox: 0, oy: 0, sig: null, rects: [] };
+objL.g = objL.cv.getContext('2d');
+let objEpoch = 0; // bumped when objects can look different without the map data changing (palette, own shapes, fonts)
+function objSig(d, skip) {
+  let h = objEpoch * 7919 + d.stamps.length;
+  for (const s of d.stamps) h = (h * 1.0000003 + s.x * 3.1 + s.y * 7.3 + s.s * 1.7 + (s.r || 0) * .37 + (s.v || 0) * 11 + (s.f ? 5 : 0) + s.a.length * 13 + s.a.charCodeAt(s.a.length - 1) + (s.c ? s.c.charCodeAt(s.c.length - 1) * 3 + s.c.length : 0)) % 1e12;
+  return h + '|' + skip + '|' + JSON.stringify(d.lines) + JSON.stringify(d.labels);
+}
+function objDirty(s) { const e = s.s * .8 + 4; objL.rects.push([s.x - e, s.y - e, s.x + e, s.y + e]); }
+function syncObjLayer(v) {
+  const L = objL, g = L.g, d = doc, skip = editing ? editing.L.id : null, sig = objSig(d, skip), base = [cv.width, cv.height, DPR, v.z, d.kind].join();
+  const rects = L.rects; L.rects = [];
+  if (base === L.base && v.ox === L.ox && v.oy === L.oy && sig === L.sig) return;
+  if (L.cv.width !== cv.width || L.cv.height !== cv.height) { L.cv.width = cv.width; L.cv.height = cv.height; L.base = null; }
+  const T = [DPR * v.z, 0, 0, DPR * v.z, DPR * v.ox, DPR * v.oy], W = L.cv.width, H = L.cv.height, dev = [];
+  let sx = DPR * (v.ox - L.ox), sy = DPR * (v.oy - L.oy);
+  const whole = n => Math.abs(n - Math.round(n)) < 1e-6, known = sig === L.sig || rects.length > 0;
+  if (base === L.base && known && whole(sx) && whole(sy) && Math.abs(sx) < W && Math.abs(sy) < H) {
+    // panned by whole pixels: move what is drawn and only draw the strips that came into view
+    sx = Math.round(sx); sy = Math.round(sy);
+    if (sx || sy) {
+      g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'copy'; g.drawImage(L.cv, sx, sy); g.restore();
+      if (sx > 0) dev.push([0, 0, sx, H]); else if (sx < 0) dev.push([W + sx, 0, W, H]);
+      if (sy > 0) dev.push([0, 0, W, sy]); else if (sy < 0) dev.push([0, H + sy, W, H]);
+    }
+    if (rects.length) {
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (const r of rects) { x0 = Math.min(x0, r[0]); y0 = Math.min(y0, r[1]); x1 = Math.max(x1, r[2]); y1 = Math.max(y1, r[3]); }
+      dev.push([Math.floor(T[0] * x0 + T[4]), Math.floor(T[0] * y0 + T[5]), Math.ceil(T[0] * x1 + T[4]), Math.ceil(T[0] * y1 + T[5])]);
+    }
+    for (const [dx0, dy0, dx1, dy1] of dev) {
+      g.save(); g.beginPath(); g.rect(dx0, dy0, dx1 - dx0, dy1 - dy0); g.clip(); g.clearRect(dx0, dy0, dx1 - dx0, dy1 - dy0);
+      g.setTransform(...T); g.beginPath(); g.rect(0, 0, d.w, d.h); g.clip();
+      const x0 = (dx0 - T[4]) / T[0], y0 = (dy0 - T[5]) / T[0], x1 = (dx1 - T[4]) / T[0], y1 = (dy1 - T[5]) / T[0];
+      const near = d.stamps.filter(s => { const e = s.s * .8 + 4; return s.x + e > x0 && s.x - e < x1 && s.y + e > y0 && s.y - e < y1; });
+      drawObjects(g, d, skip, d.kind === 'world' ? near.sort((a, b) => footY(a) - footY(b)) : near);
+      g.restore();
+    }
+  } else {
+    g.save(); g.clearRect(0, 0, W, H);
+    g.setTransform(...T); g.beginPath(); g.rect(0, 0, d.w, d.h); g.clip();
+    drawObjects(g, d, skip); g.restore();
+  }
+  L.base = base; L.ox = v.ox; L.oy = v.oy; L.sig = sig;
+}
+if (document.fonts) document.fonts.addEventListener('loadingdone', () => { objEpoch++; req(); });
+
 let rq = false;
 function req() { if (rq) return; rq = true; requestAnimationFrame(() => { rq = false; render(); }); }
 function render() {
@@ -1572,8 +1639,8 @@ function render() {
   g.save(); g.shadowColor = 'rgba(0,0,0,.3)'; g.shadowBlur = 20 * DPR; g.shadowOffsetY = 3 * DPR; g.fillStyle = PAPERC; g.fillRect(0, 0, doc.w, doc.h); g.restore();
   g.imageSmoothingEnabled = true; g.imageSmoothingQuality = v.z < 1 ? 'high' : 'low';
   g.drawImage(doc.cache, 0, 0);
+  syncObjLayer(v); g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(objL.cv, 0, 0); g.restore();
   g.save(); g.beginPath(); g.rect(0, 0, doc.w, doc.h); g.clip();
-  drawObjects(g, doc, editing ? editing.L.id : null);
   if (action?.t === 'line' && action.pts.length >= 4) drawLine(g, { type: U().line, pts: action.pts }, kind);
   g.restore();
   drawOverlay(g, v.z);
@@ -1783,7 +1850,7 @@ function startTool(p, e, sp) {
 }
 function moveTool(p, e, sp) {
   const A = action;
-  if (A.t === 'pan') { const v = V(); v.ox = A.ox + sp.x - A.sx; v.oy = A.oy + sp.y - A.sy; }
+  if (A.t === 'pan') { const v = V(), px = n => Math.round(n * DPR) / DPR; v.ox = px(A.ox + sp.x - A.sx); v.oy = px(A.oy + sp.y - A.sy); } // whole pixels, so the symbol layer can just be moved
   else if (A.t === 'genrect') A.b = p;
   else if (A.t === 'gum') { const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [], list = evs.length ? evs.map(ev => toMap(screenPt(ev))) : [p]; for (const q of list) { gumAt(A, A.last, q); A.last = q; } }
   else if (A.t === 'brush') { const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : []; const list = evs.length ? evs.map(ev => toMap(screenPt(ev))) : [p]; for (const q of list) { paintSeg(A.last, q); A.last = q; } }
@@ -1796,7 +1863,7 @@ function moveTool(p, e, sp) {
   req();
 }
 function endTool() {
-  const A = action; action = null;
+  const A = action; action = null; objL.base = null; // one full redraw after a stroke or pan tidies up the pieces drawn on the way
   if (A.t === 'brush') {
     if (kind === 'world' && A.mode === 'add' && $('#optPush').checked) {
       beginObj(); const base = doc.layers.base;
@@ -1804,7 +1871,7 @@ function endTool() {
       pushParts([commitRaster(A.keys, A.bb, true), takeObjEntry()]); toastMoved(m); refreshSel();
     } else commitRaster(A.keys, A.bb);
   }
-  else if (A.t === 'gum') { pushParts([commitRaster([...A.keys], A.bb, true), takeObjEntry()]); if (!getSelObj()) sel = null; refreshSel(); }
+  else if (A.t === 'gum') { pushParts([commitRaster([...A.keys], A.bb, true), takeObjEntry()]); if (!getSelObj()) sel = null; refreshSel(); buildGumPicks(); }
   else if (A.t === 'genrect') {
     let x0 = Math.min(A.a.x, A.b.x), y0 = Math.min(A.a.y, A.b.y), w = Math.abs(A.b.x - A.a.x), h = Math.abs(A.b.y - A.a.y);
     if (w < 80 || h < 80) { w = Math.min(doc.w, 560); h = Math.min(doc.h, 380); x0 = A.a.x - w / 2; y0 = A.a.y - h / 2; }
@@ -1880,7 +1947,7 @@ const refreshThumbs = () => { clearTimeout(thumbT); thumbT = setTimeout(() => { 
 function registerShape(sh, maskCanvas) {
   const a = { key: 'c:' + sh.id, name: sh.name || 'Eigen vorm', cat: 'eigen', size: Math.max(8, Math.min(400, +sh.size || 60)), kind: 'any', custom: true, foot: .38, tints: {}, mask: maskCanvas || null,
     strokes: sh.strokes.filter(st => Array.isArray(st.pts) && st.pts.length >= 2).map(st => ({ w: +st.w || 1.8, p: pathOf(st.pts.map(Number)) })) };
-  if (!maskCanvas && typeof sh.fill === 'string' && sh.fill.startsWith('data:image/')) { const img = new Image(); img.onload = () => { a.mask = img; a.tints = {}; req(); refreshThumbs(); }; img.src = sh.fill; }
+  if (!maskCanvas && typeof sh.fill === 'string' && sh.fill.startsWith('data:image/')) { const img = new Image(); img.onload = () => { a.mask = img; a.tints = {}; objEpoch++; req(); refreshThumbs(); }; img.src = sh.fill; }
   ASSETS[a.key] = a; return a;
 }
 function toHex(c) {
@@ -1901,7 +1968,7 @@ function brushFoot(B) { let s = 0, n = 0; for (const it of B.items) { const a = 
 function landAt(A, x, y) { const ix = Math.round(x), iy = Math.round(y); return ix >= 0 && iy >= 0 && ix < doc.w && iy < doc.h && A.land[(iy * doc.w + ix) * 4 + 3] >= 128; }
 function natDab(A, p) {
   const rad = U().brush / 2, B = A.brush;
-  if (A.erase) { const keys = new Set(B.items.map(it => it.a)), n = doc.stamps.length; doc.stamps = doc.stamps.filter(s => !(keys.has(s.a) && Math.hypot(s.x - p.x, s.y - p.y) < rad)); if (doc.stamps.length !== n) req(); return; }
+  if (A.erase) { const keys = new Set(B.items.map(it => it.a)), n = doc.stamps.length; doc.stamps = doc.stamps.filter(s => { const hit = keys.has(s.a) && Math.hypot(s.x - p.x, s.y - p.y) < rad; if (hit) objDirty(s); return !hit; }); if (doc.stamps.length !== n) req(); return; }
   const near = doc.stamps.filter(s => Math.abs(s.x - p.x) < rad + 200 && Math.abs(s.y - p.y) < rad + 200);
   const tries = Math.min(900, Math.ceil(Math.PI * rad * rad / A.foot * 1.6 * B.amount) + 3);
   for (let k = 0; k < tries; k++) {
@@ -1911,7 +1978,7 @@ function natDab(A, p) {
     if (A.land) { const fy = y + pk.size * .34; if (!landAt(A, x, y) || !landAt(A, x, fy) || !landAt(A, x - pk.size * .36, fy) || !landAt(A, x + pk.size * .36, fy)) continue; }
     if (collides(pk.key, x, y, pk.size, near, B.amount)) continue;
     const st = addStampTo(doc, pk.key, x, y, pk.size, 0, B.flip && Math.random() < .5, pk.v); if (B.color) st.c = B.color;
-    near.push(st); A.n++;
+    near.push(st); objDirty(st); A.n++;
   }
   req();
 }
@@ -2295,23 +2362,51 @@ $('#genAgain').addEventListener('click', () => {
   const rect = lastGen.rect; undo(); runGen(rect);
 });
 function segDist(px, py, ax, ay, bx, by) { const vx = bx - ax, vy = by - ay, L2 = vx * vx + vy * vy; let t = L2 ? ((px - ax) * vx + (py - ay) * vy) / L2 : 0; t = Math.max(0, Math.min(1, t)); return Math.hypot(px - ax - vx * t, py - ay - vy * t); }
+/* The gum can be limited to some kinds: chips list what is on this map; none chosen means the whole group. */
+const gumOnly = { world: { terr: new Set(), stamps: new Set(), lines: new Set() }, local: { terr: new Set(), stamps: new Set(), lines: new Set() } };
+function buildGumPicks() {
+  if (!doc) return; const G = gumOnly[kind];
+  const counted = (arr, f) => { const m = new Map(); for (const o of arr) { const k = f(o); m.set(k, (m.get(k) || 0) + 1); } return [...m]; };
+  const groups = {
+    terr: [$('#gumTerr'), Object.keys(doc.layers).filter(k => k.startsWith('t:')).map(k => [k, (TERRAINS[kind].find(T => 't:' + T.id === k) || {}).name || 'Ondergrond'])],
+    stamps: [$('#gumStamps'), counted(doc.stamps, s => s.a).map(([k, n]) => [k, `${ASSETS[k]?.name || 'Symbool'} · ${n}`])],
+    lines: [$('#gumLines'), counted(doc.lines, l => l.type || '').map(([k, n]) => [k, `${lineType(kind, k).name} · ${n}`])],
+  };
+  for (const g in groups) {
+    const [check, list] = groups[g]; list.sort((x, y) => x[1].localeCompare(y[1], 'nl')); // alphabetical, so chips stay put while erasing, box = $('#gumPick-' + g), have = new Set(list.map(x => x[0]));
+    for (const k of [...G[g]]) if (!have.has(k)) G[g].delete(k);
+    box.textContent = ''; box.hidden = !check.checked || list.length < 2; if (box.hidden) continue;
+    for (const [k, name] of [['*', 'Alles'], ...list]) {
+      const c = document.createElement('button'); c.type = 'button'; c.className = 'chip'; c.dataset.k = k; c.textContent = name;
+      c.setAttribute('aria-pressed', k === '*' ? !G[g].size : G[g].has(k)); box.append(c);
+    }
+  }
+}
+for (const g of ['terr', 'stamps', 'lines']) $('#gumPick-' + g).addEventListener('click', e => {
+  const c = e.target.closest('[data-k]'); if (!c) return; const S = gumOnly[kind][g], k = c.dataset.k;
+  if (k === '*') S.clear(); else if (S.has(k)) S.delete(k); else S.add(k);
+  buildGumPicks();
+});
+for (const id of ['gumTerr', 'gumStamps', 'gumLines']) $('#' + id).addEventListener('change', buildGumPicks);
 function gumAt(A, a, b) {
   const r = U().brush / 2;
+  const G = gumOnly[kind];
   if ($('#gumTerr').checked) {
-    for (const k of Object.keys(doc.layers)) if (k.startsWith('t:')) { drawSeg(doc.layers[k], a, b, r, 'destination-out', true); A.keys.add(k); }
+    for (const k of Object.keys(doc.layers)) if (k.startsWith('t:') && (!G.terr.size || G.terr.has(k))) { drawSeg(doc.layers[k], a, b, r, 'destination-out', true); A.keys.add(k); }
     const x0 = Math.min(a.x, b.x) - r, y0 = Math.min(a.y, b.y) - r, x1 = Math.max(a.x, b.x) + r, y1 = Math.max(a.y, b.y) + r;
     A.bb[0] = Math.min(A.bb[0], x0); A.bb[1] = Math.min(A.bb[1], y0); A.bb[2] = Math.max(A.bb[2], x1); A.bb[3] = Math.max(A.bb[3], y1);
     markDirty(doc, x0 - 2, y0 - 2, x1 + 2, y1 + 2);
   }
-  if ($('#gumStamps').checked) doc.stamps = doc.stamps.filter(st => segDist(st.x, st.y, a.x, a.y, b.x, b.y) >= r);
-  if ($('#gumLabels').checked) doc.labels = doc.labels.filter(L => segDist(L.x, L.y, a.x, a.y, b.x, b.y) >= r);
+  if ($('#gumStamps').checked) doc.stamps = doc.stamps.filter(st => { if ((G.stamps.size && !G.stamps.has(st.a)) || segDist(st.x, st.y, a.x, a.y, b.x, b.y) >= r) return true; objDirty(st); return false; });
+  if ($('#gumLabels').checked) { const n = doc.labels.length; doc.labels = doc.labels.filter(L => segDist(L.x, L.y, a.x, a.y, b.x, b.y) >= r); if (doc.labels.length !== n) objL.base = null; }
   if ($('#gumLines').checked) {
     const out = [];
     for (const l of doc.lines) {
+      if (G.lines.size && !G.lines.has(l.type || '')) { out.push(l); continue; }
       const q = l.pts; let run = [], first = true, cut = false;
       const flush = () => { if (run.length >= 4) { out.push({ ...l, id: first ? l.id : doc.nid++, pts: run }); first = false; } run = []; };
       for (let i = 0; i < q.length; i += 2) { if (segDist(q[i], q[i + 1], a.x, a.y, b.x, b.y) < r) { cut = true; flush(); } else run.push(q[i], q[i + 1]); }
-      if (!cut) { out.push(l); continue; } flush();
+      if (!cut) { out.push(l); continue; } flush(); objL.base = null;
     }
     doc.lines = out;
   }
@@ -2732,7 +2827,7 @@ function setTool(t) {
   const nature = t === 'nature', brushy = t === 'paint' || t === 'erase' || t === 'terrain' || t === 'gum' || nature;
   $('#secBrush').hidden = !brushy; $('#secRoom').hidden = t !== 'room'; $('#secTerrain').hidden = t !== 'terrain'; $('#secLine').hidden = t !== 'line'; $('#secText').hidden = t !== 'text';
   $('#pushRow').hidden = !(kind === 'world' && t === 'paint');
-  $('#secGen').hidden = t !== 'genland'; $('#secGum').hidden = t !== 'gum';
+  $('#secGen').hidden = t !== 'genland'; $('#secGum').hidden = t !== 'gum'; if (t === 'gum') buildGumPicks();
   $('#gumNote').textContent = kind === 'world' ? 'Land en water gom je niet weg: daarvoor teken je water of land.' : 'Vloer gom je niet weg: daarvoor gebruik je Rots terugzetten.';
   $('#secNature').hidden = !nature; if (nature) buildBrushes();
   $('#roughRow').hidden = !(t === 'paint' || t === 'erase' || t === 'terrain'); $('#brushRough').value = Math.round((U().rough || 0) * 100); $('#brushRoughOut').textContent = Math.round((U().rough || 0) * 100) + '%';
@@ -2791,6 +2886,7 @@ function assetCanvas(key, css, v = 0) {
   drawAsset(g, key, css / 2, css / 2, fitS, 0, false, v); return c;
 }
 function buildAssets() {
+  objEpoch++; // own shapes or uploads may have changed
   const cats = $('#assetCats'); cats.textContent = '';
   if (!catList(kind).some(c => c[0] === U().cat)) U().cat = CATS[kind][0][0];
   for (const [k, n] of catList(kind)) { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = n; b.setAttribute('aria-pressed', U().cat === k); b.addEventListener('click', () => { U().cat = k; buildAssets(); }); cats.append(b); }
@@ -2958,7 +3054,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.6.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.7.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;
@@ -3239,6 +3335,51 @@ $('#fbCopy').addEventListener('click', () => {
   try { navigator.clipboard.writeText(text).then(() => toast('Tekst gekopieerd'), fallback); } catch { fallback(); }
 });
 
+/* ---------- updates: the Windows and Android apps look on GitHub for a newer release ---------- */
+// The website updates itself through the service worker; the installed apps only ask GitHub which version is newest.
+const PLATFORM = window.Capacitor?.isNativePlatform?.() ? 'android' : /Electron\//.test(navigator.userAgent) ? 'windows' : 'web';
+const verNum = v => { const [a = 0, b = 0, c = 0] = String(v).replace(/^v/, '').split('.').map(n => parseInt(n, 10) || 0); return a * 1e6 + b * 1e3 + c; };
+let updRel = null;
+function syncUpdInfo(msg) {
+  const web = PLATFORM === 'web';
+  $('#updRow').hidden = web; $('#updAutoRow').hidden = web;
+  $('#updInfo').textContent = msg || (web ? `Je gebruikt versie ${APP_VERSION}. De webversie werkt zichzelf bij: herlaad de pagina om de nieuwste te krijgen.`
+    : `Je gebruikt versie ${APP_VERSION}.` + (updRel ? ` Versie ${updRel.tag_name.replace(/^v/, '')} staat klaar op GitHub.` : ''));
+  $('#updAuto').checked = lsGet('kartograaf.updAuto') !== '0';
+}
+async function checkUpdates(manual) {
+  if (PLATFORM === 'web') return;
+  lsSet('kartograaf.updCheck', String(Date.now()));
+  if (manual) syncUpdInfo('Even kijken op GitHub…');
+  let rel;
+  try {
+    const r = await fetch(`https://api.github.com/repos/${REPO_URL.split('github.com/')[1]}/releases/latest`, { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' });
+    if (!r.ok) throw new Error(String(r.status)); rel = await r.json();
+  } catch { if (manual) syncUpdInfo('GitHub was niet bereikbaar. Ben je online? Probeer het later opnieuw.'); return; }
+  if (!rel || !rel.tag_name || verNum(rel.tag_name) <= verNum(APP_VERSION)) { updRel = null; if (manual) syncUpdInfo(`Je hebt de nieuwste versie (${APP_VERSION}).`); return; }
+  updRel = rel; syncUpdInfo(); showUpdBar();
+}
+function showUpdBar() {
+  const rel = updRel; if (!rel) return;
+  const asset = (rel.assets || []).find(a => a.name.toLowerCase().endsWith(PLATFORM === 'android' ? '.apk' : '.exe'));
+  $('#updText').textContent = `Versie ${rel.tag_name.replace(/^v/, '')} is beschikbaar. Je hebt ${APP_VERSION}.`;
+  $('#updGet').dataset.url = asset ? asset.browser_download_url : rel.html_url;
+  $('#updGet').textContent = asset ? (PLATFORM === 'android' ? 'APK downloaden' : 'Installer downloaden') : 'Naar GitHub';
+  $('#updNews').dataset.url = rel.html_url;
+  $('#updBar').hidden = false;
+}
+// a top-level navigation to https:// is handed to the normal browser by both apps
+const openOutside = url => { if (url && url.startsWith('https://')) location.href = url; };
+$('#updGet').addEventListener('click', () => { openOutside($('#updGet').dataset.url); $('#updBar').hidden = true; toast(PLATFORM === 'android' ? 'Open de gedownloade APK om bij te werken. Je kaarten blijven bewaard.' : 'Start de gedownloade installer om bij te werken. Je kaarten blijven bewaard.'); });
+$('#updNews').addEventListener('click', () => openOutside($('#updNews').dataset.url));
+$('#updLater').addEventListener('click', () => { $('#updBar').hidden = true; });
+$('#updNow').addEventListener('click', () => checkUpdates(true));
+$('#updAuto').addEventListener('change', e => lsSet('kartograaf.updAuto', e.target.checked ? null : '0'));
+function autoCheckUpdates() {
+  if (PLATFORM === 'web' || lsGet('kartograaf.updAuto') === '0') return;
+  if (Date.now() - (+lsGet('kartograaf.updCheck') || 0) > 20 * 3600e3) checkUpdates(false);
+}
+
 async function boot() {
   await store.open();
   try { navigator.storage?.persist?.().catch(() => {}); } catch {}
@@ -3254,6 +3395,7 @@ async function boot() {
     if (now - last > 14 * 864e5 && now - nudged > 7 * 864e5) { lsSet('kartograaf.nudged', String(now)); setTimeout(() => toast('Tip: maak af en toe een back-up met de knop Back-up rechtsboven.'), 2500); }
   }
   if (document.fonts) Promise.all([document.fonts.load(`20px ${MAPFONT}`), document.fonts.load(`italic 20px ${MAPFONT}`)]).then(() => { buildAssets(); req(); }).catch(() => {});
+  syncUpdInfo(); setTimeout(autoCheckUpdates, 5000);
 }
 boot();
 })();

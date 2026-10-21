@@ -1,5 +1,11 @@
 # Wijzigingen
 
+## 1.7.0
+
+- **Veel vlotter met veel bossen en bergen:** symbolen worden niet meer bij elke muisbeweging allemaal opnieuw getekend. Tijdens het schilderen wordt alleen het stukje onder het penseel bijgewerkt, en bij verschuiven alleen de rand die in beeld komt. Met 2.500 bomen op de kaart gaat een frame van ongeveer 5 ms naar 0,3 ms.
+- **Gum per soort:** kies bij de gum welke soorten hij wegneemt, bv. enkel loofbomen, enkel woestijn als ondergrond of enkel rivieren. De lijst toont wat er op je kaart staat, met het aantal.
+- **Updates vanuit de app:** de Windows- en Android-app kijken één keer per dag op GitHub of er een nieuwe versie is en tonen dan een knop om die te downloaden. Uit te zetten of met de hand te starten bij Instellingen › Back-up en updates. De webversie werkt zichzelf bij zoals voorheen.
+
 ## 1.6.0
 
 - **Afdrukken op A4** (Menu, bij een plattegrond): de kaart wordt verdeeld over A4-bladen in een PDF, met elk vak op ware grootte (standaard 25 mm). Zo kun je de bladen aan elkaar plakken en er met figuurtjes op spelen.

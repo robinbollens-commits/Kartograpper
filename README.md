@@ -42,12 +42,14 @@ Kartograaf is ook een website die je als app kunt installeren. Daarna start hij 
 - **Eigen materiaal:** teken je eigen vormen en ondergronden, of upload afbeeldingen en hele mappen of zips met assets, gesorteerd per type.
 - **Stijlen:** inkt, perkament of kleur, per kaart te kiezen.
 - **Exporteren:** als PNG, of als bewerkbaar bestand.
+- **Gum per soort:** gom enkel loofbomen, enkel een bepaalde ondergrond of enkel rivieren weg.
 - **Afdrukken op A4:** een plattegrond als PDF over meerdere A4-bladen, met vakken op ware grootte (standaard 25 mm), lijmranden en een overzichtsblad. Handig om aan elkaar te plakken en mee te spelen. Druk af op 100 % (“Werkelijke grootte”).
 
 ## Je gegevens
 
 - Alles wordt op je eigen toestel bewaard (IndexedDB). Er wordt niets naar een server gestuurd, en de app maakt geen verbinding met andere diensten.
-- **Updates wissen niets.** Vóór een nieuwe versie iets aanraakt, bewaart ze automatisch een herstelpunt. Je vindt het bij *Instellingen › Bibliotheek › Herstelpunten*.
+- **Updates wissen niets.** Vóór een nieuwe versie iets aanraakt, bewaart ze automatisch een herstelpunt. Je vindt het bij *Instellingen › Back-up en updates › Herstelpunten*.
+- **Updates vinden:** de Windows- en Android-app kijken één keer per dag op GitHub of er een nieuwe versie is en tonen dan een downloadknop. Daarbij wordt alleen de versie opgevraagd; er gaat niets van je kaarten mee. Uitzetten kan bij *Instellingen › Back-up en updates*.
 - Kaarten en bibliotheek zitten vast aan de browser en het adres waar je ze maakte. Wil je ze op een ander toestel of in een andere browser, exporteer dan een back-up en importeer die daar (zie hieronder).
 - Wis je je browsergegevens voor deze site, dan zijn je kaarten weg. Bewaar belangrijke kaarten dus ook als bestand.
 
