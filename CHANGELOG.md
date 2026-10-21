@@ -1,5 +1,15 @@
 # Wijzigingen
 
+## 1.9.0
+
+- Nieuwe symbolen voor de wereldkaart, in drie nieuwe categorieën:
+  - **Elfen:** Elfenstad, Elfenboom, Elfenwoud (boom), Maanpoort en Elfentoren.
+  - **Dwergen:** Bergpoort, Dwergenvesting, Smidse en Runensteen.
+  - **Duistere landen:** Orkkamp, Duistere toren, Dode boom, Schedelrots en Doornen.
+- Ook nieuw: Draak, Kraken, Draaikolk, Steencirkel, Magiertoren, Schat en een Kruisje (X).
+- Nieuwe penselen: **Elfenwoud**, **Dode bossen** en **Doornenland**. Ze verschijnen ook als je al eigen penselen had.
+- Nieuwe ondergronden: **Dorre grond** (gebarsten aarde) en **Bloemenweide**.
+
 ## 1.8.0
 
 - De app heet nu overal **Kartograpper** (Kartograaf + mapper): in de titel, het venster, de snelkoppelingen, onder het app-icoon en in de namen van de installers en back-upbestanden.

@@ -623,11 +623,11 @@ const BLUE = '#2a9ad6';
 const PALETTES = {
   inkt: { name: 'Inkt', ink: [24, 24, 24], paper: [252, 252, 252], water: [252, 252, 252], deep: [252, 252, 252], floor: [252, 252, 252], rock: [252, 252, 252], ground: [252, 252, 252], terr: {}, fill: {} },
   perkament: { name: 'Perkament', ink: [64, 45, 28], paper: [240, 227, 198], water: [229, 216, 186], deep: [222, 207, 175], floor: [242, 231, 205], rock: [221, 205, 172], ground: [236, 223, 192],
-    terr: { gras: [230, 222, 183], woestijn: [242, 224, 180], moeras: [217, 214, 180], sneeuw: [246, 241, 228], akkers: [235, 220, 182], rotsgrond: [224, 210, 184], kasseien: [228, 214, 186], tegels: [234, 222, 196], planken: [230, 210, 172], aarde: [228, 210, 176], water: [222, 214, 190] }, fill: {} },
+    terr: { gras: [230, 222, 183], woestijn: [242, 224, 180], moeras: [217, 214, 180], sneeuw: [246, 241, 228], akkers: [235, 220, 182], rotsgrond: [224, 210, 184], dor: [221, 203, 172], bloemen: [234, 226, 188], kasseien: [228, 214, 186], tegels: [234, 222, 196], planken: [230, 210, 172], aarde: [228, 210, 176], water: [222, 214, 190] }, fill: {} },
   kleur: { name: 'Kleur', colorful: true, ink: [44, 36, 30], paper: [237, 229, 202], water: [182, 216, 228], deep: [126, 174, 204], floor: [234, 227, 210], rock: [156, 148, 138], ground: [221, 226, 192], river: '#3f78a6',
-    terr: { gras: [193, 216, 152], woestijn: [238, 215, 158], moeras: [170, 189, 143], sneeuw: [242, 246, 250], akkers: [226, 205, 140], rotsgrond: [200, 188, 170], kasseien: [202, 198, 188], tegels: [216, 208, 192], planken: [210, 174, 124], aarde: [200, 172, 128], water: [146, 194, 218] },
+    terr: { gras: [193, 216, 152], woestijn: [238, 215, 158], moeras: [170, 189, 143], sneeuw: [242, 246, 250], akkers: [226, 205, 140], rotsgrond: [200, 188, 170], dor: [186, 168, 148], bloemen: [208, 226, 164], kasseien: [202, 198, 188], tegels: [216, 208, 192], planken: [210, 174, 124], aarde: [200, 172, 128], water: [146, 194, 218] },
     fill: { berg: '#cdb994', berg2: '#cdb994', vulkaan: '#b9a58a', heuvels: '#bccf92', rotsen: '#c2b8a8', riet: '#a9c48a', naald: '#6f9c5c', spar: '#5f8e55', loof: '#8fba67', palm: '#8fba67',
-      nederzetting: '#ecdcb8', plek: '#e2d5b8', schip: '#caa77c', zeeslang: '#93b58e', anker: '#ecdcb8', kompas: '#f4ecd8', schaal: '#f4ecd8',
+      nederzetting: '#ecdcb8', plek: '#e2d5b8', elf: '#e6eed6', elfboom: '#9cc47c', elfwoud: '#86b97a', dwerg: '#d8cbb0', dwergpoort: '#cdb994', duister: '#a39a92', orkkamp: '#c2a77f', schedelrots: '#d6cdbd', draak: '#a7b97c', kraken: '#cf9a94', steencirkel: '#c9c2b4', magiertoren: '#cdc6e4', schat: '#c9955a', schip: '#caa77c', zeeslang: '#93b58e', anker: '#ecdcb8', kompas: '#f4ecd8', schaal: '#f4ecd8',
       door: '#c08f5e', geheim: '#ebe3d2', meubel: '#c9a073', bed: '#ebe3d2', tapijt: '#b8665a', kerker: '#d2cbbf', boom: '#7fab60', struik: '#94bd6d', huis: '#c97a55', fontein: '#a9d0e2', kraam: '#e7d3a5', kar: '#c08f5e', tent: '#e6d2a2', boot: '#c08f5e', torenrond: '#d2cbbf', kampvuur: '#c2b8a8' } },
 };
 let CUR = PALETTES.inkt;
@@ -708,6 +708,111 @@ function compass() {
   ops.push(['w', circ(0, 0, 3)], ['t', 'N', 0, -49, 12]); return ops;
 }
 function lines(fn) { let d = ''; fn((x0, y0, x1, y1) => { d += `M${f2(x0)} ${f2(y0)}L${f2(x1)} ${f2(y1)}`; }); return d; }
+
+/* ---------- fantasy peoples and extras for the world map ---------- */
+function cloud(cx, cy, rx, ry, n, seed) {
+  const r = rng(seed); let d = '';
+  for (let i = 0; i <= n; i++) {
+    const a = i / n * Math.PI * 2, x = cx + Math.cos(a) * rx, y = cy + Math.sin(a) * ry;
+    if (!i) { d = `M${f2(x)} ${f2(y)}`; continue; }
+    const am = (i - .5) / n * Math.PI * 2, k = 1.2 + r() * .14; d += `Q${f2(cx + Math.cos(am) * rx * k)} ${f2(cy + Math.sin(am) * ry * k)} ${f2(x)} ${f2(y)}`;
+  }
+  return d + 'Z';
+}
+// a slender elven spire: straight body, leaf-shaped roof, right-hand shading
+function spire(x, base, h, w) {
+  const top = base - h, tip = top - w * 3.2;
+  return [['w', `M${x - w / 2} ${base}L${x - w * .4} ${top}C${x - w * 1.15} ${top - w * .7} ${x - w * .35} ${top - w * 2} ${x} ${tip}C${x + w * .35} ${top - w * 2} ${x + w * 1.15} ${top - w * .7} ${x + w * .4} ${top}L${x + w / 2} ${base}Z`],
+    ['s', `M${x - w * .4} ${top}L${x + w * .4} ${top}`, .7], ['s', `M${x} ${top - 1}L${x} ${f2(top - w * 2.3)}`, .5],
+    ['b', `M${x - 1.5} ${top + 10}L${x - 1.5} ${top + 6}Q${x} ${top + 3.5} ${x + 1.5} ${top + 6}L${x + 1.5} ${top + 10}Z`],
+    ['s', lines(L => { for (let y = top + 14; y < base - 3; y += 7) L(x + w * .2, y, x + w * .42, y); }), .5]];
+}
+function genElfTree(seed) {
+  const r = rng(seed * 4241 + 7), top = -46 + r() * 8, base = 16 + r() * 10, w = 11 + r() * 6, lean = (r() - .5) * 7;
+  const leaf = `M${f2(lean)} ${f2(top)}C${f2(lean + w * .9)} ${f2(top + 14)} ${f2(w * 1.15)} ${f2(base - 14)} 0 ${f2(base)}C${f2(-w * 1.15)} ${f2(base - 14)} ${f2(lean - w * .9)} ${f2(top + 14)} ${f2(lean)} ${f2(top)}Z`;
+  const veins = lines(L => { for (let i = 1; i <= 3; i++) { const y = top + (base - top) * i / 4.2 + 4, x0 = lean * (1 - (y - top) / (base - top)); L(x0, y + 5, x0 + w * .55, y - 1); } });
+  return [['s', `M0 ${f2(base - 4)}L0 44`], ['s', 'M-6 44L6 44', .7], ['w', leaf], ['s', `M${f2(lean * .9)} ${f2(top + 6)}Q${f2(lean * .3)} ${f2((top + base) / 2)} 0 ${f2(base - 2)}`, .6], ['s', veins, .55]];
+}
+function genDeadTree(seed) {
+  const r = rng(seed * 2909 + 5), segs = [[], [], []];
+  const grow = (x, y, a, len, d) => {
+    const x2 = x + Math.cos(a) * len, y2 = y + Math.sin(a) * len; segs[Math.min(2, d)].push([x, y, x2, y2]);
+    if (d >= 3 || len < 5) return;
+    const n = d === 0 ? 3 : 2; for (let i = 0; i < n; i++) grow(x2, y2, a + (i - (n - 1) / 2) * (.6 + r() * .35) + (r() - .5) * .35, len * (.6 + r() * .16), d + 1);
+  };
+  grow(r() * 4 - 2, 42, -Math.PI / 2 + (r() - .5) * .25, 30 + r() * 10, 0);
+  const path = s => lines(L => { for (const q of s) L(q[0], q[1], q[2], q[3]); });
+  return [['s', path(segs[0]), 2.4], ['s', path(segs[1]), 1.5], ['s', path(segs[2]), .8], ['s', 'M-10 42L10 42', .7]];
+}
+function whirl() {
+  const ops = [['s', 'M-46 22Q-40 18 -34 22M30 -22Q36 -26 42 -22M34 26Q40 22 46 26', .7]];
+  [[0, 1.3], [2.1, .9], [4.2, .6]].forEach(([ph, lw]) => {
+    let d = ''; for (let t = .04; t <= 1.001; t += .02) { const a = ph + t * Math.PI * 3.2, rr = 44 * t, x = Math.cos(a) * rr, y = Math.sin(a) * rr * .55; d += (d ? 'L' : 'M') + f2(x) + ' ' + f2(y); }
+    ops.push(['s', d, lw]);
+  });
+  ops.push(['k', 'M-3 0C-3 -3 3 -3 3 0C3 2 -3 2 -3 0Z']); return ops;
+}
+function stoneCircle() {
+  const ops = [['s', 'M-44 16A44 17 0 1 0 44 16A44 17 0 1 0 -44 16', .5], ['w', rect(-7, 12, 14, 5)]], st = [];
+  for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2 + .2; st.push([Math.cos(a) * 34, Math.sin(a) * 13 + 16]); }
+  st.sort((p, q) => p[1] - q[1]);
+  for (const [x, y] of st) {
+    const h = 15 + (y - 3) * .5;
+    ops.push(['w', `M${f2(x - 4.5)} ${f2(y)}L${f2(x - 5)} ${f2(y - h + 3)}Q${f2(x)} ${f2(y - h - 2)} ${f2(x + 5)} ${f2(y - h + 3)}L${f2(x + 4.5)} ${f2(y)}Z`], ['s', `M${f2(x + 2.4)} ${f2(y - 2)}L${f2(x + 2.6)} ${f2(y - h + 4)}`, .5]);
+  }
+  return ops;
+}
+function tentacle(x, w, h, dir) {
+  const tx = x + dir * h * .45, ty = 22 - h;
+  return `M${x} 22C${x - dir * 4} ${f2(22 - h * .5)} ${f2(x + dir * h * .1)} ${f2(ty)} ${f2(tx)} ${f2(ty)}C${f2(tx + dir * 3)} ${f2(ty + 4)} ${f2(tx - dir * 2)} ${f2(ty + 6)} ${f2(tx - dir * 5)} ${f2(ty + 5)}C${f2(x + dir * h * .2)} ${f2(22 - h * .7)} ${x + w + dir * 2} ${f2(22 - h * .45)} ${x + w} 22Z`;
+}
+function palisade(x0, x1, top, bottom) {
+  const ops = []; for (let x = x0; x <= x1; x += 6.5) ops.push(['w', poly([[x - 3, bottom], [x - 3, top + 5], [x, top], [x + 3, top + 5], [x + 3, bottom]])]);
+  ops.push(['s', `M${x0 - 3} ${bottom - 7}L${x1 + 3} ${bottom - 7}`, .7]); return ops;
+}
+
+const FANTASY_ASSETS = [
+  // elves: slender spires, great trees, moon gates
+  ['elfstad', 'Elfenstad', 'elf', 66, [...spire(-22, 34, 22, 8), ...spire(22, 34, 30, 8), ...spire(0, 32, 40, 10), ['s', 'M-18 6Q-11 0 -5 6M5 4Q12 -2 18 4', .7], ['w', 'M-46 42C-36 30 36 30 46 42Z'], ['s', 'M-30 38Q0 31 30 38', .5], ['s', 'M24 37L30 39M34 38L38 40', .5]]],
+  ['elfboom', 'Elfenboom', 'elf', 72, [['w', 'M-14 42C-8 36 -6 22 -7 4L7 4C6 22 8 36 14 42C6 40 -6 40 -14 42Z'], ['s', 'M-14 42L-22 44M14 42L22 44M-4 40L-6 46M4 40L6 46', .7], ['k', 'M-3.5 38L-3.5 31Q0 26 3.5 31L3.5 38Z'], ['b', circ(0, 18, 1.8)],
+    ['w', cloud(0, -4, 38, 11, 9, 11)], ['s', 'M18 2Q26 1 31 -3M8 4Q14 5 18 3', .6], ['w', cloud(0, -20, 29, 10, 8, 12)], ['s', 'M14 -14Q22 -14 26 -18', .6], ['w', cloud(0, -35, 17, 9, 7, 13)], ['s', 'M6 -30Q12 -30 14 -34', .6]]],
+  ['elfwoud', 'Elfenwoud (boom)', 'elf', 30, genElfTree(0)],
+  ['elfpoort', 'Maanpoort', 'elf', 50, [['w', 'M-24 40L-24 0C-24 -20 -8 -30 0 -38C8 -30 24 -20 24 0L24 40L15 40L15 2C15 -12 7 -20 0 -26C-7 -20 -15 -12 -15 2L-15 40Z'], ['s', 'M-19.5 40L-19.5 0C-19.5 -16 -6 -26 0 -32C6 -26 19.5 -16 19.5 0L19.5 40', .45], ['s', 'M17 8L22 8M17 18L22 18M17 28L22 28', .5], ['w', rect(-30, 40, 60, 4)], ['k', 'M-3 -46A7 7 0 1 0 6 -38A5.5 5.5 0 1 1 -3 -46Z'], ['s', 'M-14 30Q-6 22 -10 12M-10 20L-6 18', .6]]],
+  ['elftoren', 'Elfentoren', 'elf', 46, [...spire(0, 42, 46, 12), ['w', rect(-11, 12, 22, 3)], ['s', 'M-16 44L16 44', .7]]],
+  // dwarves: gates carved in the mountain, square fortresses, forges
+  ['dwergpoort', 'Bergpoort', 'dwerg', 72, [['w', 'M-48 40L-22 -12L-12 -4L4 -42L48 40Z'], ['s', 'M4 -42L8 -24L3 -14', .9], ['s', 'M-22 -12L-18 -2', .7], ['s', 'M28 8L34 16M31 20L39 28M35 32L43 38', .7],
+    ['w', poly([[-24, 40], [-24, 6], [-28, 6], [0, -14], [28, 6], [24, 6], [24, 40]])], ['k', rect(-11, 12, 22, 28)], ['s', 'M-28 6L28 6', .7], ['s', 'M-18 40L-18 10M18 40L18 10', .6], ['s', 'M-8 0L-5 -5L-2 0M2 0L5 -5L8 0M-14 4L-12 2M12 2L14 4', .5], ['w', 'M-32 40L32 40L30 45L-30 45Z']]],
+  ['dwergvesting', 'Dwergenvesting', 'dwerg', 66, [['w', poly([[-42, 40], [-42, -6], [-38, -12], [-24, -12], [-20, -6], [-20, 40]])], ['w', poly([[20, 40], [20, -6], [24, -12], [38, -12], [42, -6], [42, 40]])], ['b', rect(-33, -4, 4, 8)], ['b', rect(29, -4, 4, 8)],
+    ['w', cren(-44, 44, 14, 40, 5)], ['w', poly([[-15, 40], [-15, -14], [-11, -24], [11, -24], [15, -14], [15, 40]])], ['w', rect(-8, -34, 16, 10)], ['w', poly([[-11, -34], [0, -44], [11, -34]])],
+    ['k', 'M-6 40L-6 26L0 20L6 26L6 40Z'], ['b', rect(-2, -10, 4, 8)], ['s', 'M-15 -14L15 -14M-15 10L15 10', .6], ['s', 'M10 -6L13 -6M9 2L13 2M34 0L39 0M35 8L39 8M28 26L36 26', .5]]],
+  ['smidse', 'Smidse', 'dwerg', 46, [['w', rect(-6, -2, 8, 30)], ['w', 'M-4 -4C-10 -8 -8 -18 -2 -18C0 -26 10 -24 10 -18C18 -18 18 -8 10 -8C6 -4 0 -4 -4 -4Z', .8], ['w', house(-12, 40, 32, 18, 13)], ['k', 'M-16 40L-16 30Q-12 25 -8 30L-8 40Z'], ['b', rect(-25, 28, 5, 5)],
+    ['k', 'M12 29L18 28L40 28L38 32L32 32L32 37L36 40L22 40L26 37L26 32L18 31Z'], ['s', 'M-2 26L2 26M-1 33L3 33', .5]]],
+  ['runensteen', 'Runensteen', 'dwerg', 36, [['w', 'M-12 40L-14 -30L-6 -42L10 -40L14 -28L12 40Z'], ['s', 'M-5 -28L-5 -16L1 -22M-6 -8L4 -8M-1 -12L-1 0M-5 8L3 16M3 8L-5 16M-2 24L2 28L-2 32', .7], ['s', 'M9 -30L12 -26M9 -12L12 -8M9 6L12 10M9 22L12 26', .5], ['s', 'M-24 42L-14 42M14 42L24 42', .6]]],
+  // dark lands and orcs
+  ['orkkamp', 'Orkkamp', 'duister', 58, [['w', 'M-36 26L-22 -8L-8 26Z'], ['k', 'M-25 26L-22 14L-19 26Z'], ['w', 'M4 24L20 -14L36 24Z'], ['k', 'M17 24L20 10L23 24Z'], ['s', 'M-22 -8L-26 -14M-22 -8L-18 -15M20 -14L16 -21M20 -14L24 -21', .8],
+    ['s', 'M-2 30L-2 -42', 1.2], ['k', 'M-2 -42L20 -40L15 -34L20 -27L-2 -28Z'], ['w', circ(7, -35, 3)], ['b', rect(5.6, -36, 1.1, 1.2)], ['b', rect(7.6, -36, 1.1, 1.2)], ...palisade(-42, 42, 22, 44)]],
+  ['duistertoren', 'Duistere toren', 'duister', 66, [['w', 'M-32 44L-26 34L-16 36L-12 44Z'], ['w', 'M12 44L18 33L28 35L34 44Z'],
+    ['k', poly([[-16, 44], [-10, -8], [-17, -16], [-9, -20], [-13, -33], [-4, -29], [0, -48], [4, -29], [13, -33], [9, -20], [17, -16], [10, -8], [16, 44]])],
+    ['w', 'M-7 -18Q0 -25 7 -18Q0 -11 -7 -18Z'], ['k', 'M0 -21.5C1.4 -20 1.4 -16 0 -14.5C-1.4 -16 -1.4 -20 0 -21.5Z'], ['w', rect(-1.5, 2, 3, 7)], ['w', rect(-1.5, 18, 3, 7)], ['w', rect(-1.5, 32, 3, 6)]]],
+  ['dodeboom', 'Dode boom', 'duister', 30, genDeadTree(0)],
+  ['schedelrots', 'Schedelrots', 'duister', 54, [['w', 'M-30 36C-34 10 -26 -26 0 -28C26 -26 34 10 30 36L18 36L15 28L8 36L0 28L-8 36L-15 28L-18 36Z'], ['k', 'M-17 -2C-17 -11 -4 -11 -4 -2C-4 5 -17 5 -17 -2Z'], ['k', 'M4 -2C4 -11 17 -11 17 -2C17 5 4 5 4 -2Z'], ['k', 'M0 6L-4 15L4 15Z'],
+    ['s', 'M8 -22L12 -16L10 -10', .6], ['s', 'M24 2L29 6M25 14L30 18M22 24L27 28', .6], ['s', 'M-46 38L-32 38M32 38L46 38', .7]]],
+  ['doornen', 'Doornen', 'duister', 30, [['s', 'M-20 30Q-18 6 -6 -16M-4 30Q0 4 14 -14M6 30Q14 14 28 6', 1.2], ['s', 'M-17 12L-23 8M-14 4L-9 0M-10 -6L-15 -10M-2 14L4 11M2 2L-3 -2M7 -6L12 -2M10 20L13 14M17 16L21 21M21 10L22 4', .8], ['s', 'M-28 34L-14 34M-6 36L10 36M16 34L32 34', .6]]],
+  // a few more things for a fantasy map
+  ['draak', 'Draak', 'deco', 86, [['w', 'M-4 -4L-14 -44Q-4 -34 4 -40Q8 -28 20 -30Q20 -18 30 -14Q18 -10 8 -2Z'], ['s', 'M-4 -4L4 -40M-4 -4L20 -30M-4 -4L30 -14', .6],
+    ['w', 'M-30 -8C-20 -12 -10 -4 0 2C12 10 24 6 34 12C40 16 42 24 36 27C38 22 36 19 30 18C20 16 10 22 -2 14C-12 8 -20 2 -28 2Z'], ['k', 'M36 27L45 24L41 33Z'],
+    ['w', 'M-28 2C-34 4 -44 1 -48 -3L-41 -5L-47 -9C-41 -12 -35 -12 -30 -8Z'], ['s', 'M-32 -10L-30 -18M-35 -10L-39 -17', .8], ['b', circ(-38, -6, 1.3)],
+    ...[[-20, -10], [-11, -6], [-2, 0], [8, 6], [18, 8], [27, 10]].map(([x, y]) => ['k', poly([[x - 2.6, y + .5], [x, y - 5], [x + 2.6, y + .5]])]), ['s', 'M-14 8L-16 18L-12 19M8 15L9 25L13 25', .9], ['s', 'M-6 8Q4 14 14 13', .5]]],
+  ['kraken', 'Kraken', 'zee', 74, [['w', tentacle(-32, 8, 38, -1)], ['w', tentacle(-20, 6, 24, -1)], ['w', tentacle(18, 8, 46, 1)], ['w', tentacle(30, 7, 26, 1)], ['w', 'M-13 22C-13 2 13 2 13 22Z'], ['b', circ(-5, 13, 1.8)], ['b', circ(5, 13, 1.8)],
+    ['s', 'M22 4L25 2M23 -6L26 -9M-28 2L-25 0', .6], ['s', 'M-50 26Q-44 22 -38 26Q-32 30 -26 26M-14 26Q-8 22 -2 26Q4 30 10 26M22 26Q28 22 34 26Q40 30 46 26', .8], ['s', 'M-34 34L-16 34M4 36L24 36', .6]]],
+  ['draaikolk', 'Draaikolk', 'zee', 56, whirl()],
+  ['steencirkel', 'Steencirkel', 'plek', 56, stoneCircle()],
+  ['magiertoren', 'Magiertoren', 'plek', 52, [['w', 'M-10 42L-8 -6L8 -6L10 42Z'], ['w', rect(-13, -10, 26, 4)], ['w', 'M-14 -10C-8 -20 -2 -34 8 -48C4 -36 8 -22 14 -10Z'], ['s', 'M-10 -17Q0 -20 11 -17', .6], ['b', rect(-2, 4, 4, 7)], ['k', 'M-4 42L-4 34Q0 29 4 34L4 42Z'],
+    ['s', 'M5 14L8 14M5 24L8 24M5 0L8 0', .5], ['k', star(-24, -34, 5, 1.8, 4)], ['k', star(24, -42, 3.5, 1.4, 4)], ['k', star(-16, -46, 2.8, 1.1, 4)], ['k', 'M22 -26A7 7 0 1 0 30 -16A5.5 5.5 0 1 1 22 -26Z']]],
+  ['schat', 'Schat', 'plek', 36, [['w', 'M-26 22C-30 18 -20 14 -14 18C-12 12 0 12 2 18C8 14 22 14 24 22Z'], ['w', rect(-20, -2, 40, 20)], ['w', 'M-20 -2C-20 -18 20 -18 20 -2Z'], ['s', 'M-9 -14L-9 18M9 -14L9 18', .9], ['k', rect(-3, -5, 6, 7)], ['s', 'M12 4L16 4M12 10L16 10', .5]]],
+  ['kruis', 'Kruisje (X)', 'deco', 30, [['s', 'M-30 -30L30 30M30 -30L-30 30', 3.2]]],
+];
+const FANTASY_GENERATORS = { elfwoud: genElfTree, dodeboom: genDeadTree };
 
 const WORLD_ASSETS = [
   ['berg', 'Berg', 'land', 64, [['w', 'M-46 36L-20 -8L-12 -2L4 -38L46 36Z'], ['s', 'M4 -38L8 -18L2 -4L10 12L6 36'], ['s', 'M14 -14L20 -6M16 0L26 8M14 14L30 22M18 26L36 32', .7], ['s', 'M-20 -8L-16 6L-20 20', .7]]],
@@ -862,16 +967,16 @@ function genLeafy(seed) {
   ops.push(['s', `M${f2(cx + R * .15)} ${f2(cy + R * .5)}Q${f2(cx + R * .55)} ${f2(cy + R * .35)} ${f2(cx + R * .6)} ${f2(cy - R * .05)}M${f2(cx - R * .35)} ${f2(cy + R * .55)}Q${f2(cx - R * .05)} ${f2(cy + R * .7)} ${f2(cx + R * .2)} ${f2(cy + R * .62)}`, .6]);
   return ops;
 }
-const GENERATORS = { berg: genMountain, heuvels: genHills, naald: genPine, loof: genLeafy };
+const GENERATORS = { berg: genMountain, heuvels: genHills, naald: genPine, loof: genLeafy, ...FANTASY_GENERATORS };
 const compileOps = ops => ops.map(o => o[0] === 't' ? { m: 't', t: o[1], x: o[2], y: o[3], fs: o[4] } : { m: o[0], p: new Path2D(o[1]), lw: o[2] || 1 });
 
 const ASSETS = {};
 const CATS = {
-  world: [['land', 'Landschap'], ['boom', 'Bomen'], ['nederzetting', 'Nederzettingen'], ['plek', 'Plekken'], ['zee', 'Zee'], ['deco', 'Versiering'], ['eigen', 'Eigen']],
+  world: [['land', 'Landschap'], ['boom', 'Bomen'], ['nederzetting', 'Nederzettingen'], ['plek', 'Plekken'], ['elf', 'Elfen'], ['dwerg', 'Dwergen'], ['duister', 'Duistere landen'], ['zee', 'Zee'], ['deco', 'Versiering'], ['eigen', 'Eigen']],
   local: [['door', 'Doorgangen'], ['meubel', 'Meubels'], ['kerker', 'Kerker'], ['buiten', 'Buiten'], ['eigen', 'Eigen']],
 };
 const ASSET_LIST = { world: [], local: [] };
-for (const [k, list] of [['world', WORLD_ASSETS], ['local', LOCAL_ASSETS]]) {
+for (const [k, list] of [['world', [...WORLD_ASSETS, ...FANTASY_ASSETS]], ['local', LOCAL_ASSETS]]) {
   for (const [key, name, cat, size, ops] of list) {
     ASSETS[key] = { key, name, cat, size, kind: k, c: compileOps(ops) };
     ASSET_LIST[k].push(key);
@@ -881,11 +986,11 @@ for (const [k, list] of [['world', WORLD_ASSETS], ['local', LOCAL_ASSETS]]) {
 for (const key in GENERATORS) { const a = ASSETS[key]; a.vars = [a.c]; for (let i = 1; i < 10; i++) a.vars.push(compileOps(GENERATORS[key](i))); }
 const pickVar = key => ASSETS[key]?.vars ? Math.floor(Math.random() * ASSETS[key].vars.length) : 0;
 // how far below its centre a symbol "stands"; drawing order follows that foot line so nearer things cover farther ones
-const FLAT = new Set(['stip-hoofdstad', 'stip-stad', 'stip-dorp', 'kompas', 'schaal']);
+const FLAT = new Set(['stip-hoofdstad', 'stip-stad', 'stip-dorp', 'kompas', 'schaal', 'kruis']);
 for (const k in ASSETS) ASSETS[k].foot = ASSETS[k].kind === 'world' && !FLAT.has(k) ? .38 : 0;
 
 // symbols shaded on their right side; never mirrored, so the light always comes from the left
-const SHADED = new Set(['berg', 'berg2', 'heuvels', 'vulkaan', 'rotsen', 'naald', 'spar', 'loof']);
+const SHADED = new Set(['berg', 'berg2', 'heuvels', 'vulkaan', 'rotsen', 'naald', 'spar', 'loof', 'elfstad', 'elfboom', 'elfwoud', 'elfpoort', 'elftoren', 'dwergpoort', 'dwergvesting', 'smidse', 'runensteen', 'schedelrots', 'magiertoren', 'schat']);
 function tinted(a, color) {
   let c = a.tints[color]; if (c) return c;
   c = document.createElement('canvas'); c.width = c.height = 200; const g = c.getContext('2d');
@@ -973,6 +1078,20 @@ const TERRAIN_DEFS = {
       jit(S, 15, r, (x, y) => { if (r() < .35) return; const pts = [], rad = 1.6 + r() * 2.2;
         for (let k = 0; k < 5; k++) { const a = k / 5 * 6.283 + r() * .6, q = rad * (.7 + r() * .5); pts.push([Math.cos(a) * q, Math.sin(a) * q * .8]); }
         wrap((dx, dy) => { g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(x + dx + p[0], y + dy + p[1]) : g.moveTo(x + dx + p[0], y + dy + p[1])); g.closePath(); g.stroke(); }); });
+    }],
+    ['dor', 'Dorre grond', (g, S, r, wrap) => {
+      g.lineWidth = .9;
+      jit(S, 30, r, (x, y) => { if (r() < .2) return; const pts = [[x, y]]; let a = r() * Math.PI * 2;
+        for (let k = 0; k < 3; k++) { a += (r() - .5) * 1.4; const q = pts[pts.length - 1], l = 6 + r() * 6; pts.push([q[0] + Math.cos(a) * l, q[1] + Math.sin(a) * l]); }
+        const br = r() < .6 ? [pts[1], [pts[1][0] + Math.cos(a + 1.6) * 6, pts[1][1] + Math.sin(a + 1.6) * 6]] : null;
+        wrap((dx, dy) => { g.beginPath(); g.moveTo(pts[0][0] + dx, pts[0][1] + dy); for (let k = 1; k < pts.length; k++) g.lineTo(pts[k][0] + dx, pts[k][1] + dy); if (br) { g.moveTo(br[0][0] + dx, br[0][1] + dy); g.lineTo(br[1][0] + dx, br[1][1] + dy); } g.stroke(); }); });
+      jit(S, 14, r, (x, y) => { if (r() < .6) return; wrap((dx, dy) => { g.beginPath(); g.arc(x + dx, y + dy, .6, 0, 7); g.fill(); }); });
+    }],
+    ['bloemen', 'Bloemenweide', (g, S, r, wrap) => {
+      tufts(28)(g, S, r, wrap);
+      g.lineWidth = .85;
+      jit(S, 20, r, (x, y) => { if (r() < .45) return; const q = 1.2 + r() * .5;
+        wrap((dx, dy) => { const X = x + dx, Y = y + dy; g.beginPath(); for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2, cx = X + Math.cos(a) * q * 2, cy = Y + Math.sin(a) * q * 2; g.moveTo(cx + q, cy); g.arc(cx, cy, q, 0, 7); } g.stroke(); g.beginPath(); g.arc(X, Y, .9, 0, 7); g.fill(); }); });
     }],
   ],
   local: [
@@ -1926,6 +2045,9 @@ const PRESETS = {
     { id: 'palmen', name: 'Palmen', items: [{ a: 'palm', v: 0 }] },
     { id: 'rotsen', name: 'Rotsen', items: [{ a: 'rotsen', v: 0 }] },
     { id: 'riet', name: 'Riet', items: [{ a: 'riet', v: 0 }] },
+    { id: 'elfenwoud', since: 2, name: 'Elfenwoud', items: [{ a: 'elfwoud', v: -1, n: 6 }, { a: 'loof', v: -1, n: 1 }] },
+    { id: 'dodebossen', since: 2, name: 'Dode bossen', items: [{ a: 'dodeboom', v: -1 }] },
+    { id: 'doornenland', since: 2, name: 'Doornenland', items: [{ a: 'doornen', v: 0, n: 6 }, { a: 'dodeboom', v: -1, n: 1 }, { a: 'rotsen', v: 0, n: 1, rel: .7 }] },
   ],
   local: [
     { id: 'bomen', name: 'Bomen', items: [{ a: 'boom', v: 0, n: 6 }, { a: 'struik', v: 0 }] },
@@ -1938,8 +2060,9 @@ const normBrush = b => ({ id: String(b.id), name: String(b.name || 'Penseel').sl
   amount: +b.amount || 1.4, scale: +b.scale || 1, vary: b.vary ?? .25,
   items: (b.items || []).map(it => ({ a: String(it.a), v: Number.isInteger(it.v) ? it.v : 0, zone: ['overal', 'midden', 'rand'].includes(it.zone) ? it.zone : 'overal', n: snapN(+it.n || 3), rel: Math.max(.2, Math.min(3, +it.rel || 1)) })) });
 const presetBrushes = k => PRESETS[k].map(normBrush);
+const PRESET_LEVEL = 2; // raise together with `since` on brushes added later, so saved libraries get them once
 const DEFAULT_TYPES = ['Bomen', 'Bergen', 'Heuvels', 'Gras en planten', 'Rotsen', 'Water', 'Gebouwen', 'Steden', 'Versiering', 'Overig'];
-const lib = { brushes: { world: presetBrushes('world'), local: presetBrushes('local') }, shapes: [], terrains: [], uploads: [], types: DEFAULT_TYPES.slice(), sel: { world: 'gebergte', local: 'bomen' } };
+const lib = { brushes: { world: presetBrushes('world'), local: presetBrushes('local') }, shapes: [], terrains: [], uploads: [], types: DEFAULT_TYPES.slice(), sel: { world: 'gebergte', local: 'bomen' }, presetsSeen: PRESET_LEVEL };
 const newId = () => Math.random().toString(36).slice(2, 9);
 const validShape = sh => sh && typeof sh.id === 'string' && Array.isArray(sh.strokes);
 let libTimer = null;
@@ -1949,6 +2072,10 @@ async function loadLib() {
   lib.shapes = Array.isArray(L.shapes) ? L.shapes.filter(validShape) : [];
   for (const sh of lib.shapes) registerShape(sh);
   for (const k of ['world', 'local']) if (Array.isArray(L.brushes[k]) && L.brushes[k].length) lib.brushes[k] = L.brushes[k].map(normBrush);
+  // brushes added in a later version appear once, also in a saved library; one you deleted afterwards stays gone
+  const seen = +L.presetsSeen || 1;
+  for (const k of ['world', 'local']) for (const p of PRESETS[k]) if ((p.since || 1) > seen && !lib.brushes[k].some(b => b.id === p.id)) lib.brushes[k].push(normBrush(p));
+  if (seen < PRESET_LEVEL) saveLib();
   if (L.sel) Object.assign(lib.sel, L.sel);
   lib.terrains = Array.isArray(L.terrains) ? L.terrains.filter(validTerr) : [];
   for (const t of lib.terrains) registerTerrain(t);
@@ -3076,7 +3203,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.8.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.9.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;
