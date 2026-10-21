@@ -1,8 +1,8 @@
-# Kartograaf
+# Kartograpper
 
 Teken je eigen fantasykaarten in de browser: wereldkaarten met kusten, bergketens en bossen, of plattegronden van steden en dungeons. In zwart-wit inkt, sepia perkament of in kleur.
 
-![Kartograaf met een wereldkaart in kleur](docs/screenshot-kleur.png)
+![Kartograpper met een wereldkaart in kleur](docs/screenshot-kleur.png)
 
 ![Dezelfde kaart in zwart-wit inkt](docs/screenshot-inkt.png)
 
@@ -16,14 +16,14 @@ Op de pagina [Releases](https://github.com/robinbollens-commits/Kartograpper/rel
 
 | Toestel | Bestand | Zo installeer je |
 |---|---|---|
-| Windows | `Kartograaf-Setup-….exe` | Dubbelklik. Waarschuwt Windows dat de uitgever onbekend is, klik dan *Meer informatie › Toch uitvoeren*. |
-| Android | `Kartograaf-….apk` | Open het bestand op je telefoon en sta *Installeren uit onbekende bronnen* toe. |
+| Windows | `Kartograpper-Setup-….exe` | Dubbelklik. Waarschuwt Windows dat de uitgever onbekend is, klik dan *Meer informatie › Toch uitvoeren*. |
+| Android | `Kartograpper-….apk` | Open het bestand op je telefoon en sta *Installeren uit onbekende bronnen* toe. |
 
 Een nieuwe versie installeer je gewoon over de oude heen. Je kaarten blijven bewaard.
 
 ## Installeren vanuit de browser
 
-Kartograaf is ook een website die je als app kunt installeren. Daarna start hij vanaf je bureaublad of beginscherm en werkt hij zonder internet.
+Kartograpper is ook een website die je als app kunt installeren. Daarna start hij vanaf je bureaublad of beginscherm en werkt hij zonder internet.
 
 | Toestel | Zo installeer je |
 |---|---|
@@ -57,12 +57,12 @@ Kartograaf is ook een website die je als app kunt installeren. Daarna start hij 
 
 Klik rechtsboven op **Back-up**:
 
-- **Exporteren** bewaart al je kaarten en je hele bibliotheek (geüploade assets, penselen, getekende vormen en ondergronden) in één bestand, bv. `kartograaf-backup-2026-10-21.json`.
+- **Exporteren** bewaart al je kaarten en je hele bibliotheek (geüploade assets, penselen, getekende vormen en ondergronden) in één bestand, bv. `kartograpper-backup-2026-10-21.json`.
 - **Importeren** zet zo'n bestand terug. Je kunt het bestand ook gewoon op het venster slepen.
 
 Een nieuwe installatie (andere computer, telefoon, de Windows-app of de Android-app) vraagt bij de eerste start meteen of je een back-up wilt importeren.
 
-Vóór elk importeren en elke update maakt Kartograaf een herstelpunt (*Instellingen › Back-up*). Exporteer zelf af en toe een back-up: je gegevens staan alleen op je eigen toestel.
+Vóór elk importeren en elke update maakt Kartograpper een herstelpunt (*Instellingen › Back-up*). Exporteer zelf af en toe een back-up: je gegevens staan alleen op je eigen toestel.
 
 ## Feedback
 

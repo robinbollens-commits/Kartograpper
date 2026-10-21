@@ -1,6 +1,6 @@
 {
-  "name": "Kartograaf",
-  "short_name": "Kartograaf",
+  "name": "Kartograpper",
+  "short_name": "Kartograpper",
   "description": "Teken fantasykaarten in inkt, perkament of kleur: wereldkaarten, steden en dungeons.",
   "lang": "nl",
   "start_url": "./",

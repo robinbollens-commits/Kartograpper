@@ -1,5 +1,10 @@
 # Wijzigingen
 
+## 1.8.0
+
+- De app heet nu overal **Kartograpper** (Kartograaf + mapper): in de titel, het venster, de snelkoppelingen, onder het app-icoon en in de namen van de installers en back-upbestanden.
+- Je kaarten en bibliotheek blijven gewoon staan: de plek waar ze bewaard worden verandert niet. Oude back-upbestanden (`kartograaf-backup-….json`) kun je nog altijd importeren.
+
 ## 1.7.1
 
 - Herstel: de keuze per soort bij de gum verscheen niet door een fout in 1.7.0.

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Kartograaf</title>
+<title>Kartograpper</title>
 <meta name="description" content="Teken fantasykaarten in inkt, perkament of kleur: wereldkaarten, steden en dungeons.">
 <meta name="theme-color" content="#d8dce2" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#101317" media="(prefers-color-scheme: dark)">
@@ -11,7 +11,7 @@
 <link rel="icon" type="image/png" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Kartograaf">
+<meta name="apple-mobile-web-app-title" content="Kartograpper">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&display=swap">
@@ -249,7 +249,7 @@ body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
 
 <div class="app" id="app">
   <header class="bar">
-    <div class="brand">Kartograaf <small>kaarten in inkt</small></div>
+    <div class="brand">Kartograpper <small>kaarten in inkt</small></div>
     <div class="seg" id="kindSeg">
       <button type="button" data-kind="world" aria-pressed="true"><span class="wide-l">Wereldkaart</span><span class="narrow-l">Wereld</span></button>
       <button type="button" data-kind="local" aria-pressed="false"><span class="wide-l">Stad &amp; dungeon</span><span class="narrow-l">Stad</span></button>
@@ -1469,7 +1469,7 @@ async function docToRecord(d, asText) {
     shapes: lib.shapes.filter(sh => d.stamps.some(st => st.a === 'c:' + sh.id)), terrains: lib.terrains.filter(t => d.layers['t:u:' + t.id]), uploads: await usedUploads(d, asText) };
 }
 async function docFromRecord(rec) {
-  if (!rec || (rec.kind !== 'world' && rec.kind !== 'local')) throw new Error('Dit is geen kaart van Kartograaf.');
+  if (!rec || (rec.kind !== 'world' && rec.kind !== 'local')) throw new Error('Dit is geen kaart van Kartograpper.');
   const w = +rec.w, h = +rec.h; if (!(w >= 200 && w <= 4000 && h >= 200 && h <= 4000)) throw new Error('Het kaartformaat klopt niet.');
   let libChanged = false;
   for (const sh of rec.shapes || []) { if (!validShape(sh)) continue; if (!lib.shapes.some(x => x.id === sh.id)) { lib.shapes.push(sh); libChanged = true; } registerShape(sh); }
@@ -2606,7 +2606,7 @@ async function libraryObject() {
   for (const u of lib.uploads) { const b = UPBLOB.get(u.id); if (b) ups.push({ ...u, data: await blobToDataURL(b) }); }
   return { app: 'kartograaf-bibliotheek', v: 1, brushes: lib.brushes, shapes: lib.shapes, terrains: lib.terrains, types: lib.types, uploads: ups };
 }
-async function saveLibraryFile() { menu.open = false; await offerFile('kartograaf-bibliotheek.json', JSON.stringify(await libraryObject())); }
+async function saveLibraryFile() { menu.open = false; await offerFile('kartograpper-bibliotheek.json', JSON.stringify(await libraryObject())); }
 
 /* ---------- import a whole folder or zip and mark what belongs where ---------- */
 const pk = { items: [], last: -1 };
@@ -3076,7 +3076,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.7.1', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.8.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;
@@ -3099,7 +3099,7 @@ async function recToText(rec) {
 async function renderBackups() {
   const box = $('#libBackup'); box.textContent = '';
   const b = await store.get('backup'), rescues = [['world', await store.get('rescue:world')], ['local', await store.get('rescue:local')]].filter(x => x[1]);
-  if (!b && !rescues.length) { const p = document.createElement('p'); p.className = 'note'; p.textContent = 'Nog geen herstelpunten. Bij elke nieuwe versie van Kartograaf bewaar ik eerst automatisch een kopie van je kaarten en bibliotheek.'; box.append(p); return; }
+  if (!b && !rescues.length) { const p = document.createElement('p'); p.className = 'note'; p.textContent = 'Nog geen herstelpunten. Bij elke nieuwe versie van Kartograpper bewaar ik eerst automatisch een kopie van je kaarten en bibliotheek.'; box.append(p); return; }
   const mk = (text, buttons) => { const d = document.createElement('div'); d.className = 'backup'; const t = document.createElement('span'); t.textContent = text; d.append(t, btnRow(buttons)); box.append(d); };
   const saveRec = async (rec, name) => { if (!rec) { toast('Daar staat geen kaart in.'); return; } await offerFile(name, JSON.stringify(await recToText(rec))); };
   if (b) mk(`Kopie van ${new Date(b.date).toLocaleString('nl-BE')}, gemaakt ${b.why || 'vóór de overstap naar versie ' + b.to}.`, [
@@ -3127,15 +3127,15 @@ async function fullBackup() {
 async function saveFullBackup() {
   menu.open = false; commitLabelEdit(); toast('Back-up wordt gemaakt…');
   const d = new Date(), stamp = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  if (await offerFile(`kartograaf-backup-${stamp}.json`, JSON.stringify(await fullBackup()))) { lsSet('kartograaf.lastBackup', String(Date.now())); syncBackupDialog(); }
+  if (await offerFile(`kartograpper-backup-${stamp}.json`, JSON.stringify(await fullBackup()))) { lsSet('kartograaf.lastBackup', String(Date.now())); syncBackupDialog(); }
 }
 const lsGet = k => { try { return localStorage.getItem(k); } catch { return null; } };
 const lsSet = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch {} };
 function syncBackupDialog(welcome) {
   if (welcome !== undefined) {
-    $('#bkTitle').textContent = welcome ? 'Welkom bij Kartograaf' : 'Back-up';
+    $('#bkTitle').textContent = welcome ? 'Welkom bij Kartograpper' : 'Back-up';
     $('#bkIntro').textContent = welcome
-      ? 'Heb je Kartograaf al eens gebruikt op een ander toestel of in een andere installatie? Importeer dan je back-up, en je kaarten en bibliotheek staan er meteen. Nieuw? Sluit dit venster en begin met de voorbeeldkaart.'
+      ? 'Heb je Kartograpper al eens gebruikt op een ander toestel of in een andere installatie? Importeer dan je back-up, en je kaarten en bibliotheek staan er meteen. Nieuw? Sluit dit venster en begin met de voorbeeldkaart.'
       : 'Eén bestand met al je kaarten en je hele bibliotheek: geüploade assets, penselen, getekende vormen en ondergronden. Bewaar het op een veilige plek, en open het in een nieuwe installatie om verder te werken.';
     $('#bkClose').textContent = welcome ? 'Meteen beginnen' : 'Sluiten';
   }
@@ -3182,7 +3182,7 @@ $('#fullOpen').addEventListener('click', pickBackupFile);
 let fbKind = 'bug';
 function fbBody() {
   const parts = [$('#fbText').value.trim() || '(geen beschrijving)'];
-  if ($('#fbInfo').checked) parts.push('', '---', `Kartograaf ${APP_VERSION} · ${kind === 'world' ? 'Wereldkaart' : 'Stad & dungeon'} · stijl ${doc?.palette || '?'}`, `Browser: ${navigator.userAgent}`, `Scherm: ${innerWidth} × ${innerHeight}`);
+  if ($('#fbInfo').checked) parts.push('', '---', `Kartograpper ${APP_VERSION} · ${kind === 'world' ? 'Wereldkaart' : 'Stad & dungeon'} · stijl ${doc?.palette || '?'}`, `Browser: ${navigator.userAgent}`, `Scherm: ${innerWidth} × ${innerHeight}`);
   return parts.join('\n');
 }
 function fbTitle() { return ({ bug: '[Fout] ', idee: '[Idee] ', vraag: '[Vraag] ' })[fbKind] + ($('#fbTitleIn').value.trim() || 'Feedback'); }

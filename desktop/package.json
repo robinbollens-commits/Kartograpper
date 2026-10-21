@@ -1,6 +1,6 @@
 {
   "name": "kartograaf",
-  "productName": "Kartograaf",
+  "productName": "Kartograpper",
   "version": "1.2.0",
   "description": "Teken fantasykaarten in inkt, perkament of kleur.",
   "author": "Robin Bollens",
@@ -17,7 +17,7 @@
   },
   "build": {
     "appId": "io.github.robinbollens.kartograaf",
-    "productName": "Kartograaf",
+    "productName": "Kartograpper",
     "files": ["main.js", "web/**/*"],
     "directories": { "output": "dist", "buildResources": "build" },
     "win": { "target": "nsis" },
@@ -28,8 +28,8 @@
       "deleteAppDataOnUninstall": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Kartograaf",
-      "artifactName": "Kartograaf-Setup-${version}.exe"
+      "shortcutName": "Kartograpper",
+      "artifactName": "Kartograpper-Setup-${version}.exe"
     }
   }
 }

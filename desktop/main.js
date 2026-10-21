@@ -1,15 +1,17 @@
-// Kartograaf for Windows: a window around the same index.html as the website.
+// Kartograpper for Windows: a window around the same index.html as the website.
 // Maps and assets live in IndexedDB under %APPDATA%\Kartograaf, which installing an update never touches.
 const { app, BrowserWindow, Menu, shell } = require('electron');
 const path = require('path');
 
+// The app was called Kartograaf before; its data folder keeps that name so nothing gets lost after the rename.
+app.setPath('userData', path.join(app.getPath('appData'), 'Kartograaf'));
 if (!app.requestSingleInstanceLock()) app.quit();
 
 let win = null;
 function createWindow() {
   win = new BrowserWindow({
     width: 1440, height: 900, minWidth: 800, minHeight: 560,
-    title: 'Kartograaf', backgroundColor: '#d8dce2', autoHideMenuBar: true,
+    title: 'Kartograpper', backgroundColor: '#d8dce2', autoHideMenuBar: true,
     icon: path.join(__dirname, 'web', 'icons', 'icon-512.png'),
     webPreferences: { contextIsolation: true, sandbox: true },
   });
