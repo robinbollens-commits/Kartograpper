@@ -64,7 +64,7 @@ Iets werkt niet, of heb je een idee? Klik in de app op het tekstballon-icoon rec
 ### Installers bouwen
 
 - `desktop/` is de Windows-app (Electron) en `mobile/` de Android-app (Capacitor). Beide gebruiken dezelfde `index.html`.
-- De workflow *Installers bouwen* maakt bij elke push de `.exe` en `.apk` (als artefact). Een tag `v1.2.0` maakt er een release van.
+- De workflow *Installers bouwen* maakt bij elke push de `.exe` en `.apk`. Staat er in `src/kartograaf.html` een `APP_VERSION` waarvoor nog geen release bestaat, dan maakt hij er automatisch een release van.
 
 ### Android-sleutel
 
