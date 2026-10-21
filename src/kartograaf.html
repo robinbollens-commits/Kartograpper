@@ -2373,7 +2373,8 @@ function buildGumPicks() {
     lines: [$('#gumLines'), counted(doc.lines, l => l.type || '').map(([k, n]) => [k, `${lineType(kind, k).name} · ${n}`])],
   };
   for (const g in groups) {
-    const [check, list] = groups[g]; list.sort((x, y) => x[1].localeCompare(y[1], 'nl')); // alphabetical, so chips stay put while erasing, box = $('#gumPick-' + g), have = new Set(list.map(x => x[0]));
+    const [check, list] = groups[g], box = $('#gumPick-' + g), have = new Set(list.map(x => x[0]));
+    list.sort((x, y) => x[1].localeCompare(y[1], 'nl')); // alphabetical, so chips stay put while erasing
     for (const k of [...G[g]]) if (!have.has(k)) G[g].delete(k);
     box.textContent = ''; box.hidden = !check.checked || list.length < 2; if (box.hidden) continue;
     for (const [k, name] of [['*', 'Alles'], ...list]) {
@@ -3054,7 +3055,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.7.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.7.1', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;

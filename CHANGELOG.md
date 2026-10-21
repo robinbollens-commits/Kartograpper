@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## 1.7.1
+
+- Herstel: de keuze per soort bij de gum verscheen niet door een fout in 1.7.0.
+
 ## 1.7.0
 
 - **Veel vlotter met veel bossen en bergen:** symbolen worden niet meer bij elke muisbeweging allemaal opnieuw getekend. Tijdens het schilderen wordt alleen het stukje onder het penseel bijgewerkt, en bij verschuiven alleen de rand die in beeld komt. Met 2.500 bomen op de kaart gaat een frame van ongeveer 5 ms naar 0,3 ms.
