@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## 1.4.1
+
+- Eerste release met de Android-app (`.apk`), ondertekend met een vaste sleutel zodat latere versies er gewoon overheen installeren.
+
 ## 1.4.0
 
 - Knop **Back-up** rechtsboven: alles exporteren naar één bestand, of een back-up importeren.
