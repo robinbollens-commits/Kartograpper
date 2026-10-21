@@ -1,0 +1,12 @@
+name: Idee
+description: Stel een nieuwe functie of verbetering voor.
+title: "[Idee] "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idee
+    attributes:
+      label: Wat zou je willen?
+      description: Beschrijf wat je wilt kunnen doen en waarom.
+    validations:
+      required: true
