@@ -1,5 +1,13 @@
 # Wijzigingen
 
+## 1.4.0
+
+- Knop **Back-up** rechtsboven: alles exporteren naar één bestand, of een back-up importeren.
+- Bij de eerste start van een nieuwe installatie kun je meteen je back-up importeren.
+- Back-ups, kaarten en bibliotheken kun je ook op het venster slepen.
+- Af en toe een herinnering om een back-up te maken.
+- De koppeling met Google Drive is weggehaald: de app maakt geen verbinding meer met andere diensten.
+
 ## 1.3.0
 
 - Google Drive: kaarten en bibliotheek (met geüploade assets) bewaren in een map *Kartograaf* in je Drive, automatisch of met de hand, en ophalen op een ander toestel. Overschrijft nooit stilzwijgend een nieuwere versie van een ander toestel. Werkt in de webversie.

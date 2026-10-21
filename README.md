@@ -45,31 +45,21 @@ Kartograaf is ook een website die je als app kunt installeren. Daarna start hij 
 
 ## Je gegevens
 
-- Alles wordt in je eigen browser bewaard (IndexedDB). Er wordt niets naar een server gestuurd.
+- Alles wordt op je eigen toestel bewaard (IndexedDB). Er wordt niets naar een server gestuurd, en de app maakt geen verbinding met andere diensten.
 - **Updates wissen niets.** Vóór een nieuwe versie iets aanraakt, bewaart ze automatisch een herstelpunt. Je vindt het bij *Instellingen › Bibliotheek › Herstelpunten*.
-- Kaarten en bibliotheek zitten vast aan de browser en het adres waar je ze maakte. Wil je ze op een ander toestel of in een andere browser, gebruik dan *Bestand › Opslaan als bestand* en *Bestand › Bibliotheek opslaan als bestand*, en open ze daar weer.
+- Kaarten en bibliotheek zitten vast aan de browser en het adres waar je ze maakte. Wil je ze op een ander toestel of in een andere browser, exporteer dan een back-up en importeer die daar (zie hieronder).
 - Wis je je browsergegevens voor deze site, dan zijn je kaarten weg. Bewaar belangrijke kaarten dus ook als bestand.
 
-## Google Drive
+## Back-up en verhuizen
 
-In de webversie (en de vanuit de browser geïnstalleerde app) kun je je kaarten en bibliotheek in je eigen Google Drive bewaren: *Instellingen › Google Drive*. Kartograaf maakt daar een map **Kartograaf** en ziet alleen de bestanden die hij zelf aanmaakt.
+Klik rechtsboven op **Back-up**:
 
-Dit werkt **niet** in de Windows-installer, de Android-APK of de versie op claude.ai. Google laat aanmelden daar niet toe. Gebruik op die toestellen de web-app, of de volledige back-up (*Bestand › Volledige back-up opslaan*).
+- **Exporteren** bewaart al je kaarten en je hele bibliotheek (geüploade assets, penselen, getekende vormen en ondergronden) in één bestand, bv. `kartograaf-backup-2026-10-21.json`.
+- **Importeren** zet zo'n bestand terug. Je kunt het bestand ook gewoon op het venster slepen.
 
-### Eenmalig: een Google Client ID maken (gratis)
+Een nieuwe installatie (andere computer, telefoon, de Windows-app of de Android-app) vraagt bij de eerste start meteen of je een back-up wilt importeren.
 
-1. Ga naar [console.cloud.google.com](https://console.cloud.google.com/) en maak een nieuw project, bv. *Kartograaf*.
-2. *APIs & Services › Library*: zoek **Google Drive API** en klik *Enable*.
-3. *APIs & Services › OAuth consent screen*: kies *External*, vul een app-naam en je e-mailadres in. Voeg bij *Scopes* `.../auth/drive.file` toe. Zet de app op *In production* (zolang hij in *Testing* staat, kunnen alleen de testgebruikers die je toevoegt zich aanmelden).
-4. *APIs & Services › Credentials › Create credentials › OAuth client ID*: kies *Web application*. Zet bij *Authorized JavaScript origins*: `https://robinbollens-commits.github.io`
-5. Kopieer de **Client ID** (eindigt op `.apps.googleusercontent.com`) en zet hem in `src/kartograaf.html` bij `const GOOGLE_CLIENT_ID = '';`. Draai daarna `python3 tools/build.py`. Een Client ID is niet geheim; die mag in de code staan.
-
-Tot dat gebeurd is, kun je de Client ID ook plakken in *Instellingen › Google Drive*. Hij wordt dan alleen in die browser onthouden.
-
-## Back-up
-
-- *Bestand › Volledige back-up opslaan* bewaart al je kaarten én je bibliotheek in één bestand. Terugzetten gaat via *Bestand › Kaart of bibliotheek openen*.
-- Vóór elk terugzetten, ophalen uit Drive of updaten maakt Kartograaf een herstelpunt (*Instellingen › Bibliotheek en back-up*).
+Vóór elk importeren en elke update maakt Kartograaf een herstelpunt (*Instellingen › Back-up*). Exporteer zelf af en toe een back-up: je gegevens staan alleen op je eigen toestel.
 
 ## Feedback
 
