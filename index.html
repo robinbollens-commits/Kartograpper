@@ -202,6 +202,44 @@ a.btn.primary{color:var(--panel)}
 .bkbig:hover{border-color:var(--accent)}
 #bkExport{background:var(--accent-soft);border-color:var(--accent)}
 body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
+.narrow-l,.narrow-item,.sheet-head,.fitfloat{display:none}
+@media (max-width:760px){
+  .app{grid-template-rows:auto auto minmax(0,1fr);grid-template-areas:"bar" "tools" "stage";padding-block:0 10px}
+  .bar{gap:6px;padding-block:6px;flex-wrap:nowrap}
+  .brand{font-size:18px;min-width:0;overflow:hidden}
+  .wide-l,#sampleTag,#zoomGrp,#backupBtn,#feedbackBtn,#settingsBtn,.saved{display:none!important}
+  .narrow-l{display:inline}
+  .seg button{padding:5px 9px}
+  .ibtn{width:32px;height:32px}
+  .menu summary{height:32px;padding:0 10px}
+  .menu-pop{position:fixed;top:calc(50px + env(safe-area-inset-top,0px));right:max(10px,env(safe-area-inset-right,0px));max-height:70dvh;overflow:auto;width:min(290px,calc(100vw - 20px))}
+  .menu-pop .narrow-item{display:block}
+  .menu-pop .wide-item{display:none}
+  .tools{padding:4px;gap:2px}
+  .tool{width:38px;height:38px}
+  .tool svg{width:20px;height:20px}
+  .stage{border-radius:0 0 12px 12px}
+  .hint{top:8px;bottom:auto;left:8px;right:52px;font-size:12px;padding:5px 8px}
+  .fitfloat{display:inline-grid;position:absolute;top:8px;right:8px;z-index:3;background:var(--panel)}
+  .panel{position:fixed;left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px));bottom:calc(8px + env(safe-area-inset-bottom,0px));max-height:60dvh;border:1px solid var(--rule);border-radius:14px;box-shadow:0 -8px 30px rgba(0,0,0,.28);z-index:20;overscroll-behavior:contain}
+  .app:not(.sheet-open) .panel{overflow:hidden}
+  .app:not(.sheet-open) .panel>.sec{display:none}
+  .sheet-head{display:flex;align-items:center;gap:10px;width:100%;position:sticky;top:0;z-index:2;background:var(--panel);border:0;border-bottom:1px solid var(--rule);padding:8px 14px 10px;text-align:left;color:var(--ink)}
+  .app:not(.sheet-open) .sheet-head{border-bottom:0}
+  .sh-grip{position:absolute;left:50%;top:4px;width:36px;height:4px;border-radius:4px;background:var(--rule);transform:translateX(-50%)}
+  .sh-text{display:grid;flex:1;min-width:0;padding-top:4px}
+  .sh-text strong{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sh-text span{font-size:12px;color:var(--muted)}
+  .sh-chev{width:20px;height:20px;color:var(--muted);transition:transform .2s}
+  .app.sheet-open .sh-chev{transform:rotate(180deg)}
+  .panel .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+  .panel .chips::-webkit-scrollbar{display:none}
+  .panel .chip{flex:none}
+  .brushes{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:78px;overflow-x:auto}
+  .assets{grid-template-columns:repeat(auto-fill,minmax(60px,1fr))}
+  .asset canvas{width:42px;height:42px}
+  .sec{padding:12px 14px}
+}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
@@ -209,8 +247,8 @@ body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
   <header class="bar">
     <div class="brand">Kartograaf <small>kaarten in inkt</small></div>
     <div class="seg" id="kindSeg">
-      <button type="button" data-kind="world" aria-pressed="true">Wereldkaart</button>
-      <button type="button" data-kind="local" aria-pressed="false">Stad &amp; dungeon</button>
+      <button type="button" data-kind="world" aria-pressed="true"><span class="wide-l">Wereldkaart</span><span class="narrow-l">Wereld</span></button>
+      <button type="button" data-kind="local" aria-pressed="false"><span class="wide-l">Stad &amp; dungeon</span><span class="narrow-l">Stad</span></button>
     </div>
     <span class="tag" id="sampleTag" hidden>Voorbeeldkaart</span>
     <div class="spacer"></div>
@@ -218,7 +256,7 @@ body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
       <button class="ibtn" type="button" id="undoBtn" title="Ongedaan maken (Ctrl+Z)" aria-label="Ongedaan maken"></button>
       <button class="ibtn" type="button" id="redoBtn" title="Opnieuw (Ctrl+Shift+Z)" aria-label="Opnieuw"></button>
     </div>
-    <div class="grp">
+    <div class="grp" id="zoomGrp">
       <button class="ibtn" type="button" id="zoomOut" title="Uitzoomen (-)" aria-label="Uitzoomen"></button>
       <span class="zoomlbl" id="zoomLbl">100%</span>
       <button class="ibtn" type="button" id="zoomIn" title="Inzoomen (+)" aria-label="Inzoomen"></button>
@@ -228,19 +266,22 @@ body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
     <button class="ibtn" type="button" id="feedbackBtn" title="Feedback geven" aria-label="Feedback geven"></button>
     <button class="ibtn" type="button" id="settingsBtn" title="Instellingen en assets" aria-label="Instellingen en assets"></button>
     <details class="menu" id="fileMenu">
-      <summary>Bestand</summary>
+      <summary><span class="wide-l">Bestand</span><span class="narrow-l">Menu</span></summary>
       <div class="menu-pop">
+        <button type="button" class="narrow-item" id="mBackup">Back-up…<small>Alles exporteren of een back-up importeren.</small></button>
+        <button type="button" class="narrow-item" id="mSettings">Instellingen en assets…<small>Eigen afbeeldingen, mappen en herstelpunten.</small></button>
+        <button type="button" class="narrow-item" id="mFeedback">Feedback geven…</button>
+        <button type="button" class="narrow-item" id="mFit">Hele kaart tonen</button>
         <button type="button" id="mNew">Nieuwe kaart…<small>Leeg of met een voorbeeld, in het formaat dat je kiest.</small></button>
         <button type="button" id="mOpen">Kaart of bibliotheek openen…<small>Een eerder opgeslagen .json-bestand.</small></button>
-        <button type="button" id="mAssets">Mijn assets…<small>Eigen afbeeldingen uploaden en sorteren per type.</small></button>
+        <button type="button" class="wide-item" id="mAssets">Mijn assets…<small>Eigen afbeeldingen uploaden en sorteren per type.</small></button>
         <button type="button" id="mSave">Opslaan als bestand<small>Bewaar de bewerkbare kaart als .json.</small></button>
         <button type="button" id="mLibSave">Bibliotheek opslaan als bestand<small>Je assets, penselen, vormen en ondergronden, om mee te nemen naar een ander toestel.</small></button>
-        <button type="button" id="mFull">Back-up exporteren<small>Al je kaarten en je bibliotheek in één bestand.</small></button>
-        <button type="button" id="mFullIn">Back-up importeren…<small>Een back-up openen, bv. in een nieuwe installatie.</small></button>
+        <button type="button" class="wide-item" id="mFull">Back-up exporteren<small>Al je kaarten en je bibliotheek in één bestand.</small></button>
+        <button type="button" class="wide-item" id="mFullIn">Back-up importeren…<small>Een back-up openen, bv. in een nieuwe installatie.</small></button>
         <button type="button" id="mPng">Exporteren als PNG<small>Een afbeelding om te printen of te delen.</small></button>
       </div>
     </details>
-    <button class="ibtn only-narrow" type="button" id="panelToggle" aria-expanded="true" title="Paneel tonen of verbergen" aria-label="Paneel tonen of verbergen"></button>
   </header>
 
   <nav class="tools" id="tools" aria-label="Gereedschap"></nav>
@@ -249,11 +290,13 @@ body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
     <canvas id="cv" aria-label="Kaart"></canvas>
     <div class="loading" id="loading">De kaart wordt getekend…</div>
     <div class="saved" id="saved" hidden></div>
+    <button class="ibtn fitfloat" type="button" id="fitFloat" title="Hele kaart tonen" aria-label="Hele kaart tonen"></button>
     <div class="hint" id="hint"></div>
     <input class="label-edit" id="labelEdit" type="text" hidden aria-label="Tekst op de kaart">
   </main>
 
   <aside class="panel" id="panel">
+    <button type="button" class="sheet-head" id="sheetHead" aria-expanded="false" aria-controls="panel"><span class="sh-grip" aria-hidden="true"></span><span class="sh-text"><strong id="sheetTitle">Selecteren</strong><span id="sheetSub">tik voor opties</span></span><svg class="sh-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></button>
     <section class="sec" id="secSel" hidden>
       <h3 id="selTitle">Selectie</h3>
       <div id="selBody" style="display:grid;gap:10px"></div>
@@ -1491,10 +1534,12 @@ const HINTS = {
 const V = () => doc.view;
 function toMap(sp) { const v = V(); return { x: (sp.x - v.ox) / v.z, y: (sp.y - v.oy) / v.z }; }
 function screenPt(e) { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
-function fit() {
+// fill: on a tall phone screen a wide map would be a thin strip, so start zoomed in on the middle instead
+function fit(fill) {
   if (!doc) return; const pad = cvW < 500 ? 12 : 28;
   if (cvW < 20 || cvH < 20) { doc.view = { z: .5, ox: 0, oy: 0 }; return; }
-  const z = Math.min((cvW - pad * 2) / doc.w, (cvH - pad * 2) / doc.h);
+  let z = Math.min((cvW - pad * 2) / doc.w, (cvH - pad * 2) / doc.h);
+  if (fill === true && isNarrow()) z = Math.min(Math.max(cvW / doc.w, cvH / doc.h), z * 1.8);
   doc.view = { z, ox: (cvW - doc.w * z) / 2, oy: (cvH - doc.h * z) / 2 }; updZoom(); req();
 }
 function zoomAt(sx, sy, f) { const v = V(), z = Math.min(8, Math.max(.08, v.z * f)), mx = (sx - v.ox) / v.z, my = (sy - v.oy) / v.z; v.z = z; v.ox = sx - mx * z; v.oy = sy - my * z; updZoom(); req(); }
@@ -1554,6 +1599,7 @@ function drawOverlay(g, z) {
 
 /* ---------- selection + object edits ---------- */
 function getSelObj() { if (!sel || !doc) return null; const arr = sel.type === 'stamp' ? doc.stamps : sel.type === 'label' ? doc.labels : doc.lines; return arr.find(o => o.id === sel.id) || null; }
+let hintTimer = null;
 function select(s) { sel = s; refreshSel(); req(); }
 const snapObjs = () => JSON.stringify({ s: doc.stamps, l: doc.lines, t: doc.labels });
 function restoreObjs(j) { const o = JSON.parse(j); doc.stamps = o.s; doc.lines = o.l; doc.labels = o.t; }
@@ -1577,7 +1623,7 @@ function rangeRow(id, label, min, max, step, val, apply, unit = '') {
 }
 function btnRow(list) { const d = document.createElement('div'); d.className = 'btns'; for (const [t, fn, cls] of list) { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn' + (cls ? ' ' + cls : ''); b.textContent = t; b.addEventListener('click', fn); d.append(b); } return d; }
 function refreshSel() {
-  const o = getSelObj(), sec = $('#secSel'), body = $('#selBody'); sec.hidden = !o; body.textContent = ''; if (!o) return;
+  const o = getSelObj(), sec = $('#secSel'), body = $('#selBody'); sec.hidden = !o; body.textContent = ''; setTimeout(syncSheetHead, 0); if (!o) return;
   if (sel.type === 'stamp') {
     $('#selTitle').textContent = 'Symbool · ' + ASSETS[o.a].name;
     body.append(rangeRow('selSize', 'Grootte', 6, 500, 1, Math.round(o.s), v => o.s = v), rangeRow('selRot', 'Draaiing', -180, 180, 1, Math.round(o.r), v => o.r = v, '°'));
@@ -1876,7 +1922,7 @@ function buildBrushes() {
   for (const B of lib.brushes[kind]) {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'bcard'; b.setAttribute('aria-pressed', B === cur); b.title = 'Dubbelklik om te bewerken';
     const sp = document.createElement('span'); sp.textContent = B.name; b.append(brushThumb(B), sp);
-    b.addEventListener('click', () => { lib.sel[kind] = B.id; saveLib(); buildBrushes(); });
+    b.addEventListener('click', () => { lib.sel[kind] = B.id; saveLib(); buildBrushes(); closeSheetSoon(); });
     b.addEventListener('dblclick', () => openBrushEditor(B));
     box.append(b);
   }
@@ -2602,6 +2648,7 @@ labelInput.addEventListener('blur', () => commitLabelEdit());
 const ptrs = new Map(); let pinch = null;
 cv.addEventListener('pointerdown', e => {
   if (!doc) return; if (editing) commitLabelEdit();
+  if (isNarrow() && $('#app').classList.contains('sheet-open')) setSheet(false);
   try { cv.setPointerCapture(e.pointerId); } catch {}
   const sp = screenPt(e); ptrs.set(e.pointerId, sp);
   if (ptrs.size === 2) { cancelAction(); const [a, b] = [...ptrs.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, m: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, z: V().z, ox: V().ox, oy: V().oy }; return; }
@@ -2681,7 +2728,9 @@ function setTool(t) {
   $('#roughRow').hidden = !(t === 'paint' || t === 'erase' || t === 'terrain'); $('#brushRough').value = Math.round((U().rough || 0) * 100); $('#brushRoughOut').textContent = Math.round((U().rough || 0) * 100) + '%';
   const tt = TOOLS.find(x => x.id === t); $('#brushTitle').textContent = brushy ? pick(tt.name, kind) : 'Penseel';
   $('#brushNote').textContent = t === 'terrain' ? 'Een ondergrond vervangt de vorige op dezelfde plek.' : t === 'paint' ? 'Houd Alt ingedrukt om uit te gommen.' : t === 'erase' ? 'Houd Alt ingedrukt om weer bij te tekenen.' : '';
-  $('#hint').textContent = pick(HINTS[t], kind) + (brushy || t === 'line' || t === 'stamp' ? ' Spatie + slepen verschuift.' : '');
+  $('#hint').textContent = pick(HINTS[t], kind) + (!isNarrow() && (brushy || t === 'line' || t === 'stamp') ? ' Spatie + slepen verschuift.' : '');
+  clearTimeout(hintTimer); $('#hint').hidden = false; if (isNarrow()) hintTimer = setTimeout(() => { $('#hint').hidden = true; }, 3500);
+  syncSheetHead();
   setCursor(); req();
 }
 function terrainPreview(c, tile, id, color, scale = 1) {
@@ -2698,7 +2747,7 @@ function buildSwatches() {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'sw'; b.setAttribute('aria-pressed', U().terr === T.id);
     const c = document.createElement('canvas'); c.width = 160; c.height = 64; terrainPreview(c, T.tile, T.id, CUR.colorful ? T.color : null);
     const s = document.createElement('span'); s.textContent = T.name; b.append(c, s);
-    b.addEventListener('click', () => { U().terr = T.id; for (const x of box.children) x.setAttribute('aria-pressed', x === b); });
+    b.addEventListener('click', () => { U().terr = T.id; for (const x of box.children) x.setAttribute('aria-pressed', x === b); closeSheetSoon(); });
     if (T.upload) { b.title = T.name + ' · dubbelklik om te beheren'; b.addEventListener('dblclick', () => openUploads(T.upload.type)); }
     if (T.custom) { b.title = T.name + ' · dubbelklik om te bewerken'; b.addEventListener('dblclick', () => openTerrPad(T.custom)); }
     box.append(b);
@@ -2715,7 +2764,7 @@ function buildLineTypes() {
     const c = document.createElement('canvas'); c.width = 192; c.height = 36; const g = c.getContext('2d'); g.fillStyle = PAPERC; g.fillRect(0, 0, 192, 36); g.scale(2, 2);
     const pts = []; for (let x = 8; x <= 88; x += 4) pts.push(x, 9 + Math.sin(x / 12) * 3); drawLine(g, { type: T.id, pts }, kind);
     const s = document.createElement('span'); s.textContent = T.name; b.append(c, s);
-    b.addEventListener('click', () => { U().line = T.id; for (const x of box.children) x.setAttribute('aria-pressed', x === b); });
+    b.addEventListener('click', () => { closeSheetSoon(); U().line = T.id; for (const x of box.children) x.setAttribute('aria-pressed', x === b); });
     box.append(b);
   }
 }
@@ -2751,7 +2800,7 @@ function buildAssets() {
   $('#optVary').checked = U().vary; $('#snapRow').hidden = kind !== 'local';
   $('#scatDens').value = Math.round(U().scatDens * 100); $('#scatDensOut').textContent = Math.round(U().scatDens * 100) + '%';
 }
-function chooseAsset(key) { U().asset = key; setTool('stamp'); for (const x of $('#assets').children) x.setAttribute('aria-pressed', x.dataset.key === key); }
+function chooseAsset(key) { U().asset = key; setTool('stamp'); closeSheetSoon(); for (const x of $('#assets').children) x.setAttribute('aria-pressed', x.dataset.key === key); }
 $('#assets').addEventListener('pointerdown', e => {
   const tile = e.target.closest('.asset'); if (!tile || !doc) return;
   const key = tile.dataset.key, id = e.pointerId, start = { x: e.clientX, y: e.clientY }; let ghost = null, gs = 0;
@@ -2809,16 +2858,28 @@ async function setKind(k) {
   setTool(U().tool === 'room' && k !== 'local' ? 'select' : U().tool); setBrush(U().brush);
   $('#sampleTag').hidden = !doc.sample; updUndoBtns();
   setSaved(doc.sample ? 'Voorbeeld · je wijzigingen blijven in deze browser bewaard' : 'Bewaard in deze browser');
-  if (!doc.view) fit(); updZoom(); req();
+  if (!doc.view) fit(true); updZoom(); req();
 }
 $('#kindSeg').addEventListener('click', e => { const b = e.target.closest('[data-kind]'); if (b && b.dataset.kind !== kind) setKind(b.dataset.kind); });
 
 /* ---------- header buttons ---------- */
 $('#undoBtn').innerHTML = svg(ICONS.undo); $('#redoBtn').innerHTML = svg(ICONS.redo);
-$('#zoomIn').innerHTML = svg(ICONS.plus); $('#zoomOut').innerHTML = svg(ICONS.minus); $('#zoomFit').innerHTML = svg(ICONS.fit); $('#panelToggle').innerHTML = svg(ICONS.panel); $('#settingsBtn').innerHTML = svg(ICONS.gear); $('#feedbackBtn').innerHTML = svg(ICONS.chat);
+$('#zoomIn').innerHTML = svg(ICONS.plus); $('#zoomOut').innerHTML = svg(ICONS.minus); $('#zoomFit').innerHTML = svg(ICONS.fit); $('#fitFloat').innerHTML = svg(ICONS.fit); $('#settingsBtn').innerHTML = svg(ICONS.gear); $('#feedbackBtn').innerHTML = svg(ICONS.chat);
 $('#undoBtn').addEventListener('click', undo); $('#redoBtn').addEventListener('click', redo);
 $('#zoomIn').addEventListener('click', () => doc && zoomAt(cvW / 2, cvH / 2, 1.25)); $('#zoomOut').addEventListener('click', () => doc && zoomAt(cvW / 2, cvH / 2, .8)); $('#zoomFit').addEventListener('click', fit);
-$('#panelToggle').addEventListener('click', () => { const closed = $('#app').classList.toggle('panel-closed'); $('#panelToggle').setAttribute('aria-expanded', !closed); });
+/* phone layout: the panel is a sheet over the map that opens on demand */
+const narrowMQ = matchMedia('(max-width:760px)');
+const isNarrow = () => narrowMQ.matches;
+function setSheet(open) { $('#app').classList.toggle('sheet-open', open); $('#sheetHead').setAttribute('aria-expanded', open); }
+function closeSheetSoon() { if (isNarrow()) setTimeout(() => setSheet(false), 160); }
+function syncSheetHead() {
+  const o = getSelObj(), t = TOOLS.find(x => x.id === tool);
+  $('#sheetTitle').textContent = o ? $('#selTitle').textContent : t ? pick(t.name, kind) : '';
+  $('#sheetSub').textContent = o ? 'tik om aan te passen' : 'tik voor opties';
+}
+$('#sheetHead').addEventListener('click', () => setSheet(!$('#app').classList.contains('sheet-open')));
+$('#fitFloat').addEventListener('click', () => fit());
+for (const [id, target] of [['mBackup', 'backupBtn'], ['mSettings', 'settingsBtn'], ['mFeedback', 'feedbackBtn'], ['mFit', 'zoomFit']]) $('#' + id).addEventListener('click', () => { menu.open = false; $('#' + target).click(); });
 const menu = $('#fileMenu');
 document.addEventListener('pointerdown', e => { if (menu.open && !menu.contains(e.target)) menu.open = false; });
 let toastT = null;
@@ -2887,7 +2948,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.4.1', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.5.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;

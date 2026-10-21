@@ -1,5 +1,15 @@
 # Wijzigingen
 
+## 1.5.0
+
+- Betere indeling op de gsm:
+  - Bovenaan staat alles op één rij, met een Menu voor Back-up, Instellingen, Feedback en de bestandsopties.
+  - Het paneel is een uitklapbare balk onderaan, zodat de kaart het hele scherm krijgt. Kies je een symbool, penseel of ondergrond, dan klapt hij vanzelf weer dicht.
+  - Categorieën en penselen staan in horizontaal scrollende rijen.
+  - De tips verdwijnen na enkele seconden.
+  - Een zwevende knop toont de hele kaart.
+- Op de gsm opent de kaart ingezoomd, zodat hij het scherm vult.
+
 ## 1.4.1
 
 - Eerste release met de Android-app (`.apk`), ondertekend met een vaste sleutel zodat latere versies er gewoon overheen installeren.
