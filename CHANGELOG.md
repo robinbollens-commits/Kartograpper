@@ -1,5 +1,13 @@
 # Wijzigingen
 
+## 1.6.0
+
+- **Afdrukken op A4** (Menu, bij een plattegrond): de kaart wordt verdeeld over A4-bladen in een PDF, met elk vak op ware grootte (standaard 25 mm). Zo kun je de bladen aan elkaar plakken en er met figuurtjes op spelen.
+  - Kies de vakgrootte, staand of liggend (of automatisch zo weinig mogelijk bladen) en of het raster mee wordt afgedrukt.
+  - Een lijmrand van 8 mm laat de bladen overlappen. Snijtekens en een code per blad (A1, A2, …) helpen bij het in elkaar zetten.
+  - Een overzichtsblad toont welk blad waar komt, legt uit hoe je ze samenvoegt en heeft een lijn van 10 cm om te controleren of op ware grootte is afgedrukt.
+  - Elk blad wordt op hoge resolutie opnieuw getekend, zodat muren en symbolen scherp blijven.
+
 ## 1.5.0
 
 - Betere indeling op de gsm:

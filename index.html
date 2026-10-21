@@ -280,6 +280,7 @@ body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
         <button type="button" class="wide-item" id="mFull">Back-up exporteren<small>Al je kaarten en je bibliotheek in één bestand.</small></button>
         <button type="button" class="wide-item" id="mFullIn">Back-up importeren…<small>Een back-up openen, bv. in een nieuwe installatie.</small></button>
         <button type="button" id="mPng">Exporteren als PNG<small>Een afbeelding om te printen of te delen.</small></button>
+        <button type="button" id="mPrint">Afdrukken op A4…<small>Vakken op ware grootte, over meerdere bladen om aan elkaar te plakken.</small></button>
       </div>
     </details>
   </header>
@@ -573,6 +574,24 @@ body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
     <p class="note">Je feedback wordt een melding op GitHub. Daarvoor heb je een gratis GitHub-account nodig. Geen account? Kopieer de tekst en stuur hem op een andere manier door.</p>
     <div class="btns end"><button type="button" class="btn" id="fbCancel">Annuleren</button><button type="button" class="btn" id="fbCopy">Kopieer tekst</button><a class="btn primary" id="fbSend" href="https://github.com/robinbollens-commits/Kartograpper/issues/new" target="_blank" rel="noopener">Verstuur via GitHub</a></div>
   </form>
+</div>
+<div class="modal" id="prModal" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="prTitle">
+    <h2 id="prTitle">Afdrukken op A4</h2>
+    <p class="note">De plattegrond wordt over A4-bladen verdeeld. Elk vak wordt op papier even groot, zodat je de bladen aan elkaar kunt plakken en er met figuurtjes op kunt spelen.</p>
+    <label class="field"><span>Een vak op papier, in mm</span><input type="number" id="prMm" min="10" max="50" step="0.5" value="25" inputmode="decimal"></label>
+    <div class="chips" id="prOrient">
+      <button type="button" class="chip" data-o="auto" aria-pressed="true">Zo weinig mogelijk bladen</button>
+      <button type="button" class="chip" data-o="portrait" aria-pressed="false">Staand</button>
+      <button type="button" class="chip" data-o="landscape" aria-pressed="false">Liggend</button>
+    </div>
+    <label class="check"><input type="checkbox" id="prGrid" checked> Raster afdrukken</label>
+    <label class="check"><input type="checkbox" id="prGlue" checked> Lijmrand van 8 mm, om de bladen te laten overlappen</label>
+    <label class="check"><input type="checkbox" id="prCover" checked> Eerste blad met overzicht en uitleg</label>
+    <p class="note" id="prSum"></p>
+    <p class="note">Druk de PDF af op “Werkelijke grootte” of 100 %, niet “Aanpassen aan pagina”.</p>
+    <div class="btns end"><button type="button" class="btn" id="prCancel">Annuleren</button><button type="button" class="btn primary" id="prGo">PDF maken</button></div>
+  </div>
 </div>
 <input type="file" id="fileIn" accept=".json,application/json,text/plain,application/octet-stream" hidden>
 <div class="toast" id="toast" hidden></div>
@@ -1017,14 +1036,15 @@ function getLayer(doc, key) {
 }
 function syncShadows(doc) { for (const k in doc.layers) { const L = doc.layers[k]; L.shCtx.clearRect(0, 0, L.sh.width, L.sh.height); L.shCtx.drawImage(L.cv, 0, 0); } }
 
-/* Re-ink the base map for one rectangle: coast or walls, ripples or rock hatching, ground textures, grid. */
-function rebuild(doc, rx0, ry0, rx1, ry1) {
-  const W = doc.w, H = doc.h;
-  const x0 = Math.max(0, Math.floor(rx0)), y0 = Math.max(0, Math.floor(ry0)), x1 = Math.min(W, Math.ceil(rx1)), y1 = Math.min(H, Math.ceil(ry1));
+/* Re-ink the base map for one rectangle: coast or walls, ripples or rock hatching, ground textures, grid.
+   With k > 1 the rectangle is drawn k times finer into dst (for printing): same map, sharper edges. */
+function rebuild(doc, rx0, ry0, rx1, ry1, k = 1, dst = null) {
+  const W = doc.w * k, H = doc.h * k, M = MARGIN * k;
+  const x0 = Math.max(0, Math.floor(rx0 * k)), y0 = Math.max(0, Math.floor(ry0 * k)), x1 = Math.min(W, Math.ceil(rx1 * k)), y1 = Math.min(H, Math.ceil(ry1 * k));
   if (x1 <= x0 || y1 <= y0) return;
-  const ex0 = Math.max(0, x0 - MARGIN), ey0 = Math.max(0, y0 - MARGIN), ex1 = Math.min(W, x1 + MARGIN), ey1 = Math.min(H, y1 + MARGIN);
+  const ex0 = Math.max(0, x0 - M), ey0 = Math.max(0, y0 - M), ex1 = Math.min(W, x1 + M), ey1 = Math.min(H, y1 + M);
   const ew = ex1 - ex0, eh = ey1 - ey0, n = ew * eh;
-  const md = doc.layers.base.ctx.getImageData(ex0, ey0, ew, eh).data;
+  const md = k === 1 ? doc.layers.base.ctx.getImageData(ex0, ey0, ew, eh).data : upscaled(doc.layers.base.cv, ex0, ey0, ew, eh, k);
   const d = new Uint16Array(n);
   for (let i = 0; i < n; i++) d[i] = md[i * 4 + 3] >= 128 ? 0 : INF;
   // chamfer distance (5-7-11), in fifths of a pixel
@@ -1043,43 +1063,48 @@ function rebuild(doc, rx0, ry0, rx1, ry1) {
   const terr = [];
   for (const T of TERRAINS[doc.kind]) {
     const L = doc.layers['t:' + T.id]; if (!L) continue;
-    const tx0 = x0 >> 1, ty0 = y0 >> 1, tx1 = Math.min(L.cv.width, ((x1 - 1) >> 1) + 1), ty1 = Math.min(L.cv.height, ((y1 - 1) >> 1) + 1);
+    const tx0 = x0 >> 1, ty0 = y0 >> 1, tx1 = Math.min(L.cv.width * k, ((x1 - 1) >> 1) + 1), ty1 = Math.min(L.cv.height * k, ((y1 - 1) >> 1) + 1);
     if (tx1 <= tx0 || ty1 <= ty0) continue;
-    terr.push({ bg: PAL.terr[T.id] || (PAL.colorful && T.color) || null, A: T.tile.A, S: T.tile.S, C: T.tile.C || null, TW: T.tile.W || T.tile.S, TH: T.tile.H || T.tile.S, data: L.ctx.getImageData(tx0, ty0, tx1 - tx0, ty1 - ty0).data, tx0, ty0, tw: tx1 - tx0 });
+    const data = k === 1 ? L.ctx.getImageData(tx0, ty0, tx1 - tx0, ty1 - ty0).data : upscaled(L.cv, tx0, ty0, tx1 - tx0, ty1 - ty0, k);
+    terr.push({ bg: PAL.terr[T.id] || (PAL.colorful && T.color) || null, A: T.tile.A, S: T.tile.S, C: T.tile.C || null, TW: T.tile.W || T.tile.S, TH: T.tile.H || T.tile.S, data, tx0, ty0, tw: tx1 - tx0 });
   }
-  const out = doc.cacheCtx.createImageData(x1 - x0, y1 - y0), o = out.data;
-  const world = doc.kind === 'world', dung = doc.style === 'dungeon', grid = doc.grid, C = doc.cell;
+  const out = (dst || doc.cacheCtx).createImageData(x1 - x0, y1 - y0), o = out.data;
+  const world = doc.kind === 'world', dung = doc.style === 'dungeon', grid = doc.grid, C = doc.cell, aa = 1 / k;
+  // ink tiles are sampled smoothly when drawn finer than one tile pixel per map pixel
+  const tile = (A, S, x, y) => { const fx = (x + .5) / k - .5, fy = (y + .5) / k - .5, ix = Math.floor(fx), iy = Math.floor(fy), tx = fx - ix, tyy = fy - iy;
+    const a0 = (ix % S + S) % S, b0 = (iy % S + S) % S, a1 = (a0 + 1) % S, b1 = (b0 + 1) % S;
+    return (A[b0 * S + a0] * (1 - tx) + A[b0 * S + a1] * tx) * (1 - tyy) + (A[b1 * S + a0] * (1 - tx) + A[b1 * S + a1] * tx) * tyy; };
   const WA = WATER_TILE.A, HA = HATCH_TILE.A, hn = doc.hn.a, hgw = doc.hn.gw, WALL = dung ? 4 : 3;
   const terrN = terr.length;
   let p = 0;
   for (let y = y0; y < y1; y++) {
-    const ty = y >> 1, gy = y % C === 0;
+    const ty = y >> 1, yi = k === 1 ? y : (y / k) | 0, gy = yi % C === 0;
     for (let x = x0; x < x1; x++, p += 4) {
-      const i = (y - ey0) * ew + (x - ex0), a = md[i * 4 + 3], dd = d[i] * .2;
+      const i = (y - ey0) * ew + (x - ex0), a = md[i * 4 + 3], dd = d[i] * .2 / k, xi = k === 1 ? x : (x / k) | 0;
       let tInk = 0, tBg = null, tC = null, tj = 0;
-      for (let k = 0; k < terrN; k++) { const T = terr[k]; if (T.data[((ty - T.ty0) * T.tw + ((x >> 1) - T.tx0)) * 4 + 3] >= 128) { if (T.C) { tC = T.C; tj = ((y % T.TH) * T.TW + (x % T.TW)) * 4; } else tInk = T.A[(y % T.S) * T.S + (x % T.S)]; tBg = T.bg; break; } }
+      for (let m = 0; m < terrN; m++) { const T = terr[m]; if (T.data[((ty - T.ty0) * T.tw + ((x >> 1) - T.tx0)) * 4 + 3] >= 128) { if (T.C) { tC = T.C; tj = ((yi % T.TH) * T.TW + (xi % T.TW)) * 4; } else tInk = k === 1 ? T.A[(y % T.S) * T.S + (x % T.S)] : tile(T.A, T.S, x, y); tBg = T.bg; break; } }
       let ink, B = null, br = 0, bg = 0, bb = 0;
       if (world) {
         if (a >= 128) { ink = tInk > 255 - a ? tInk : 255 - a; B = tBg || PAL.paper; }
         else {
           const q = dd >= 34 ? 1 : dd / 34, W0 = PAL.water, W1 = PAL.deep;
           br = W0[0] + (W1[0] - W0[0]) * q; bg = W0[1] + (W1[1] - W0[1]) * q; bb = W0[2] + (W1[2] - W0[2]) * q;
-          ink = dd <= 2.2 ? 255 : dd < 3.2 ? (3.2 - dd) * 255 : 0;
+          ink = dd <= 2.2 ? 255 : dd < 2.2 + aa ? (2.2 + aa - dd) / aa * 255 : 0;
           let r = Math.abs(dd - 8); if (r < .8) { r = (.8 - r) / .8 * 230; if (r > ink) ink = r; }
           r = Math.abs(dd - 14.5); if (r < .6) { r = (.6 - r) / .6 * 190; if (r > ink) ink = r; }
-          if (dd > 22) { r = WA[(y & 255) * 256 + (x & 255)] * Math.min(1, (dd - 22) / 8); if (r > ink) ink = r; }
+          if (dd > 22) { r = (k === 1 ? WA[(y & 255) * 256 + (x & 255)] : tile(WA, 256, x, y)) * Math.min(1, (dd - 22) / 8); if (r > ink) ink = r; }
         }
       } else {
-        const gInk = grid && (gy || x % C === 0) ? 64 : 0;
+        const gInk = grid && (gy || xi % C === 0) ? 64 : 0;
         if (a >= 128) { ink = Math.max(tInk, 255 - a, gInk); B = tBg || PAL.floor; }
         else {
-          const wall = dd <= WALL ? 255 : dd < WALL + 1 ? (WALL + 1 - dd) * 255 : 0;
+          const wall = dd <= WALL ? 255 : dd < WALL + aa ? (WALL + aa - dd) / aa * 255 : 0;
           if (dung) {
             let h = 0;
             if (dd < 36) {
-              const fx = x / 32, fy = y / 32, ix = fx | 0, iy = fy | 0, tx = fx - ix, tyy = fy - iy, j = iy * hgw + ix;
+              const fx = x / k / 32, fy = y / k / 32, ix = fx | 0, iy = fy | 0, tx = fx - ix, tyy = fy - iy, j = iy * hgw + ix;
               const band = 16 + 18 * (hn[j] * (1 - tx) * (1 - tyy) + hn[j + 1] * tx * (1 - tyy) + hn[j + hgw] * (1 - tx) * tyy + hn[j + hgw + 1] * tx * tyy);
-              if (dd < band) { h = HA[(y & 255) * 256 + (x & 255)]; if (dd > band - 5) h *= (band - dd) / 5; }
+              if (dd < band) { h = k === 1 ? HA[(y & 255) * 256 + (x & 255)] : tile(HA, 256, x, y); if (dd > band - 5) h *= (band - dd) / 5; }
             }
             ink = wall > h ? wall : h; B = PAL.rock;
           } else { ink = Math.max(wall, tInk, gInk); B = tBg || PAL.ground; }
@@ -1091,7 +1116,13 @@ function rebuild(doc, rx0, ry0, rx1, ry1) {
       o[p] = br + (IK[0] - br) * f; o[p + 1] = bg + (IK[1] - bg) * f; o[p + 2] = bb + (IK[2] - bb) * f; o[p + 3] = 255;
     }
   }
-  doc.cacheCtx.putImageData(out, x0, y0);
+  if (dst) dst.putImageData(out, 0, 0); else doc.cacheCtx.putImageData(out, x0, y0);
+}
+/* Alpha of a map layer, scaled up k times smoothly, for the rectangle x0,y0,w,h in the scaled-up pixels. */
+function upscaled(cv, x0, y0, w, h, k) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d', { willReadFrequently: true });
+  g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(cv, x0 / k, y0 / k, w / k, h / k, 0, 0, w, h);
+  return g.getImageData(0, 0, w, h).data;
 }
 function fullRebuild(d) { d.dirty = null; rebuild(d, 0, 0, d.w, d.h); }
 function markDirty(d, x0, y0, x1, y1) { if (!d.dirty) d.dirty = [x0, y0, x1, y1]; else { const q = d.dirty; q[0] = Math.min(q[0], x0); q[1] = Math.min(q[1], y0); q[2] = Math.max(q[2], x1); q[3] = Math.max(q[3], y1); } req(); }
@@ -2829,7 +2860,7 @@ $('#paletteChips').addEventListener('click', e => {
 });
 $('#genBtn').addEventListener('click', () => openNew(true));
 function syncMapPanel() {
-  $('#mapLocal').hidden = kind !== 'local'; $('#genRow').hidden = kind !== 'world';
+  $('#mapLocal').hidden = kind !== 'local'; $('#genRow').hidden = kind !== 'world'; $('#mPrint').hidden = kind !== 'local';
   if (doc) {
     for (const b of $('#paletteChips').children) b.setAttribute('aria-pressed', b.dataset.pal === doc.palette);
     for (const b of $('#styleChips').children) b.setAttribute('aria-pressed', b.dataset.style === doc.style);
@@ -2948,7 +2979,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.5.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.6.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;
@@ -3068,6 +3099,159 @@ for (const id of ['fbTitleIn', 'fbText']) $('#' + id).addEventListener('input', 
 $('#fbInfo').addEventListener('change', fbUpdate);
 $('#fbCancel').addEventListener('click', () => { $('#fbModal').hidden = true; });
 $('#fbModal').addEventListener('keydown', e => { if (e.key === 'Escape') $('#fbModal').hidden = true; });
+
+/* ---------- printing on A4: every square the same size on paper, to tape the sheets together ---------- */
+const PR_EDGE = 6, PR_GLUE = 8, PR_PXMM = 8, PR_FONT = '"Alegreya Sans", "Segoe UI", system-ui, sans-serif'; // mm, mm, print pixels per mm
+const prOpt = { mm: 25, orient: 'auto', grid: true, glue: true, cover: true };
+try { Object.assign(prOpt, JSON.parse(lsGet('kartograaf.print') || '{}')); } catch {}
+const prCode = (ix, iy) => String.fromCharCode(65 + iy) + (ix + 1);
+const prNum = v => v.toLocaleString('nl-BE', { maximumFractionDigits: 1 });
+function printPlan(d, o) {
+  const C = d.cell, cw = Math.ceil(d.w / C), ch = Math.ceil(d.h / C), glue = o.glue ? PR_GLUE : 0;
+  const lay = (pw, ph) => {
+    const cols = Math.min(cw, Math.max(1, Math.floor((pw - 2 * PR_EDGE - glue) / o.mm))), rows = Math.min(ch, Math.max(1, Math.floor((ph - 2 * PR_EDGE - glue) / o.mm)));
+    const nx = Math.ceil(cw / cols), ny = Math.ceil(ch / rows);
+    return { pw, ph, cols, rows, nx, ny, n: nx * ny, cw, ch, glue, land: pw > ph, bx: (pw - cols * o.mm - glue) / 2, by: (ph - rows * o.mm - glue) / 2 };
+  };
+  const P = lay(210, 297), L = lay(297, 210);
+  return o.orient === 'portrait' ? P : o.orient === 'landscape' ? L : L.n < P.n ? L : P;
+}
+function prText(g, text, x, y, maxW, lh) {
+  let line = '';
+  for (const w of text.split(' ')) { const t = line ? line + ' ' + w : w; if (line && g.measureText(t).width > maxW) { g.fillText(line, x, y); y += lh; line = w; } else line = t; }
+  if (line) { g.fillText(line, x, y); y += lh; }
+  return y;
+}
+/* One sheet: its squares, a pale glue strip with the neighbours' squares on the right and at the bottom, cut marks and its code. */
+function printSheet(d, o, P, ix, iy, k) {
+  const C = d.cell, s = C * k / o.mm, c = document.createElement('canvas'); c.width = Math.round(P.pw * s); c.height = Math.round(P.ph * s);
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+  const nc = Math.min(P.cols, P.cw - ix * P.cols), nr = Math.min(P.rows, P.ch - iy * P.rows), right = !!P.glue && ix < P.nx - 1, below = !!P.glue && iy < P.ny - 1, gl = P.glue / o.mm * C;
+  const rx0 = ix * P.cols * C, ry0 = iy * P.rows * C, rx1 = Math.min(d.w, rx0 + nc * C + (right ? gl : 0)), ry1 = Math.min(d.h, ry0 + nr * C + (below ? gl : 0));
+  const m = document.createElement('canvas'); m.width = Math.ceil((rx1 - rx0) * k); m.height = Math.ceil((ry1 - ry0) * k);
+  const mg = m.getContext('2d');
+  rebuild({ ...d, grid: o.grid }, rx0, ry0, rx1, ry1, k, mg);
+  mg.setTransform(k, 0, 0, k, -rx0 * k, -ry0 * k); drawObjects(mg, d, null);
+  const ox = Math.round(P.bx * s), oy = Math.round(P.by * s), mw = Math.min(m.width, Math.round(nc * C * k)), mh = Math.min(m.height, Math.round(nr * C * k));
+  g.drawImage(m, ox, oy);
+  g.fillStyle = 'rgba(255,255,255,.62)';
+  if (right) g.fillRect(ox + mw, oy, m.width - mw, m.height);
+  if (below) g.fillRect(ox, oy + mh, right ? mw : m.width, m.height - mh);
+  g.fillStyle = '#333'; g.font = `${2.6 * s}px ${PR_FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  if (right) { g.save(); g.translate(ox + (mw + m.width) / 2, oy + mh / 2); g.rotate(-Math.PI / 2); g.fillText(`lijmrand · hier komt ${prCode(ix + 1, iy)} op`, 0, 0); g.restore(); }
+  if (below) g.fillText(`lijmrand · hier komt ${prCode(ix, iy + 1)} op`, ox + mw / 2, oy + (mh + m.height) / 2);
+  // cut marks at the corners of the squares, outside the map
+  g.strokeStyle = '#000'; g.lineWidth = Math.max(1, .2 * s);
+  const gap = s, lx = Math.min(5 * s, ox - 2 * s), ly = Math.min(5 * s, oy - 2 * s);
+  g.beginPath();
+  for (const y of [oy, oy + mh]) { g.moveTo(ox - gap, y); g.lineTo(ox - gap - lx, y); if (!right) { g.moveTo(ox + mw + gap, y); g.lineTo(ox + mw + gap + lx, y); } }
+  for (const x of [ox, ox + mw]) { g.moveTo(x, oy - gap); g.lineTo(x, oy - gap - ly); if (!below) { g.moveTo(x, oy + mh + gap); g.lineTo(x, oy + mh + gap + ly); } }
+  g.stroke();
+  // the sheet's code, where there is room for it
+  const label = `${prCode(ix, iy)}  ·  blad ${iy * P.nx + ix + 1} van ${P.n}  ·  rij ${String.fromCharCode(65 + iy)}, kolom ${ix + 1}`;
+  g.fillStyle = '#000'; g.font = `${3.2 * s}px ${PR_FONT}`; g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+  if (P.by >= 9 || P.bx < 9) g.fillText(label, ox + 3 * s, Math.max(3.4 * s, oy - 2.6 * s));
+  else { g.save(); g.translate(ox - 3 * s, oy + mh - 8 * s); g.rotate(-Math.PI / 2); g.fillText(label, 0, 0); g.restore(); }
+  return c;
+}
+/* First sheet: the whole map with the sheets drawn on it, how to put it together, and a ruler to check the scale. */
+function printCover(d, o, P, s) {
+  const c = document.createElement('canvas'); c.width = Math.round(210 * s); c.height = Math.round(297 * s);
+  const g = c.getContext('2d'), C = d.cell, X = 15 * s, maxW = 180 * s;
+  g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.fillStyle = '#000'; g.textBaseline = 'alphabetic';
+  g.font = `${9 * s}px ${MAPFONT}`; g.fillText('Plattegrond', X, 24 * s);
+  g.font = `${4 * s}px ${PR_FONT}`;
+  let y = prText(g, `${P.cw} × ${P.ch} vakken · 1 vak = ${prNum(o.mm)} mm op papier (1,5 m in het spel) · ${P.n} ${P.n === 1 ? 'blad' : 'bladen'} A4 ${P.land ? 'liggend' : 'staand'} · samen ${prNum(d.w / C * o.mm / 10)} × ${prNum(d.h / C * o.mm / 10)} cm`, X, 33 * s, maxW, 5.5 * s) + 3 * s;
+  const t = Math.min(maxW / d.w, 120 * s / d.h), tw = d.w * t, th = d.h * t;
+  g.save(); g.translate(X, y); g.scale(t, t); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(d.cache, 0, 0);
+  g.beginPath(); g.rect(0, 0, d.w, d.h); g.clip(); drawObjects(g, d, null); g.restore();
+  g.strokeStyle = '#000'; g.lineWidth = .3 * s; g.strokeRect(X, y, tw, th);
+  g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `600 ${Math.min(6, Math.max(3, P.cols * C * t / s / 4)) * s}px ${PR_FONT}`;
+  for (let iy = 0; iy < P.ny; iy++) for (let ix = 0; ix < P.nx; ix++) {
+    const x0 = X + ix * P.cols * C * t, y0 = y + iy * P.rows * C * t, w = Math.min(P.cols * C, d.w - ix * P.cols * C) * t, h = Math.min(P.rows * C, d.h - iy * P.rows * C) * t;
+    g.strokeStyle = '#1f6fb2'; g.lineWidth = .5 * s; g.strokeRect(x0, y0, w, h);
+    const code = prCode(ix, iy), bw = g.measureText(code).width + 3 * s, bh = 7 * s;
+    g.fillStyle = 'rgba(255,255,255,.88)'; g.fillRect(x0 + w / 2 - bw / 2, y0 + h / 2 - bh / 2, bw, bh); g.fillStyle = '#1f6fb2'; g.fillText(code, x0 + w / 2, y0 + h / 2 + .3 * s);
+  }
+  y += th + 10 * s; g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillStyle = '#000';
+  g.font = `${6 * s}px ${MAPFONT}`; g.fillText('Zo zet je hem in elkaar', X, y); y += 8 * s;
+  g.font = `${4 * s}px ${PR_FONT}`;
+  const steps = [
+    'Druk af op ware grootte: kies “Werkelijke grootte” of “100 %”, niet “Aanpassen aan pagina”. Meet daarna de lijn onderaan: die moet precies 10 cm zijn, anders kloppen de vakken niet.',
+    'Leg de bladen zoals op het schema hierboven: A1 komt linksboven, de letter is de rij en het cijfer de kolom.',
+    ...(P.glue ? ['Knip bij elk blad de witte rand links en boven weg, precies tegen de kaart aan (de snijtekens helpen). Bij de bovenste rij en de linkse kolom mag die rand blijven.',
+      'Leg elk blad op de lichte lijmrand van zijn buur, zodat de vakjes precies doorlopen, en plak het vast.']
+      : ['Knip de witte randen weg tot tegen de kaart, leg de bladen tegen elkaar en plak ze aan de achterkant met plakband vast.']),
+  ];
+  steps.forEach((st, i) => { g.fillText(`${i + 1}.`, X, y); y = prText(g, st, X + 6 * s, y, maxW - 6 * s, 5.5 * s) + 2 * s; });
+  // ruler of exactly 10 cm
+  y = Math.max(y + 6 * s, 262 * s); g.strokeStyle = '#000'; g.lineWidth = .3 * s; g.beginPath(); g.moveTo(X, y); g.lineTo(X + 100 * s, y);
+  for (let i = 0; i <= 20; i++) { const h = i % 2 ? 2 * s : 4 * s; g.moveTo(X + i * 5 * s, y); g.lineTo(X + i * 5 * s, y - h); }
+  g.stroke(); g.font = `${3.4 * s}px ${PR_FONT}`; g.textAlign = 'center';
+  for (let i = 0; i <= 10; i++) g.fillText(String(i), X + i * 10 * s, y + 4.5 * s);
+  g.textAlign = 'left'; g.fillText('Deze lijn moet 10 cm zijn.', X + 106 * s, y);
+  return c;
+}
+/* A PDF of full-page JPEG images, each page exactly pw × ph mm. */
+function jpegPdf(pages) {
+  const enc = new TextEncoder(), parts = [], at = [];
+  let len = 0; const put = x => { const b = typeof x === 'string' ? enc.encode(x) : x; parts.push(b); len += b.length; };
+  const pt = mm => (mm * 72 / 25.4).toFixed(2), N = 3 + pages.length * 3;
+  put('%PDF-1.4\n');
+  at[1] = len; put('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
+  at[2] = len; put(`2 0 obj\n<< /Type /Pages /Kids [${pages.map((_, i) => `${3 + i * 3} 0 R`).join(' ')}] /Count ${pages.length} >>\nendobj\n`);
+  pages.forEach((p, i) => {
+    const n = 3 + i * 3, W = pt(p.pw), H = pt(p.ph), cs = `q ${W} 0 0 ${H} 0 0 cm /Im Do Q`;
+    at[n] = len; put(`${n} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /XObject << /Im ${n + 2} 0 R >> >> /Contents ${n + 1} 0 R >>\nendobj\n`);
+    at[n + 1] = len; put(`${n + 1} 0 obj\n<< /Length ${cs.length} >>\nstream\n${cs}\nendstream\nendobj\n`);
+    at[n + 2] = len; put(`${n + 2} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${p.w} /Height ${p.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${p.jpg.length} >>\nstream\n`); put(p.jpg); put('\nendstream\nendobj\n');
+  });
+  const xref = len;
+  put(`xref\n0 ${N}\n0000000000 65535 f \n` + at.slice(1).map(o => String(o).padStart(10, '0') + ' 00000 n \n').join('') + `trailer\n<< /Size ${N} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
+  return new Blob(parts, { type: 'application/pdf' });
+}
+async function makePrintPdf(d, o, progress) {
+  if (d.dirty) { const q = d.dirty; d.dirty = null; rebuild(d, q[0], q[1], q[2], q[3]); }
+  try { await Promise.all([document.fonts.load(`20px ${PR_FONT}`), document.fonts.load(`20px ${MAPFONT}`)]); } catch {}
+  const P = printPlan(d, o), k = Math.max(1, Math.round(PR_PXMM * o.mm / d.cell)), s = d.cell * k / o.mm, total = P.n + (o.cover ? 1 : 0), pages = [];
+  const add = async (c, pw, ph) => {
+    const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', .9));
+    pages.push({ jpg: new Uint8Array(await blob.arrayBuffer()), w: c.width, h: c.height, pw, ph }); c.width = c.height = 0;
+    progress(`Blad ${pages.length} van ${total}…`); await new Promise(r => setTimeout(r, 0));
+  };
+  progress(`Blad 1 van ${total}…`); await new Promise(r => setTimeout(r, 30));
+  if (o.cover) await add(printCover(d, o, P, s), 210, 297);
+  for (let iy = 0; iy < P.ny; iy++) for (let ix = 0; ix < P.nx; ix++) await add(printSheet(d, o, P, ix, iy, k), P.pw, P.ph);
+  return jpegPdf(pages);
+}
+function readPrint() {
+  const mm = parseFloat(String($('#prMm').value).replace(',', '.'));
+  prOpt.mm = Math.min(50, Math.max(10, Number.isFinite(mm) ? mm : 25));
+  prOpt.grid = $('#prGrid').checked; prOpt.glue = $('#prGlue').checked; prOpt.cover = $('#prCover').checked;
+}
+function syncPrint() {
+  for (const b of $('#prOrient').children) b.setAttribute('aria-pressed', b.dataset.o === prOpt.orient);
+  if (!doc) return;
+  const P = printPlan(doc, prOpt);
+  $('#prSum').textContent = `${P.cw} × ${P.ch} vakken → ${P.n} ${P.n === 1 ? 'blad' : 'bladen'} A4 ${P.land ? 'liggend' : 'staand'} (${P.nx} naast elkaar, ${P.ny} onder elkaar)${prOpt.cover ? ', plus een overzichtsblad' : ''}. Samen ${prNum(doc.w / doc.cell * prOpt.mm / 10)} × ${prNum(doc.h / doc.cell * prOpt.mm / 10)} cm.`;
+}
+function openPrint() {
+  menu.open = false; if (!doc || doc.kind !== 'local') return; commitLabelEdit();
+  $('#prMm').value = prOpt.mm; $('#prGrid').checked = prOpt.grid; $('#prGlue').checked = prOpt.glue; $('#prCover').checked = prOpt.cover;
+  syncPrint(); $('#prModal').hidden = false; $('#prGo').focus();
+}
+$('#mPrint').addEventListener('click', openPrint);
+$('#prOrient').addEventListener('click', e => { const b = e.target.closest('[data-o]'); if (b) { prOpt.orient = b.dataset.o; syncPrint(); } });
+for (const id of ['prMm', 'prGrid', 'prGlue', 'prCover']) $('#' + id).addEventListener('input', () => { readPrint(); syncPrint(); });
+$('#prCancel').addEventListener('click', () => { $('#prModal').hidden = true; });
+$('#prModal').addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#prGo').disabled) $('#prModal').hidden = true; });
+$('#prGo').addEventListener('click', async () => {
+  readPrint(); lsSet('kartograaf.print', JSON.stringify(prOpt));
+  const b = $('#prGo'); b.disabled = true;
+  try { const blob = await makePrintPdf(doc, prOpt, t => b.textContent = t); b.textContent = 'Opslaan…'; if (await offerFile('plattegrond-a4.pdf', blob)) $('#prModal').hidden = true; }
+  catch (err) { toast('De PDF maken lukte niet: ' + (err && err.message || err)); }
+  finally { b.disabled = false; b.textContent = 'PDF maken'; }
+});
 $('#fbForm').addEventListener('submit', e => e.preventDefault());
 $('#fbSend').addEventListener('click', () => { setTimeout(() => { $('#fbModal').hidden = true; toast('GitHub opent in een nieuw tabblad. Controleer je melding en klik daar op "Submit new issue".'); }, 300); });
 $('#fbCopy').addEventListener('click', () => {
