@@ -2795,6 +2795,16 @@ document.addEventListener('pointerdown', e => { if (menu.open && !menu.contains(
 let toastT = null;
 function toast(t) { const e = $('#toast'); e.textContent = t; e.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => e.hidden = true, 3200); }
 async function offerFile(name, data) {
+  // Android app: write to the app's cache and open the share sheet, so the file can be saved to Files, Drive, …
+  const FS = window.capacitorFilesystem && window.capacitorFilesystem.Filesystem, SH = window.capacitorShare && window.capacitorShare.Share;
+  if (FS && SH && window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+    try {
+      const b64 = (await blobToDataURL(data instanceof Blob ? data : new Blob([data]))).split(',')[1];
+      const res = await FS.writeFile({ path: name, data: b64, directory: 'CACHE' });
+      await SH.share({ title: name, files: [res.uri] });
+    } catch (err) { const m = String(err && err.message || err); if (!/cancel/i.test(m)) toast('Opslaan lukte niet: ' + m); }
+    return;
+  }
   let dl = null;
   try { dl = window.claude?.use ? await window.claude.use('downloads') : null; } catch { dl = null; }
   if (dl) {
@@ -2848,7 +2858,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.1.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.2.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;
   if (prev === APP_VERSION) return;

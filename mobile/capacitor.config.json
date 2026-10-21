@@ -1,0 +1,6 @@
+{
+  "appId": "io.github.robinbollens.kartograaf",
+  "appName": "Kartograaf",
+  "webDir": "www",
+  "android": { "allowMixedContent": false }
+}

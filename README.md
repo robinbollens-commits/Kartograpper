@@ -10,9 +10,20 @@ Teken je eigen fantasykaarten in de browser: wereldkaarten met kusten, bergketen
 
 Gratis, zonder account. Je kaarten blijven op je eigen toestel.
 
-## Installeren
+## Downloaden
 
-Kartograaf is een website die je ook als app kunt installeren. Daarna start hij vanaf je bureaublad of beginscherm en werkt hij zonder internet.
+Op de pagina [Releases](https://github.com/robinbollens-commits/Kartograpper/releases/latest) staan de installers:
+
+| Toestel | Bestand | Zo installeer je |
+|---|---|---|
+| Windows | `Kartograaf-Setup-….exe` | Dubbelklik. Waarschuwt Windows dat de uitgever onbekend is, klik dan *Meer informatie › Toch uitvoeren*. |
+| Android | `Kartograaf-….apk` | Open het bestand op je telefoon en sta *Installeren uit onbekende bronnen* toe. |
+
+Een nieuwe versie installeer je gewoon over de oude heen. Je kaarten blijven bewaard.
+
+## Installeren vanuit de browser
+
+Kartograaf is ook een website die je als app kunt installeren. Daarna start hij vanaf je bureaublad of beginscherm en werkt hij zonder internet.
 
 | Toestel | Zo installeer je |
 |---|---|
@@ -49,6 +60,17 @@ Iets werkt niet, of heb je een idee? Klik in de app op het tekstballon-icoon rec
 - `python3 tools/build.py` maakt daar `index.html` van, met de app-onderdelen (manifest, service worker) erbij.
 - Elke push naar `main` wordt automatisch gepubliceerd op GitHub Pages.
 - Verhoog `APP_VERSION` in `src/kartograaf.html` bij elke release. Dat triggert het automatische herstelpunt bij gebruikers.
+
+### Installers bouwen
+
+- `desktop/` is de Windows-app (Electron) en `mobile/` de Android-app (Capacitor). Beide gebruiken dezelfde `index.html`.
+- De workflow *Installers bouwen* maakt bij elke push de `.exe` en `.apk` (als artefact). Een tag `v1.2.0` maakt er een release van.
+
+### Android-sleutel
+
+Android installeert een update alleen als hij met dezelfde sleutel ondertekend is. Zet daarom eenmalig deze geheimen bij *Settings › Secrets and variables › Actions*:
+`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`.
+Zonder die geheimen maakt de workflow alleen een test-APK, en die wordt nooit in een release gezet. Bewaar de sleutel goed: zonder kan de Android-app niet meer bijgewerkt worden.
 
 ## Licentie
 

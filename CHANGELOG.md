@@ -1,5 +1,10 @@
 # Wijzigingen
 
+## 1.2.0
+
+- Windows-installer (.exe) en Android-app (.apk).
+- In de Android-app opent *Opslaan als bestand* en *Exporteren als PNG* het deelmenu, zodat je kunt bewaren in Bestanden, Drive, …
+
 ## 1.1.0
 
 - Feedbackknop in de app: meld een fout, idee of vraag rechtstreeks als GitHub-melding.
