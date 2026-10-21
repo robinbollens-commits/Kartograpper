@@ -227,6 +227,7 @@ a.btn.primary{color:var(--panel)}
         <button type="button" id="mAssets">Mijn assets…<small>Eigen afbeeldingen uploaden en sorteren per type.</small></button>
         <button type="button" id="mSave">Opslaan als bestand<small>Bewaar de bewerkbare kaart als .json.</small></button>
         <button type="button" id="mLibSave">Bibliotheek opslaan als bestand<small>Je assets, penselen, vormen en ondergronden, om mee te nemen naar een ander toestel.</small></button>
+        <button type="button" id="mFull">Volledige back-up opslaan<small>Al je kaarten en je bibliotheek in één bestand.</small></button>
         <button type="button" id="mPng">Exporteren als PNG<small>Een afbeelding om te printen of te delen.</small></button>
       </div>
     </details>
@@ -437,7 +438,8 @@ a.btn.primary{color:var(--panel)}
     <div class="seg" id="upTabs" style="justify-self:start;flex-wrap:wrap">
       <button type="button" data-tab="assets" aria-pressed="true">Mijn assets</button>
       <button type="button" data-tab="import" aria-pressed="false">Map of zip importeren</button>
-      <button type="button" data-tab="lib" aria-pressed="false">Bibliotheek</button>
+      <button type="button" data-tab="lib" aria-pressed="false">Bibliotheek en back-up</button>
+      <button type="button" data-tab="drive" aria-pressed="false">Google Drive</button>
     </div>
     <div id="tabAssets" style="display:grid;gap:16px">
     <p class="note">Upload je eigen bomen, bergen, gebouwen of ondergronden en sorteer ze per type. Je vindt ze daarna terug bij Symbolen, in de strooipenselen en bij Ondergrond.</p>
@@ -481,10 +483,29 @@ a.btn.primary{color:var(--panel)}
     </div>
     <div id="tabLib" style="display:grid;gap:12px" hidden>
       <p class="note">Je assets, penselen, getekende vormen en ondergronden worden in deze browser bewaard. Bewaar ze als bestand om ze mee te nemen naar een ander toestel of om een reservekopie te hebben.</p>
-      <div class="btns"><button type="button" class="btn primary" id="libSave">Bibliotheek opslaan als bestand</button><button type="button" class="btn" id="libOpen">Bibliotheek openen…</button></div>
+      <h3 style="margin:6px 0 0;font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)">Volledige back-up</h3>
+      <p class="note">Eén bestand met al je kaarten én je bibliotheek (assets, penselen, vormen en ondergronden). Handig als reservekopie op je eigen computer of een USB-stick.</p>
+      <div class="btns"><button type="button" class="btn primary" id="fullSave">Volledige back-up opslaan</button><button type="button" class="btn" id="fullOpen">Back-up terugzetten…</button></div>
+      <h3 style="margin:6px 0 0;font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)">Alleen de bibliotheek</h3>
+      <div class="btns"><button type="button" class="btn" id="libSave">Bibliotheek opslaan als bestand</button><button type="button" class="btn" id="libOpen">Bibliotheek openen…</button></div>
       <p class="note" id="libInfo"></p>
       <h3 style="margin:6px 0 0;font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)">Herstelpunten</h3>
       <div id="libBackup" style="display:grid;gap:8px"></div>
+    </div>
+    <div id="tabDrive" style="display:grid;gap:12px" hidden>
+      <p class="note">Bewaar je kaarten en je bibliotheek, ook je geüploade assets, in een map <strong>Kartograaf</strong> in je eigen Google Drive. Zo heb je een reservekopie en kun je op een ander toestel verder werken. Kartograaf ziet alleen de bestanden die hij zelf in die map zet.</p>
+      <p class="note" id="drvUnsupported" hidden></p>
+      <div id="drvMain" style="display:grid;gap:12px">
+        <label class="field" id="drvClientRow" hidden><span>Google OAuth Client ID</span><input type="text" id="drvClient" placeholder="123456-abc.apps.googleusercontent.com" autocomplete="off"></label>
+        <p class="note" id="drvClientNote" hidden>Dit stel je één keer in. Hoe je een gratis Client ID maakt, staat in de README op GitHub onder "Google Drive".</p>
+        <div class="btns"><button type="button" class="btn primary" id="drvConnect">Verbinden met Google Drive</button><button type="button" class="btn" id="drvDisconnect" hidden>Verbinding verbreken</button></div>
+        <div id="drvConnected" style="display:grid;gap:10px" hidden>
+          <label class="check"><input type="checkbox" id="drvAuto" checked> Wijzigingen automatisch naar Drive sturen</label>
+          <div id="drvStatus" class="backup"></div>
+          <div class="btns"><button type="button" class="btn" id="drvPush">Alles nu naar Drive</button><button type="button" class="btn" id="drvPull">Ophalen uit Drive</button></div>
+          <p class="note">Werk je op twee toestellen? Haal dan eerst op voor je begint. Overschrijven gebeurt nooit stilzwijgend: staat er in Drive iets nieuwers van een ander toestel, dan stop ik en vraag ik wat je wilt. Vóór elk ophalen maak ik een herstelpunt.</p>
+        </div>
+      </div>
     </div>
     <div class="btns end"><button type="button" class="btn primary" id="upClose">Klaar</button></div>
   </div>
@@ -1385,7 +1406,7 @@ let saveTimer = null;
 function scheduleSave() {
   clearTimeout(saveTimer); const d = doc;
   saveTimer = setTimeout(async () => {
-    try { const ok = await store.put(d.kind, await docToRecord(d, false)); if (d === doc) setSaved(ok ? 'Bewaard in deze browser · ' + new Date().toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' }) : 'Niet automatisch bewaard. Gebruik Bestand › Opslaan als bestand.'); } catch { setSaved('Niet automatisch bewaard. Gebruik Bestand › Opslaan als bestand.'); }
+    try { const ok = await store.put(d.kind, await docToRecord(d, false)); if (ok) queueDrive(d.kind); if (d === doc) setSaved(ok ? 'Bewaard in deze browser · ' + new Date().toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' }) : 'Niet automatisch bewaard. Gebruik Bestand › Opslaan als bestand.'); } catch { setSaved('Niet automatisch bewaard. Gebruik Bestand › Opslaan als bestand.'); }
   }, 1400);
 }
 function setSaved(t) { const e = $('#saved'); e.textContent = t; e.hidden = !t; }
@@ -1772,7 +1793,7 @@ const lib = { brushes: { world: presetBrushes('world'), local: presetBrushes('lo
 const newId = () => Math.random().toString(36).slice(2, 9);
 const validShape = sh => sh && typeof sh.id === 'string' && Array.isArray(sh.strokes);
 let libTimer = null;
-function saveLib() { clearTimeout(libTimer); libTimer = setTimeout(() => { store.put('library', JSON.parse(JSON.stringify(lib))); }, 500); }
+function saveLib() { clearTimeout(libTimer); libTimer = setTimeout(() => { store.put('library', JSON.parse(JSON.stringify(lib))); queueDrive('lib'); }, 500); }
 async function loadLib() {
   const L = await store.get('library'); if (!L || !L.brushes) return;
   lib.shapes = Array.isArray(L.shapes) ? L.shapes.filter(validShape) : [];
@@ -2318,7 +2339,8 @@ function afterUploadChange(retex) {
 let upFilter = 'Alles';
 function setUpTab(t) {
   for (const b of $('#upTabs').children) b.setAttribute('aria-pressed', b.dataset.tab === t);
-  $('#tabAssets').hidden = t !== 'assets'; $('#tabImport').hidden = t !== 'import'; $('#tabLib').hidden = t !== 'lib';
+  $('#tabAssets').hidden = t !== 'assets'; $('#tabImport').hidden = t !== 'import'; $('#tabLib').hidden = t !== 'lib'; $('#tabDrive').hidden = t !== 'drive';
+  if (t === 'drive') syncDriveUI();
   if (t === 'lib') renderBackups();
   if (t === 'lib') $('#libInfo').textContent = `Versie ${APP_VERSION}. Nu in je bibliotheek: ${lib.uploads.length} afbeeldingen, ${lib.shapes.length} getekende vormen, ${lib.terrains.length} eigen ondergronden en ${lib.brushes.world.length + lib.brushes.local.length} penselen.`;
   if (t === 'import') syncPkTypes();
@@ -2401,11 +2423,12 @@ $('#libSave').addEventListener('click', () => saveLibraryFile());
 $('#libOpen').addEventListener('click', () => { $('#fileIn').value = ''; $('#fileIn').click(); });
 $('#settingsBtn').addEventListener('click', () => openUploads(null, null, 'assets'));
 $('#mLibSave').addEventListener('click', () => saveLibraryFile());
-async function saveLibraryFile() {
-  menu.open = false; const ups = [];
+async function libraryObject() {
+  const ups = [];
   for (const u of lib.uploads) { const b = UPBLOB.get(u.id); if (b) ups.push({ ...u, data: await blobToDataURL(b) }); }
-  await offerFile('kartograaf-bibliotheek.json', JSON.stringify({ app: 'kartograaf-bibliotheek', v: 1, brushes: lib.brushes, shapes: lib.shapes, terrains: lib.terrains, types: lib.types, uploads: ups }));
+  return { app: 'kartograaf-bibliotheek', v: 1, brushes: lib.brushes, shapes: lib.shapes, terrains: lib.terrains, types: lib.types, uploads: ups };
 }
+async function saveLibraryFile() { menu.open = false; await offerFile('kartograaf-bibliotheek.json', JSON.stringify(await libraryObject())); }
 
 /* ---------- import a whole folder or zip and mark what belongs where ---------- */
 const pk = { items: [], last: -1 };
@@ -2536,7 +2559,7 @@ $('#pkImport').addEventListener('click', async () => {
   $('#pkStatus').textContent = `${n} afbeeldingen geïmporteerd${n < items.length ? `, ${items.length - n} konden niet gelezen worden` : ''}. Je vindt ze bij Mijn assets en in de palet.`;
   upFilter = 'Alles'; toast(`${n} afbeeldingen geïmporteerd`);
 });
-async function importLib(L) {
+async function importLib(L, quiet) {
   let n = 0;
   for (const t of L.types || []) if (typeof t === 'string' && !lib.types.includes(t)) lib.types.push(t.slice(0, 30));
   for (const sh of L.shapes || []) if (validShape(sh) && !lib.shapes.some(x => x.id === sh.id)) { lib.shapes.push(sh); registerShape(sh); n++; }
@@ -2544,7 +2567,8 @@ async function importLib(L) {
   for (const u of L.uploads || []) if (validUpload(u) && typeof u.data === 'string' && u.data.startsWith('data:image/') && !lib.uploads.some(x => x.id === u.id)) { try { await addUploadFromData(u); n++; } catch {} }
   for (const k of ['world', 'local']) for (const b of (L.brushes && L.brushes[k]) || []) if (b && b.id && !lib.brushes[k].some(x => x.id === b.id)) { lib.brushes[k].push(normBrush(b)); n++; }
   saveLib(); afterUploadChange(true);
-  toast(n ? `${n} onderdelen aan je bibliotheek toegevoegd.` : 'Alles uit dit bestand zat al in je bibliotheek.');
+  if (!quiet) toast(n ? `${n} onderdelen aan je bibliotheek toegevoegd.` : 'Alles uit dit bestand zat al in je bibliotheek.');
+  return n;
 }
 
 function setCursor() { cv.style.cursor = spaceDown ? 'grab' : ({ select: 'default', hand: 'grab', text: 'text' }[tool] || 'crosshair'); }
@@ -2824,7 +2848,7 @@ $('#mPng').addEventListener('click', async () => {
 $('#mOpen').addEventListener('click', () => { menu.open = false; $('#fileIn').value = ''; $('#fileIn').click(); });
 $('#fileIn').addEventListener('change', async e => {
   const f = e.target.files[0]; if (!f) return;
-  try { const rec = JSON.parse(await f.text()); if (rec && rec.app === 'kartograaf-bibliotheek') { await importLib(rec); return; } const d = await docFromRecord(rec); fullRebuild(d); docs[d.kind] = d; d.sample = false; docs[d.kind].view = null; await setKind(d.kind); scheduleSave(); toast('Kaart geopend'); }
+  try { const rec = JSON.parse(await f.text()); if (rec && rec.app === 'kartograaf-bibliotheek') { await importLib(rec); return; } if (rec && rec.app === 'kartograaf-backup') { await restoreFullBackup(rec); return; } const d = await docFromRecord(rec); fullRebuild(d); docs[d.kind] = d; d.sample = false; docs[d.kind].view = null; await setKind(d.kind); scheduleSave(); toast('Kaart geopend'); }
   catch (err) { toast('Dit bestand kan ik niet openen. ' + (err?.message || '')); }
 });
 
@@ -2858,14 +2882,17 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.2.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.3.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;
   if (prev === APP_VERSION) return;
-  const snap = { from: prev || 'een eerdere versie', to: APP_VERSION, date: Date.now() }; let any = false;
+  await makeRestorePoint(`vóór de overstap naar versie ${APP_VERSION}`);
+  await store.put('meta', { version: APP_VERSION });
+}
+async function makeRestorePoint(why) {
+  const snap = { why, date: Date.now() }; let any = false;
   for (const k of ['world', 'local', 'library']) { snap[k] = await store.get(k); if (snap[k]) any = true; }
   if (any) await store.put('backup', snap);
-  await store.put('meta', { version: APP_VERSION });
 }
 async function recToText(rec) {
   const r = { ...rec, layers: {} };
@@ -2879,7 +2906,7 @@ async function renderBackups() {
   if (!b && !rescues.length) { const p = document.createElement('p'); p.className = 'note'; p.textContent = 'Nog geen herstelpunten. Bij elke nieuwe versie van Kartograaf bewaar ik eerst automatisch een kopie van je kaarten en bibliotheek.'; box.append(p); return; }
   const mk = (text, buttons) => { const d = document.createElement('div'); d.className = 'backup'; const t = document.createElement('span'); t.textContent = text; d.append(t, btnRow(buttons)); box.append(d); };
   const saveRec = async (rec, name) => { if (!rec) { toast('Daar staat geen kaart in.'); return; } await offerFile(name, JSON.stringify(await recToText(rec))); };
-  if (b) mk(`Kopie van ${new Date(b.date).toLocaleString('nl-BE')}, gemaakt vóór de overstap naar versie ${b.to}.`, [
+  if (b) mk(`Kopie van ${new Date(b.date).toLocaleString('nl-BE')}, gemaakt ${b.why || 'vóór de overstap naar versie ' + b.to}.`, [
     ['Terugzetten', e => armButton(e.currentTarget, 'Klik nogmaals om terug te zetten', () => restoreBackup(b))],
     ...(b.world ? [['Wereldkaart opslaan', () => saveRec(b.world, 'wereldkaart-herstelpunt.json')]] : []),
     ...(b.local ? [['Plattegrond opslaan', () => saveRec(b.local, 'plattegrond-herstelpunt.json')]] : []),
@@ -2888,12 +2915,189 @@ async function renderBackups() {
 }
 async function restoreBackup(b) {
   clearTimeout(saveTimer); clearTimeout(libTimer);
-  const cur = { from: APP_VERSION, to: 'de teruggezette kopie (dit is wat je had vóór het terugzetten)', date: Date.now() };
+  const cur = { why: 'vóór het terugzetten van een herstelpunt', date: Date.now() };
   for (const k of ['world', 'local', 'library']) cur[k] = await store.get(k);
   for (const k of ['world', 'local', 'library']) if (b[k]) await store.put(k, b[k]);
   await store.put('backup', cur);
   toast('Herstelpunt teruggezet. De pagina laadt opnieuw.'); setTimeout(() => location.reload(), 900);
 }
+
+/* ---------- full backup (local file) ---------- */
+async function fullBackup() {
+  const maps = {};
+  for (const k of ['world', 'local']) { if (docs[k]) maps[k] = await docToRecord(docs[k], true); else { const rec = await store.get(k); if (rec) maps[k] = await recToText(rec); } }
+  return { app: 'kartograaf-backup', v: 1, version: APP_VERSION, date: Date.now(), maps, library: await libraryObject() };
+}
+async function saveFullBackup() {
+  menu.open = false; toast('Back-up wordt gemaakt…');
+  const d = new Date(), stamp = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  await offerFile(`kartograaf-backup-${stamp}.json`, JSON.stringify(await fullBackup()));
+}
+async function loadMapRecord(k, rec) {
+  const d = await docFromRecord(rec); if (d.kind !== k) return;
+  d.sample = false; fullRebuild(d); docs[k] = d; await store.put(k, await docToRecord(d, false));
+}
+async function restoreFullBackup(b) {
+  await makeRestorePoint('vóór het terugzetten van een volledige back-up');
+  if (b.library) await importLib(b.library, true);
+  for (const k of ['world', 'local']) if (b.maps && b.maps[k]) { try { await loadMapRecord(k, b.maps[k]); } catch { toast('Een kaart uit de back-up kon niet geladen worden.'); } }
+  await setKind(kind); toast('Back-up teruggezet. Wat je eerder had, staat als herstelpunt bij Instellingen › Bibliotheek en back-up.');
+}
+$('#mFull').addEventListener('click', saveFullBackup);
+$('#fullSave').addEventListener('click', saveFullBackup);
+$('#fullOpen').addEventListener('click', () => { $('#fileIn').value = ''; $('#fileIn').click(); });
+
+/* ---------- Google Drive (web version only) ---------- */
+// The OAuth Client ID is public by design; fill it in once the Google Cloud project exists (README › Google Drive).
+const GOOGLE_CLIENT_ID = '';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file', DAPI = 'https://www.googleapis.com/drive/v3/files', DUP = 'https://www.googleapis.com/upload/drive/v3/files';
+const DFILES = { world: 'wereldkaart.json', local: 'plattegrond.json', lib: 'bibliotheek.json' };
+const lsGet = k => { try { return localStorage.getItem(k); } catch { return null; } };
+const lsSet = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch {} };
+const drive = { token: null, exp: 0, folder: null, auto: lsGet('kartograaf.driveAuto') !== '0', queue: new Set(), timer: null, busy: false, conflict: null, info: {}, seen: JSON.parse(lsGet('kartograaf.driveSeen') || '{}') };
+const saveSeen = () => lsSet('kartograaf.driveSeen', JSON.stringify(drive.seen));
+const driveClientId = () => GOOGLE_CLIENT_ID || lsGet('kartograaf.gclient') || '';
+function driveWhyNot() {
+  if (window.claude) return 'Google Drive werkt niet in de versie op claude.ai. Gebruik de website op GitHub (of de geïnstalleerde web-app) om met Drive te werken.';
+  if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) return 'Google laat aanmelden niet toe vanuit deze Android-app. Installeer de web-app vanaf de website (Chrome › App installeren) om met Drive te werken.';
+  if (!/^https?:$/.test(location.protocol)) return 'Google Drive werkt niet in de Windows-app of een geopend bestand. Gebruik de website (of installeer hem als app vanuit Chrome of Edge) om met Drive te werken.';
+  return '';
+}
+const driveOn = () => !!drive.token && Date.now() < drive.exp;
+let gisP = null;
+function loadGIS() {
+  if (window.google && google.accounts && google.accounts.oauth2) return Promise.resolve();
+  return gisP || (gisP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'https://accounts.google.com/gsi/client'; sc.async = true; sc.onload = () => res(); sc.onerror = () => { gisP = null; rej(new Error('Google-aanmelding kon niet laden. Ben je online?')); }; document.head.append(sc); }));
+}
+async function driveConnect() {
+  await loadGIS();
+  await new Promise((res, rej) => {
+    const tc = google.accounts.oauth2.initTokenClient({
+      client_id: driveClientId(), scope: DRIVE_SCOPE,
+      callback: r => { if (r.error) { rej(new Error(r.error_description || r.error)); return; } drive.token = r.access_token; drive.exp = Date.now() + (Number(r.expires_in || 3600) - 60) * 1000; res(); },
+      error_callback: e => rej(new Error(e && e.type === 'popup_closed' ? 'Aanmelden afgebroken.' : 'Het aanmeldvenster kon niet openen. Sta pop-ups toe voor deze site.')),
+    });
+    tc.requestAccessToken({ prompt: lsGet('kartograaf.drive') ? '' : 'consent' });
+  });
+  lsSet('kartograaf.drive', '1');
+}
+async function gfetch(url, opt = {}) {
+  if (!driveOn()) { drive.token = null; throw Object.assign(new Error('De verbinding met Google Drive is verlopen. Klik op Verbinden.'), { expired: true }); }
+  const r = await fetch(url, { ...opt, headers: { ...(opt.headers || {}), Authorization: 'Bearer ' + drive.token } });
+  if (r.status === 401) { drive.token = null; throw Object.assign(new Error('De verbinding met Google Drive is verlopen. Klik op Verbinden.'), { expired: true }); }
+  if (!r.ok) throw new Error(`Google Drive gaf een fout (${r.status}).`);
+  return r;
+}
+async function driveFolder() {
+  if (drive.folder) return drive.folder;
+  const q = encodeURIComponent("name='Kartograaf' and mimeType='application/vnd.google-apps.folder' and trashed=false");
+  const j = await (await gfetch(`${DAPI}?q=${q}&fields=files(id)&spaces=drive`)).json();
+  if (j.files && j.files.length) return (drive.folder = j.files[0].id);
+  const c = await (await gfetch(`${DAPI}?fields=id`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Kartograaf', mimeType: 'application/vnd.google-apps.folder' }) })).json();
+  return (drive.folder = c.id);
+}
+async function driveFind(name) {
+  const f = await driveFolder(), q = encodeURIComponent(`name='${name}' and '${f}' in parents and trashed=false`);
+  const j = await (await gfetch(`${DAPI}?q=${q}&fields=files(id,modifiedTime,size)&spaces=drive`)).json();
+  return j.files && j.files[0] || null;
+}
+async function drivePut(name, text, ex) {
+  const boundary = 'kartograaf' + Date.now(), meta = ex ? {} : { name, parents: [await driveFolder()], mimeType: 'application/json' };
+  const body = new Blob([`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n`, text, `\r\n--${boundary}--`]);
+  const url = ex ? `${DUP}/${ex.id}?uploadType=multipart&fields=id,modifiedTime,size` : `${DUP}?uploadType=multipart&fields=id,modifiedTime,size`;
+  return (await gfetch(url, { method: ex ? 'PATCH' : 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + boundary }, body })).json();
+}
+async function partText(part) {
+  if (part === 'lib') return JSON.stringify(await libraryObject());
+  if (docs[part]) return JSON.stringify(await docToRecord(docs[part], true));
+  const rec = await store.get(part); return rec ? JSON.stringify(await recToText(rec)) : null;
+}
+async function pushPart(part, force) {
+  const name = DFILES[part], ex = await driveFind(name);
+  if (ex && !force && drive.seen[name] !== ex.modifiedTime) throw Object.assign(new Error('conflict'), { conflict: part, when: ex.modifiedTime });
+  const text = await partText(part); if (!text) return;
+  const r = await drivePut(name, text, ex); drive.seen[name] = r.modifiedTime; drive.info[part] = r; saveSeen();
+}
+function queueDrive(part) {
+  if (!drive.auto || !driveOn() || drive.conflict || driveWhyNot()) return;
+  drive.queue.add(part); clearTimeout(drive.timer); drive.timer = setTimeout(flushDrive, 15000);
+}
+async function flushDrive() {
+  if (drive.busy) { drive.timer = setTimeout(flushDrive, 5000); return; }
+  drive.busy = true;
+  try {
+    for (const part of [...drive.queue]) { await pushPart(part, false); drive.queue.delete(part); }
+    setSaved('Bewaard in deze browser en in Google Drive · ' + new Date().toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' }));
+  } catch (e) {
+    if (e.conflict) { drive.conflict = e; toast('In Google Drive staat een nieuwere versie van een ander toestel. Kies bij Instellingen › Google Drive wat je wilt doen.'); }
+    else if (e.expired) setSaved('Bewaard in deze browser · Google Drive: opnieuw verbinden nodig');
+    else toast(e.message);
+  } finally { drive.busy = false; if (!$('#tabDrive').hidden) syncDriveUI(); }
+}
+async function refreshDriveInfo() {
+  for (const part of Object.keys(DFILES)) { try { drive.info[part] = await driveFind(DFILES[part]); } catch (e) { if (e.expired) break; } }
+}
+const fmtTime = t => t ? new Date(t).toLocaleString('nl-BE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+function syncDriveUI() {
+  const why = driveWhyNot();
+  $('#drvUnsupported').hidden = !why; $('#drvUnsupported').textContent = why; $('#drvMain').hidden = !!why;
+  if (why) return;
+  const needId = !GOOGLE_CLIENT_ID;
+  $('#drvClientRow').hidden = !needId; $('#drvClientNote').hidden = !needId; if (needId) $('#drvClient').value = lsGet('kartograaf.gclient') || '';
+  const on = driveOn();
+  $('#drvConnect').textContent = on ? 'Verbonden' : (lsGet('kartograaf.drive') ? 'Opnieuw verbinden' : 'Verbinden met Google Drive'); $('#drvConnect').disabled = on;
+  $('#drvDisconnect').hidden = !on; $('#drvConnected').hidden = !on; $('#drvAuto').checked = drive.auto;
+  const box = $('#drvStatus'); box.textContent = '';
+  const names = { world: 'Wereldkaart', local: 'Plattegrond', lib: 'Bibliotheek' };
+  for (const part of Object.keys(DFILES)) {
+    const f = drive.info[part], line = document.createElement('span');
+    line.textContent = `${names[part]}: ${f ? 'in Drive sinds ' + fmtTime(f.modifiedTime) + (f.size ? ` (${Math.round(f.size / 1024)} kB)` : '') : 'nog niet in Drive'}`;
+    box.append(line);
+  }
+  if (drive.conflict) {
+    const c = drive.conflict, p = document.createElement('strong');
+    p.textContent = `Let op: ${names[c.conflict].toLowerCase()} in Drive is gewijzigd op ${fmtTime(c.when)}, waarschijnlijk op een ander toestel. Automatisch bewaren staat even stil. Kies "Ophalen uit Drive" om die versie te nemen, of "Alles nu naar Drive" om ze te vervangen door wat je hier hebt.`;
+    box.append(p);
+  }
+}
+$('#drvClient').addEventListener('change', e => { lsSet('kartograaf.gclient', e.target.value.trim() || null); });
+$('#drvConnect').addEventListener('click', async () => {
+  if (!driveClientId()) { toast('Vul eerst de Google Client ID in.'); $('#drvClient').focus(); return; }
+  try { await driveConnect(); toast('Verbonden met Google Drive'); await refreshDriveInfo(); }
+  catch (e) { toast(e.message || 'Verbinden lukte niet.'); }
+  syncDriveUI();
+});
+$('#drvDisconnect').addEventListener('click', () => {
+  try { if (drive.token && window.google) google.accounts.oauth2.revoke(drive.token, () => {}); } catch {}
+  drive.token = null; drive.folder = null; lsSet('kartograaf.drive', null); syncDriveUI(); toast('Verbinding met Google Drive verbroken. Je bestanden blijven in Drive staan.');
+});
+$('#drvAuto').addEventListener('change', e => { drive.auto = e.target.checked; lsSet('kartograaf.driveAuto', drive.auto ? '1' : '0'); });
+$('#drvPush').addEventListener('click', async e => {
+  const btn = e.currentTarget;
+  const go = async () => {
+    btn.disabled = true; toast('Bezig met bewaren in Google Drive…');
+    try { for (const part of Object.keys(DFILES)) await pushPart(part, true); drive.conflict = null; drive.queue.clear(); toast('Alles staat in Google Drive.'); }
+    catch (err) { toast(err.message); } finally { btn.disabled = false; syncDriveUI(); }
+  };
+  if (drive.conflict) armButton(btn, 'Klik nogmaals: Drive vervangen', go); else go();
+});
+$('#drvPull').addEventListener('click', e => armButton(e.currentTarget, 'Klik nogmaals om op te halen', async () => {
+  try {
+    toast('Bezig met ophalen uit Google Drive…');
+    await makeRestorePoint('vóór het ophalen uit Google Drive');
+    const got = [];
+    for (const part of Object.keys(DFILES)) {
+      const ex = await driveFind(DFILES[part]); if (!ex) continue;
+      const data = JSON.parse(await (await gfetch(`${DAPI}/${ex.id}?alt=media`)).text());
+      if (part === 'lib') await importLib(data, true); else await loadMapRecord(part, data);
+      drive.seen[DFILES[part]] = ex.modifiedTime; drive.info[part] = ex; got.push(part);
+    }
+    saveSeen(); drive.conflict = null; drive.queue.clear();
+    await setKind(kind);
+    toast(got.length ? 'Opgehaald uit Google Drive. Wat je hier eerst had, staat als herstelpunt bij Instellingen › Bibliotheek en back-up.' : 'Er staat nog niets in Google Drive.');
+  } catch (err) { toast(err.message); }
+  syncDriveUI();
+}));
 
 /* feedback */
 let fbKind = 'bug';

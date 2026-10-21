@@ -1,5 +1,11 @@
 # Wijzigingen
 
+## 1.3.0
+
+- Google Drive: kaarten en bibliotheek (met geüploade assets) bewaren in een map *Kartograaf* in je Drive, automatisch of met de hand, en ophalen op een ander toestel. Overschrijft nooit stilzwijgend een nieuwere versie van een ander toestel. Werkt in de webversie.
+- Volledige back-up: al je kaarten en je bibliotheek in één bestand, en weer terugzetten.
+- Herstelpunten worden ook gemaakt vóór het terugzetten van een back-up en vóór het ophalen uit Drive.
+
 ## 1.2.0
 
 - Windows-installer (.exe) en Android-app (.apk).
