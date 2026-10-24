@@ -1,5 +1,13 @@
 # Wijzigingen
 
+## 1.14.2
+
+- **Egaal inkleuren:** ingekleurde delen van een afbeelding krijgen precies de gekozen kleur, zonder grijstinten of schaduw. Donkere lijnen worden puur zwart.
+- **Witte plekjes opvullen** in *Afbeelding inkleuren*: kleine witte stukjes tussen de lijnen die nog niet ingekleurd zijn, krijgen de kleur van het deel ernaast. Grote vlakken blijven zoals ze zijn.
+- Een zwart-witte of grijze lijntekening wordt bij het uploaden **puur zwart en wit**, zoals de rest van de kaart. Een afbeelding in kleur blijft zoals ze is.
+- De verfemmer houdt verschillende kleuren beter uit elkaar, bv. een groene kruin en een bruine stam.
+- Ingekleurde afbeeldingen zijn scherper: ze worden op 1024 pixels berekend in plaats van 400.
+
 ## 1.14.1
 
 - **Penseelgrootte** voor *Kleurpotlood* en *Kleur wissen*, zowel in *Afbeelding inkleuren* als in het tekenvenster voor eigen vormen. Een cirkel toont waar en hoe groot je schildert. Met de toetsen **[** en **]** maak je het penseel kleiner of groter.

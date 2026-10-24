@@ -462,8 +462,9 @@ body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
         <div class="colorrow"><span>Verf</span><input type="color" id="icColor" value="#6f9c4c" aria-label="Verfkleur"></div>
         <label class="row"><span>Gevoelig</span><input type="range" id="icTol" min="10" max="160" value="70"><output id="icTolOut">70</output></label>
         <label class="row"><span>Penseel</span><input type="range" id="icSize" min="1" max="100" value="10" aria-label="Grootte van Kleurpotlood en Kleur wissen ([ en ])"><output id="icSizeOut">10</output></label>
+        <div class="btns"><button type="button" class="btn" id="icSpecks">Witte plekjes opvullen</button></div>
         <div class="btns"><button type="button" class="btn" id="icUndo">Ongedaan maken</button><button type="button" class="btn" id="icClear">Alles wissen</button></div>
-        <p class="note">Tik met de Verfemmer op een deel, bv. eerst de kruin en dan de stam, elk in een eigen kleur. De emmer vult alles wat ongeveer dezelfde kleur heeft; met Gevoelig hoger vult hij meer. Zwarte lijnen blijven zwart. De kleuren zie je op een kleurenkaart.</p>
+        <p class="note">Tik met de Verfemmer op een deel, bv. eerst de kruin en dan de stam, elk in een eigen kleur. De emmer vult alles wat ongeveer dezelfde kleur heeft; met Gevoelig hoger vult hij meer. Donkere lijnen worden zwart, de rest krijgt precies jouw kleur. Blijven er witte stukjes tussen de lijnen over, klik dan op Witte plekjes opvullen. De kleuren zie je op een kleurenkaart.</p>
       </div>
     </div>
     <div class="btns end"><button type="button" class="btn" id="icCancel">Annuleren</button><button type="button" class="btn primary" id="icSave">Bewaren</button></div>
@@ -2414,25 +2415,32 @@ function computeFill(strokes, size) {
   for (const st of strokes) { g.lineWidth = Math.max(1, st.w * 100 / size); g.stroke(strokePath(st)); }
   return insideOf(c) > 0 ? c : null;
 }
-/* An uploaded picture in colour: black lines stay black, everything else takes a colour while keeping its own light and
-   dark (the lightest part gets the colour itself, darker parts darker shades of it). The colour of a pixel comes from what
-   was painted on it in "Afbeelding inkleuren", otherwise from `base`; without either the pixel keeps its own colour. */
-const UP_LINE = .16, lum = (d, i) => (d[i] * .299 + d[i + 1] * .587 + d[i + 2] * .114) / 255;
+/* An uploaded picture in colour, flat like ink and paint: dark lines become pure black, everything else takes exactly the
+   colour, without grey shades. The colour of a pixel comes from what was painted on it in "Afbeelding inkleuren",
+   otherwise from `base`; without either it keeps its own colour. */
+const UP_LINE = .25, lum = (d, i) => (d[i] * .299 + d[i + 1] * .587 + d[i + 2] * .114) / 255;
 function colourize(d, pd, base) {
-  let lo = 1, hi = 0;
-  for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 40) { const L = lum(d, i); if (L >= UP_LINE) { if (L < lo) lo = L; if (L > hi) hi = L; } }
   for (let i = 0; i < d.length; i += 4) {
     const painted = pd && pd[i + 3] > 0, cr = painted ? pd[i] : base && base[0], cg = painted ? pd[i + 1] : base && base[1], cb = painted ? pd[i + 2] : base && base[2];
     if (cr == null) continue;
     if (!d[i + 3]) { if (painted) { d[i] = cr; d[i + 1] = cg; d[i + 2] = cb; d[i + 3] = 255; } continue; } // paint inside a see-through shape
-    const L = lum(d, i), t = L < UP_LINE ? L / UP_LINE * .35 : .45 + .55 * (hi > lo + .02 ? (L - lo) / (hi - lo) : 1);
-    d[i] = cr * t; d[i + 1] = cg * t; d[i + 2] = cb * t;
+    if (lum(d, i) < UP_LINE) { d[i] = d[i + 1] = d[i + 2] = 20; } else { d[i] = cr; d[i + 1] = cg; d[i + 2] = cb; }
   }
 }
-const upScale = a => Math.min(1, 400 / Math.max(a.iw, a.ih));
+/* A black-and-white or grey drawing becomes pure black and white, like the rest of the map; a picture in full colour stays
+   as it is. Returns the canvas it changed, or the picture itself. */
+function inkOnly(im) {
+  const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(im, 0, 0);
+  const img = g.getImageData(0, 0, c.width, c.height), d = img.data; let n = 0, grey = 0;
+  for (let i = 0; i < d.length; i += 16) if (d[i + 3] > 40) { n++; if (Math.max(d[i], d[i + 1], d[i + 2]) - Math.min(d[i], d[i + 1], d[i + 2]) < 30) grey++; }
+  if (!n || grey < n * .95) return im;
+  for (let i = 0; i < d.length; i += 4) { const v = lum(d, i) < .5 ? 20 : 255; d[i] = d[i + 1] = d[i + 2] = v; }
+  g.putImageData(img, 0, 0); return c;
+}
+const upScale = a => Math.min(1, 800 / Math.max(a.iw, a.ih)); // working size for colouring in
 function composedUpload(a, base) {
   a.comp = a.comp || {}; const key = base || '-'; if (a.comp[key]) return a.comp[key];
-  const k = upScale(a), c = document.createElement('canvas'); c.width = Math.max(1, Math.round(a.iw * k)); c.height = Math.max(1, Math.round(a.ih * k));
+  const k = Math.min(1, 1024 / Math.max(a.iw, a.ih)), c = document.createElement('canvas'); c.width = Math.max(1, Math.round(a.iw * k)); c.height = Math.max(1, Math.round(a.ih * k));
   const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(a.image, 0, 0, c.width, c.height);
   const img = g.getImageData(0, 0, c.width, c.height);
   let pd = null; if (a.paintImg) { const q = document.createElement('canvas'); q.width = c.width; q.height = c.height; const qg = q.getContext('2d'); qg.drawImage(a.paintImg, 0, 0, c.width, c.height); pd = qg.getImageData(0, 0, c.width, c.height).data; }
@@ -2824,7 +2832,7 @@ function registerUpload(u, bmp) {
     const tile = { c, C: g.getImageData(0, 0, W, H).data, W, H, S: W };
     for (const k of ['world', 'local']) if (usableIn(u, k)) TERRAINS[k].push({ id: 'x:' + u.id, name: u.name, tile, upload: u, color: null });
   } else {
-    const im = u.keepWhite ? bmp : cutWhite(bmp);
+    const im = inkOnly(u.keepWhite ? bmp : cutWhite(bmp));
     ASSETS['img:' + u.id] = { key: 'img:' + u.id, name: u.name, cat: 'up', upType: u.type, size: Math.max(6, Math.min(500, +u.size || 48)), kind: 'any', image: im, iw: im.width, ih: im.height, foot: .45 * im.height / Math.max(im.width, im.height),
       color: typeof u.color === 'string' && /^#[0-9a-f]{6}$/i.test(u.color) ? u.color : null };
     if (typeof u.paint === 'string' && u.paint.startsWith('data:image/')) { const A = ASSETS['img:' + u.id], img = new Image(); img.onload = () => { if (ASSETS['img:' + u.id] === A) { A.paintImg = img; A.comp = {}; objEpoch++; req(); refreshThumbs(); } }; img.src = u.paint; }
@@ -3012,7 +3020,7 @@ function icBucket(p) {
   const { W, H, src } = icS, x0 = Math.floor(p.x), y0 = Math.floor(p.y); if (x0 < 0 || y0 < 0 || x0 >= W || y0 >= H) return;
   const s0 = (y0 * W + x0) * 4, tol = +$('#icTol').value, clear = src[s0 + 3] < 40;
   if (!clear && lum(src, s0) < UP_LINE) { toast('Tik naast de zwarte lijn, in het vlak zelf.'); return; }
-  const like = j => { const i = j * 4; if (clear) return src[i + 3] < 40; if (src[i + 3] < 40 || lum(src, i) < UP_LINE) return false; return Math.abs(src[i] - src[s0]) + Math.abs(src[i + 1] - src[s0 + 1]) + Math.abs(src[i + 2] - src[s0 + 2]) <= tol * 1.6; };
+  const like = j => { const i = j * 4; if (clear) return src[i + 3] < 40; if (src[i + 3] < 40 || lum(src, i) < UP_LINE) return false; return Math.max(Math.abs(src[i] - src[s0]), Math.abs(src[i + 1] - src[s0 + 1]), Math.abs(src[i + 2] - src[s0 + 2])) <= tol * .6; }; // biggest difference in one colour channel: keeps green and brown apart
   const reg = new Uint8Array(W * H), stack = [y0 * W + x0]; reg[stack[0]] = 1; let edge = false;
   while (stack.length) { const j = stack.pop(), x = j % W; if (x === 0 || x === W - 1 || j < W || j >= W * H - W) edge = true;
     for (const n of [x > 0 ? j - 1 : -1, x < W - 1 ? j + 1 : -1, j - W, j + W]) if (n >= 0 && n < W * H && !reg[n] && like(n)) { reg[n] = 1; stack.push(n); } }
@@ -3021,6 +3029,30 @@ function icBucket(p) {
   for (let j = 0; j < W * H; j++) { let on = reg[j]; if (!on && !clear) { const x = j % W; on = (x > 0 && reg[j - 1]) || (x < W - 1 && reg[j + 1]) || (j >= W && reg[j - W]) || (j < W * H - W && reg[j + W]); } // and its soft edge
     if (on) { img.data[j * 4] = r; img.data[j * 4 + 1] = gg; img.data[j * 4 + 2] = b; img.data[j * 4 + 3] = 255; } }
   g.putImageData(img, 0, 0);
+}
+/* Fill the small bits that are still uncoloured (white specks between the lines, light edges along them) with the colour of
+   the nearest coloured part. The colour may travel along black lines to get there, but the lines themselves stay black,
+   and larger uncoloured areas are left alone. */
+function icFillSpecks() {
+  const { W, H, src, outside } = icS, N = W * H, g = icS.paint.getContext('2d'), img = g.getImageData(0, 0, W, H), pd = img.data;
+  const line = j => src[j * 4 + 3] >= 40 && lum(src, j * 4) < UP_LINE, free = j => !outside[j] && !pd[j * 4 + 3] && !line(j);
+  const comp = new Int32Array(N).fill(-1), sizes = [], st = [];
+  for (let j = 0; j < N; j++) if (comp[j] < 0 && free(j)) { const id = sizes.length; let n = 0; comp[j] = id; st.push(j);
+    while (st.length) { const i = st.pop(), x = i % W; n++; for (const m of [x > 0 ? i - 1 : -1, x < W - 1 ? i + 1 : -1, i - W, i + W]) if (m >= 0 && m < N && comp[m] < 0 && free(m)) { comp[m] = id; st.push(m); } }
+    sizes.push(n); }
+  const small = Math.max(30, N * .015), from = new Int32Array(N).fill(-1); let q = [], filled = 0;
+  for (let j = 0; j < N; j++) if (pd[j * 4 + 3]) { from[j] = j; q.push(j); }
+  if (!q.length) { toast('Kleur eerst iets in; daarna vult dit de witte plekjes ernaast.'); return false; }
+  while (q.length) { const nq = [];
+    for (const i of q) { const x = i % W, o = from[i] * 4;
+      for (const m of [x > 0 ? i - 1 : -1, x < W - 1 ? i + 1 : -1, i - W, i + W]) {
+        if (m < 0 || m >= N || from[m] >= 0 || outside[m]) continue;
+        if (comp[m] >= 0) { if (sizes[comp[m]] > small) continue; pd[m * 4] = pd[o]; pd[m * 4 + 1] = pd[o + 1]; pd[m * 4 + 2] = pd[o + 2]; pd[m * 4 + 3] = 255; from[m] = m; filled++; }
+        else if (line(m)) from[m] = from[i]; else continue;
+        nq.push(m);
+      } }
+    q = nq; }
+  g.putImageData(img, 0, 0); toast(filled ? 'Witte plekjes opgevuld' : 'Geen kleine witte plekjes gevonden'); return true;
 }
 function icDab(a, b) {
   const g = icS.paint.getContext('2d'); g.save(); g.lineCap = 'round'; g.lineWidth = icBrushW();
@@ -3045,6 +3077,7 @@ icCv.addEventListener('pointerleave', () => { if (icS) { icS.hover = null; icCur
 $('#icSize').addEventListener('input', e => { $('#icSizeOut').textContent = e.target.value; icCursor(); });
 const icUp = () => { if (icS) icS.last = null; };
 icCv.addEventListener('pointerup', icUp); icCv.addEventListener('pointercancel', icUp);
+$('#icSpecks').addEventListener('click', () => { if (!icS) return; icS.hist.push(icS.paint.getContext('2d').getImageData(0, 0, icS.W, icS.H)); if (!icFillSpecks()) icS.hist.pop(); drawIc(); });
 $('#icTol').addEventListener('input', e => { $('#icTolOut').textContent = e.target.value; });
 $('#icUndo').addEventListener('click', () => { if (icS && icS.hist.length) { icS.paint.getContext('2d').putImageData(icS.hist.pop(), 0, 0); drawIc(); } });
 $('#icClear').addEventListener('click', () => { if (!icS) return; icS.hist.push(icS.paint.getContext('2d').getImageData(0, 0, icS.W, icS.H)); icS.paint.getContext('2d').clearRect(0, 0, icS.W, icS.H); drawIc(); });
@@ -3559,7 +3592,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.14.1', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.14.2', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;
