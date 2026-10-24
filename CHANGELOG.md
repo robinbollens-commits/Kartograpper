@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## 1.21.0
+
+- Nieuwe ondergrond voor de wereldkaart: **Landschap**. Het is neutraal open land met fijne stippels en hier en daar een zacht streepje. Het is geen gras en ook niet dor. De kleur is aangepast aan elke kaartstijl.
+
 ## 1.20.2
 
 - De vervaagde voet van de Oud-bergen en -heuvels dekt nu af wat erachter staat. De randen van een berg erachter schijnen er niet meer doorheen, alleen de ondergrond. Dat geldt ook bij het exporteren en afdrukken.

@@ -644,16 +644,16 @@ const BLUE = '#2a9ad6';
 const PALETTES = {
   inkt: { name: 'Inkt', ink: [24, 24, 24], paper: [252, 252, 252], water: [252, 252, 252], deep: [252, 252, 252], floor: [252, 252, 252], rock: [252, 252, 252], ground: [252, 252, 252], terr: {}, fill: {} },
   perkament: { name: 'Perkament', ink: [64, 45, 28], paper: [240, 227, 198], water: [229, 216, 186], deep: [222, 207, 175], floor: [242, 231, 205], rock: [221, 205, 172], ground: [236, 223, 192],
-    terr: { gras: [230, 222, 183], woestijn: [242, 224, 180], moeras: [217, 214, 180], sneeuw: [246, 241, 228], akkers: [235, 220, 182], rotsgrond: [224, 210, 184], dor: [221, 203, 172], bloemen: [234, 226, 188], kasseien: [228, 214, 186], tegels: [234, 222, 196], planken: [230, 210, 172], aarde: [228, 210, 176], water: [222, 214, 190] }, fill: {} },
+    terr: { gras: [230, 222, 183], woestijn: [242, 224, 180], moeras: [217, 214, 180], sneeuw: [246, 241, 228], akkers: [235, 220, 182], rotsgrond: [224, 210, 184], dor: [221, 203, 172], bloemen: [234, 226, 188], land: [237, 230, 206], kasseien: [228, 214, 186], tegels: [234, 222, 196], planken: [230, 210, 172], aarde: [228, 210, 176], water: [222, 214, 190] }, fill: {} },
   kleur: { name: 'Kleur', colorful: true, ink: [44, 36, 30], paper: [237, 229, 202], water: [182, 216, 228], deep: [126, 174, 204], floor: [234, 227, 210], rock: [156, 148, 138], ground: [221, 226, 192], river: '#3f78a6',
-    terr: { gras: [193, 216, 152], woestijn: [238, 215, 158], moeras: [170, 189, 143], sneeuw: [242, 246, 250], akkers: [226, 205, 140], rotsgrond: [200, 188, 170], dor: [186, 168, 148], bloemen: [208, 226, 164], kasseien: [202, 198, 188], tegels: [216, 208, 192], planken: [210, 174, 124], aarde: [200, 172, 128], water: [146, 194, 218] },
+    terr: { gras: [193, 216, 152], woestijn: [238, 215, 158], moeras: [170, 189, 143], sneeuw: [242, 246, 250], akkers: [226, 205, 140], rotsgrond: [200, 188, 170], dor: [186, 168, 148], bloemen: [208, 226, 164], land: [214, 216, 174], kasseien: [202, 198, 188], tegels: [216, 208, 192], planken: [210, 174, 124], aarde: [200, 172, 128], water: [146, 194, 218] },
     fill: { berg: '#cdb994', berg2: '#cdb994', vulkaan: '#b9a58a', heuvels: '#bccf92', rotsen: '#c2b8a8', riet: '#a9c48a', naald: '#6f9c5c', spar: '#5f8e55', loof: '#8fba67', palm: '#8fba67',
       nederzetting: '#ecdcb8', plek: '#e2d5b8', elf: '#e6eed6', elfboom: '#9cc47c', elfwoud: '#86b97a', dwerg: '#d8cbb0', dwergpoort: '#cdb994', duister: '#a39a92', orkkamp: '#c2a77f', schedelrots: '#d6cdbd', draak: '#a7b97c', kraken: '#cf9a94', steencirkel: '#c9c2b4', magiertoren: '#cdc6e4', schat: '#c9955a', schip: '#caa77c', zeeslang: '#93b58e', anker: '#ecdcb8', kompas: '#f4ecd8', schaal: '#f4ecd8',
       door: '#c08f5e', geheim: '#ebe3d2', meubel: '#c9a073', bed: '#ebe3d2', tapijt: '#b8665a', kerker: '#d2cbbf', boom: '#7fab60', struik: '#94bd6d', huis: '#c97a55', fontein: '#a9d0e2', kraam: '#e7d3a5', kar: '#c08f5e', tent: '#e6d2a2', boot: '#c08f5e', torenrond: '#d2cbbf', kampvuur: '#c2b8a8' } },
 };
 // an old map: sepia ink on sandy parchment, muted greens, dark green rivers
 PALETTES.oud = { name: 'Oude kaart', colorful: true, ink: [58, 44, 30], paper: [233, 220, 187], water: [176, 186, 160], deep: [150, 164, 140], floor: [236, 225, 196], rock: [205, 190, 160], ground: [228, 215, 182], river: '#3f5a40',
-  terr: { gras: [214, 212, 162], woestijn: [238, 222, 180], moeras: [190, 192, 152], sneeuw: [242, 238, 224], akkers: [226, 210, 164], rotsgrond: [214, 200, 170], dor: [204, 184, 150], bloemen: [216, 214, 168], kasseien: [222, 208, 180], tegels: [230, 218, 192], planken: [222, 200, 160], aarde: [218, 198, 160], water: [190, 196, 172] },
+  terr: { gras: [214, 212, 162], woestijn: [238, 222, 180], moeras: [190, 192, 152], sneeuw: [242, 238, 224], akkers: [226, 210, 164], rotsgrond: [214, 200, 170], dor: [204, 184, 150], bloemen: [216, 214, 168], land: [227, 219, 186], kasseien: [222, 208, 180], tegels: [230, 218, 192], planken: [222, 200, 160], aarde: [218, 198, 160], water: [190, 196, 172] },
   fill: { berg: '#e2d1a6', berg2: '#e2d1a6', heuvels: '#d8cf9e', vulkaan: '#cdb592', rotsen: '#cfc3a5', riet: '#9aa268', naald: '#6f7c48', spar: '#5f6c3c', loof: '#7c8a52', palm: '#7c8a52', boom: '#7c8a52', struik: '#8a9660',
     nederzetting: '#e8dbbb', plek: '#e2d3b0', schip: '#b08a5c', zeeslang: '#8a9a68', anker: '#e8dbbb', kompas: '#efe3c4', schaal: '#efe3c4', elf: '#dfe3cf', dwerg: '#d9ccb0', duister: '#a39a92',
     door: '#a07850', meubel: '#b89466', kerker: '#d2c7b2', huis: '#b9805a', fontein: '#b8c8b0', kraam: '#e3d0a2', kar: '#a07850', tent: '#e3d0a2', boot: '#a07850', torenrond: '#d2c7b2', kampvuur: '#c2b8a8' } };
@@ -1552,6 +1552,13 @@ const TERRAIN_DEFS = {
       g.lineWidth = .85;
       jit(S, 20, r, (x, y) => { if (r() < .45) return; const q = 1.2 + r() * .5;
         wrap((dx, dy) => { const X = x + dx, Y = y + dy; g.beginPath(); for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2, cx = X + Math.cos(a) * q * 2, cy = Y + Math.sin(a) * q * 2; g.moveTo(cx + q, cy); g.arc(cx, cy, q, 0, 7); } g.stroke(); g.beginPath(); g.arc(X, Y, .9, 0, 7); g.fill(); }); });
+    }],
+    ['land', 'Landschap', (g, S, r, wrap) => { // neutral open country: a light stipple and now and then a soft stroke, no grass and nothing dead
+      jit(S, 11, r, (x, y) => { if (r() < .55) return; const q = .45 + r() * .35; wrap((dx, dy) => { g.beginPath(); g.arc(x + dx, y + dy, q, 0, 7); g.fill(); }); });
+      g.lineWidth = .9;
+      jit(S, 36, r, (x, y) => { if (r() < .4) return; const w = 3 + r() * 3, t = r() < .35;
+        wrap((dx, dy) => { const X = x + dx, Y = y + dy; g.beginPath(); g.moveTo(X - w, Y); g.quadraticCurveTo(X, Y - 1.6, X + w, Y);
+          if (t) { g.moveTo(X - 1, Y - .6); g.lineTo(X - 1.8, Y - 3.6); g.moveTo(X + 1, Y - .6); g.lineTo(X + 1.6, Y - 4.2); } g.stroke(); }); });
     }],
   ],
   local: [
@@ -4321,7 +4328,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.20.2', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.21.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;
