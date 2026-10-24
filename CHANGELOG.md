@@ -1,5 +1,14 @@
 # Wijzigingen
 
+## 1.12.0
+
+- **Zelf inkleuren** in het tekenvenster voor eigen vormen: *Verfemmer* (tik in een vlak), *Kleurpotlood* en *Kleur wissen*, met een eigen verfkleur. Zo krijgt één vorm meerdere kleuren, bv. een donkere schaduwkant.
+- **Basiskleur** voor eigen vormen: op een kleurenkaart krijgen ze nu een echte kleur in plaats van de papierkleur. Een nieuwe vorm neemt de kleur over van het voorbeeld waarover je tekent.
+- Een omtrek met een kleine opening telt nu ook als gesloten, zodat de binnenkant gevuld en ingekleurd kan worden. Is hij echt open, dan zegt het tekenvenster dat.
+- **Geüploade lijntekeningen** (met doorzichtige achtergrond) kun je nu ook inkleuren via de kleur van een symbool of penseel.
+- **Grootte en draaiing op de kaart:** een geselecteerd symbool of tekst heeft een hoekgreep om te vergroten en een bolletje om te draaien (met Shift in stappen van 15°). Een symbool dat je met één klik neerzet, is meteen geselecteerd.
+- Eigen vormen en uploads hebben een **potloodje** op hun tegel om ze te bewerken of te verwijderen, en een knop *Vorm bewerken…* of *Afbeelding beheren…* als je ze op de kaart selecteert.
+
 ## 1.11.0
 
 - **Bijwerken met één klik.** Bij *Nieuwe versie* staat nu *Nu bijwerken*:

@@ -83,7 +83,9 @@ input[type=checkbox],input[type=radio]{accent-color:var(--accent);margin:0}
 .sw canvas{width:100%;height:40px;border-radius:5px;display:block;background:var(--paper)}
 .sw[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);color:var(--accent)}
 .assets{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px}
-.asset{border:1px solid var(--rule);border-radius:8px;background:var(--paper);color:var(--paper-ink);padding:4px 2px 4px;cursor:grab;display:grid;justify-items:center;gap:2px;font-size:11px;line-height:1.15;touch-action:pan-y;user-select:none;-webkit-user-select:none;text-align:center}
+.asset .tile-edit{position:absolute;top:2px;right:2px;width:24px;height:24px;padding:3px;border-radius:50%;border:1px solid var(--rule);background:var(--panel);color:var(--ink);display:grid;place-items:center}
+.asset .tile-edit svg{width:14px;height:14px}
+.asset{position:relative;border:1px solid var(--rule);border-radius:8px;background:var(--paper);color:var(--paper-ink);padding:4px 2px 4px;cursor:grab;display:grid;justify-items:center;gap:2px;font-size:11px;line-height:1.15;touch-action:pan-y;user-select:none;-webkit-user-select:none;text-align:center}
 .asset canvas{width:48px;height:48px;pointer-events:none}
 .asset span{pointer-events:none}
 .asset[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:1px}
@@ -438,6 +440,9 @@ body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
         <div class="btns"><button type="button" class="btn" id="padUndo">Ongedaan maken</button><button type="button" class="btn" id="padClear">Alles wissen</button></div>
         <label class="field"><span>Voorbeeld op de achtergrond</span><select id="padRef"></select></label>
         <label class="check"><input type="checkbox" id="padFill" checked> Binnenkant vullen (sluit de omtrek)</label>
+        <p class="note" id="padOpen" hidden>De omtrek is niet gesloten, dus er is geen binnenkant om in te kleuren. Trek de lijn rond tot ze bijna zichzelf raakt.</p>
+        <div class="colorrow"><span>Basiskleur</span><input type="color" id="padColor" aria-label="Basiskleur van deze vorm op een kleurenkaart"><span class="note" style="margin:0">vult de hele binnenkant</span></div>
+        <div class="colorrow"><span>Verf</span><input type="color" id="padPaint" value="#7fae62" aria-label="Kleur voor Verfemmer en Kleurpotlood"><span class="note" style="margin:0">voor Verfemmer en Kleurpotlood</span></div>
         <label class="row"><span>Grootte</span><input type="range" id="padSize" min="16" max="200" value="64"><output id="padSizeOut">64</output></label>
         <label class="field"><span>Naam</span><input type="text" id="padName" maxlength="40"></label>
         <canvas id="padPrev" width="560" height="168" aria-label="Zo ziet de vorm eruit op de kaart"></canvas>
@@ -617,7 +622,7 @@ function applyPalette(name) {
   CUR = PALETTES[name] || PALETTES.inkt; INKC = rgb(CUR.ink); PAPERC = rgb(CUR.paper); objEpoch++;
   const app = document.getElementById('app'); app.style.setProperty('--paper', PAPERC); app.style.setProperty('--paper-ink', INKC);
 }
-const fillFor = a => CUR.fill[a.key] || CUR.fill[a.cat] || PAPERC;
+const fillFor = a => CUR.fill[a.key] || CUR.fill[a.cat] || (CUR.colorful && a.color) || PAPERC;
 const MAPFONT = '"IM Fell English", Georgia, serif';
 const MARGIN = 40, INF = 60000;
 
@@ -984,9 +989,10 @@ function drawAsset(g, key, x, y, s, rot, flip, v, col) {
   const fill = (CUR.colorful && col) || fillFor(a), k = s / 100;
   g.save(); g.translate(x, y); if (rot) g.rotate(rot * Math.PI / 180); g.scale(flip ? -k : k, k);
   g.lineJoin = 'round'; g.lineCap = 'round'; g.strokeStyle = INKC;
-  if (a.image) { const m = Math.max(a.iw, a.ih); g.drawImage(a.image, -a.iw / m * 50, -a.ih / m * 50, a.iw / m * 100, a.ih / m * 100); g.restore(); return; }
+  if (a.image) { const m = Math.max(a.iw, a.ih); if (CUR.colorful && col && imageMask(a)) g.drawImage(tinted(a, col), -50, -50, 100, 100); g.drawImage(a.image, -a.iw / m * 50, -a.ih / m * 50, a.iw / m * 100, a.ih / m * 100); g.restore(); return; }
   if (a.custom) {
     if (a.mask) g.drawImage(tinted(a, fill), -50, -50, 100, 100);
+    if (a.paint && CUR.colorful && !col) g.drawImage(a.paint, -50, -50, 100, 100); // coloured in by hand in the drawing pad
     for (const st of a.strokes) { g.lineWidth = st.w / k; g.stroke(st.p); }
     g.restore(); return;
   }
@@ -1775,9 +1781,29 @@ function render() {
   g.restore();
   drawOverlay(g, v.z);
 }
+/* Handles on a selected symbol or text: the corner square resizes, the dot above it turns it. */
+function selHandles(z) {
+  const o = getSelObj(); if (!o || editing || sel.type === 'line') return null;
+  let hw, hh; if (sel.type === 'stamp') hw = hh = o.s * .46 + 3 / z; else { const b = labelBox(o); hw = b.w / 2 + 5 / z; hh = b.h / 2 + 3 / z; }
+  const a = o.r * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a), at = (x, y) => ({ x: o.x + x * ca - y * sa, y: o.y + x * sa + y * ca });
+  return { o, c: { x: o.x, y: o.y }, size: at(hw, hh), turn: at(0, -hh - 22 / z), top: at(0, -hh) };
+}
+const HANDLE_TOOLS = new Set(['select', 'stamp', 'text']);
+function handleAt(p, touch) {
+  if (!HANDLE_TOOLS.has(tool)) return null; const z = V().z, H = selHandles(z); if (!H) return null; const r = (touch ? 20 : 10) / z;
+  if (Math.hypot(p.x - H.size.x, p.y - H.size.y) < r) return { t: 'resize', o: H.o, c: H.c, d0: Math.max(1, Math.hypot(p.x - H.c.x, p.y - H.c.y)), s0: H.o.fs != null ? H.o.fs : H.o.s };
+  if (Math.hypot(p.x - H.turn.x, p.y - H.turn.y) < r) return { t: 'turn', o: H.o, c: H.c };
+  return null;
+}
 function drawOverlay(g, z) {
   g.save(); g.strokeStyle = BLUE; g.lineWidth = 1.5 / z;
   const o = getSelObj();
+  const H = HANDLE_TOOLS.has(tool) ? selHandles(z) : null;
+  if (H) {
+    g.beginPath(); g.moveTo(H.top.x, H.top.y); g.lineTo(H.turn.x, H.turn.y); g.stroke();
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(H.turn.x, H.turn.y, 5 / z, 0, 7); g.fill(); g.stroke();
+    g.save(); g.translate(H.size.x, H.size.y); g.rotate(H.o.r * Math.PI / 180); g.fillRect(-5 / z, -5 / z, 10 / z, 10 / z); g.strokeRect(-5 / z, -5 / z, 10 / z, 10 / z); g.restore();
+  }
   if (o && !editing) {
     g.setLineDash([5 / z, 4 / z]);
     if (sel.type === 'stamp') { const h = o.s * .46 + 3 / z; g.save(); g.translate(o.x, o.y); g.rotate(o.r * Math.PI / 180); g.strokeRect(-h, -h, h * 2, h * 2); g.restore(); }
@@ -1840,7 +1866,7 @@ function refreshSel() {
     if (SHADED.has(o.a)) list.pop();
     if (kind === 'local') list.push(['Naar voren', () => objEdit(() => { doc.stamps = doc.stamps.filter(x => x !== o); doc.stamps.push(o); })], ['Naar achteren', () => objEdit(() => { doc.stamps = doc.stamps.filter(x => x !== o); doc.stamps.unshift(o); })]);
     body.append(btnRow(list));
-    if (doc.palette === 'kleur' && !ASSETS[o.a].image) {
+    if (doc.palette === 'kleur') {
       const row = document.createElement('div'); row.className = 'colorrow';
       row.innerHTML = '<span>Kleur</span><input type="color" id="selColor" aria-label="Kleur van dit symbool"><button type="button" class="btn">Automatisch</button>';
       const ci = row.querySelector('input'); ci.value = o.c || toHex(fillFor(ASSETS[o.a]));
@@ -1848,6 +1874,10 @@ function refreshSel() {
       row.querySelector('button').addEventListener('click', () => objEdit(() => { delete o.c; }));
       body.append(row);
     }
+    const A = ASSETS[o.a], own = [];
+    if (A.custom) own.push(['Vorm bewerken…', () => openPad(lib.shapes.find(sh => 'c:' + sh.id === o.a), false)]);
+    if (A.image) own.push(['Afbeelding beheren…', () => openUploads(A.upType)]);
+    if (own.length) body.append(btnRow(own));
     body.append(btnRow([['Dupliceren', duplicateSel], ['Verwijderen', deleteSel, 'danger']]));
   } else if (sel.type === 'label') {
     $('#selTitle').textContent = 'Tekst';
@@ -1949,6 +1979,7 @@ function hitTest(p) {
   return null;
 }
 function startTool(p, e, sp) {
+  const hd = handleAt(p, e.pointerType === 'touch'); if (hd) { beginObj(); action = hd; return; }
   switch (tool) {
     case 'select': {
       const hit = hitTest(p);
@@ -1968,7 +1999,7 @@ function startTool(p, e, sp) {
     case 'gum': beginObj(); action = { t: 'gum', last: p, keys: new Set(), bb: [p.x, p.y, p.x, p.y] }; gumAt(action, p, p); break;
     case 'room': { const s = snapGrid(p); action = { t: 'room', a: s, b: s, erase: (roomMode === 'erase') !== e.altKey }; break; }
     case 'line': action = { t: 'line', pts: [f2(p.x), f2(p.y)] }; break;
-    case 'stamp': beginObj(); placeStamp(p, true); action = { t: 'scatter', last: p }; break;
+    case 'stamp': { beginObj(); const st = placeStamp(p, true); action = { t: 'scatter', last: p, first: st, n: st ? 1 : 0 }; break; }
     case 'text': {
       const hit = hitTest(p);
       if (hit && hit.type === 'label') { select(hit); openLabelEdit(getSelObj(), false); }
@@ -1988,7 +2019,9 @@ function moveTool(p, e, sp) {
     for (const q of list) { A.acc += Math.hypot(q.x - A.last.x, q.y - A.last.y); A.last = q; if (A.acc >= step) { A.acc = 0; natDab(A, q); } } }
   else if (A.t === 'room') A.b = snapGrid(p);
   else if (A.t === 'line') { const n = A.pts.length; if (Math.hypot(p.x - A.pts[n - 2], p.y - A.pts[n - 1]) >= 3 / V().z) A.pts.push(f2(p.x), f2(p.y)); }
-  else if (A.t === 'scatter') { if ($('#optScatter').checked) { const sp2 = ASSETS[U().asset].size * (kind === 'local' ? 1 : .62) / (U().scatDens || 1); if (Math.hypot(p.x - A.last.x, p.y - A.last.y) >= sp2) { const ang = Math.random() * Math.PI * 2, j = sp2 * .25; placeStamp({ x: p.x + Math.cos(ang) * j, y: p.y + Math.sin(ang) * j }, false); A.last = p; } } }
+  else if (A.t === 'scatter') { if ($('#optScatter').checked) { const sp2 = ASSETS[U().asset].size * (kind === 'local' ? 1 : .62) / (U().scatDens || 1); if (Math.hypot(p.x - A.last.x, p.y - A.last.y) >= sp2) { const ang = Math.random() * Math.PI * 2, j = sp2 * .25; if (placeStamp({ x: p.x + Math.cos(ang) * j, y: p.y + Math.sin(ang) * j }, false)) A.n++; A.last = p; } } }
+  else if (A.t === 'resize') { const k = Math.hypot(p.x - A.c.x, p.y - A.c.y) / A.d0; if (A.o.fs != null) A.o.fs = Math.round(Math.max(8, Math.min(120, A.s0 * k))); else A.o.s = f2(Math.max(6, Math.min(500, A.s0 * k))); }
+  else if (A.t === 'turn') { let r = Math.atan2(p.y - A.c.y, p.x - A.c.x) * 180 / Math.PI + 90; if (e.shiftKey) r = Math.round(r / 15) * 15; A.o.r = norm(Math.round(r)); }
   else if (A.t === 'move') { const o = getSelObj(); if (o) { const dx = p.x - A.last.x, dy = p.y - A.last.y; if (o.pts) o.pts = o.pts.map((v, i) => f2(v + (i % 2 ? dy : dx))); else { o.x = f2(o.x + dx); o.y = f2(o.y + dy); } } A.last = p; }
   req();
 }
@@ -2013,14 +2046,15 @@ function endTool() {
     const [x0, y0, x1, y1] = roomRect(A);
     if (x1 - x0 >= doc.cell && y1 - y0 >= doc.cell) { const g = doc.layers.base.ctx; g.save(); g.globalCompositeOperation = A.erase ? 'destination-out' : 'source-over'; g.fillStyle = '#fff'; g.fillRect(x0, y0, x1 - x0, y1 - y0); g.restore(); commitRaster(['base'], [x0, y0, x1, y1]); markDirty(doc, x0 - MARGIN - 2, y0 - MARGIN - 2, x1 + MARGIN + 2, y1 + MARGIN + 2); }
   } else if (A.t === 'line') { if (A.pts.length >= 4) { objEdit(() => doc.lines.push({ id: doc.nid++, type: U().line, pts: A.pts })); } }
-  else if (A.t === 'scatter' || A.t === 'move') { commitObj(); refreshSel(); }
+  else if (A.t === 'scatter' && A.n === 1 && A.first) { commitObj(); select({ type: 'stamp', id: A.first.id }); } // one symbol placed: select it, ready to resize or turn
+  else if (A.t === 'scatter' || A.t === 'move' || A.t === 'resize' || A.t === 'turn') { commitObj(); refreshSel(); }
   setCursor(); req();
 }
 function cancelAction() {
   const A = action; if (!A) return; action = null;
   if (A.t === 'gum') { revertLayers(A.keys); markDirty(doc, A.bb[0] - 2, A.bb[1] - 2, A.bb[2] + 2, A.bb[3] + 2); if (txn != null) { restoreObjs(txn); txn = null; refreshSel(); } }
   if (A.t === 'brush') { revertLayers(A.keys); markDirty(doc, A.bb[0] - MARGIN, A.bb[1] - MARGIN, A.bb[2] + MARGIN, A.bb[3] + MARGIN); }
-  if ((A.t === 'scatter' || A.t === 'move' || A.t === 'nature') && txn != null) { restoreObjs(txn); txn = null; refreshSel(); }
+  if ((A.t === 'scatter' || A.t === 'move' || A.t === 'nature' || A.t === 'resize' || A.t === 'turn') && txn != null) { restoreObjs(txn); txn = null; refreshSel(); }
   setCursor(); req();
 }
 /* ---------- scatter brushes: user-editable sets of shapes ---------- */
@@ -2082,10 +2116,13 @@ function pathOf(pts) {
 }
 let thumbT = null;
 const refreshThumbs = () => { clearTimeout(thumbT); thumbT = setTimeout(() => { if (doc) { buildAssets(); buildBrushes(); } }, 60); };
-function registerShape(sh, maskCanvas) {
+function registerShape(sh, maskCanvas, paintCanvas) {
   const a = { key: 'c:' + sh.id, name: sh.name || 'Eigen vorm', cat: 'eigen', size: Math.max(8, Math.min(400, +sh.size || 60)), kind: 'any', custom: true, foot: .38, tints: {}, mask: maskCanvas || null,
+    color: typeof sh.color === 'string' && /^#[0-9a-f]{6}$/i.test(sh.color) ? sh.color : null,
     strokes: sh.strokes.filter(st => Array.isArray(st.pts) && st.pts.length >= 2).map(st => ({ w: +st.w || 1.8, p: pathOf(st.pts.map(Number)) })) };
   if (!maskCanvas && typeof sh.fill === 'string' && sh.fill.startsWith('data:image/')) { const img = new Image(); img.onload = () => { a.mask = img; a.tints = {}; objEpoch++; req(); refreshThumbs(); }; img.src = sh.fill; }
+  a.paint = paintCanvas || null;
+  if (!paintCanvas && typeof sh.paint === 'string' && sh.paint.startsWith('data:image/')) { const img = new Image(); img.onload = () => { a.paint = img; objEpoch++; req(); refreshThumbs(); }; img.src = sh.paint; }
   ASSETS[a.key] = a; return a;
 }
 function toHex(c) {
@@ -2240,29 +2277,78 @@ $('#brushForm').addEventListener('submit', e => {
 /* drawing pad for own shapes */
 let pad = null;
 const padCv = $('#pad'), padG = padCv.getContext('2d');
-const PAD_TOOLS = [['2.6', 'Dikke pen'], ['1.8', 'Pen'], ['1', 'Fijne pen'], ['gum', 'Gum']];
+const PAD_TOOLS = [['2.6', 'Dikke pen'], ['1.8', 'Pen'], ['1', 'Fijne pen'], ['gum', 'Gum'], ['emmer', 'Verfemmer'], ['potlood', 'Kleurpotlood'], ['kleurgum', 'Kleur wissen']];
+// colouring in: a 200 × 200 layer over the same -50..50 box as the shape, kept apart from the lines
+const padInk = size => { const N = 200, c = document.createElement('canvas'); c.width = c.height = N; const g = c.getContext('2d', { willReadFrequently: true });
+  g.setTransform(2, 0, 0, 2, 100, 100); g.strokeStyle = '#000'; g.lineCap = 'round'; g.lineJoin = 'round';
+  for (const st of pad.strokes) { g.lineWidth = Math.max(1, st.w * 100 / size); g.stroke(pathOf(st.pts)); }
+  return g.getImageData(0, 0, N, N).data; };
+const padSnap = () => ({ s: JSON.stringify(pad.strokes), p: pad.paint.getContext('2d').getImageData(0, 0, 200, 200), v: pad.paintVer });
+function padBucket(p) {
+  const N = 200, d = padInk(+$('#padSize').value), ink = new Uint8Array(N * N);
+  for (let i = 0; i < N * N; i++) ink[i] = d[i * 4 + 3] >= 100 ? 1 : 0;
+  const wall = grow(ink, N, 3), px = Math.round((p.x + 50) * 2), py = Math.round((p.y + 50) * 2);
+  if (px < 0 || py < 0 || px >= N || py >= N || wall[py * N + px]) { toast('Tik midden in een vlak, niet op een lijn.'); return; }
+  const reg = new Uint8Array(N * N), stack = [py * N + px]; reg[py * N + px] = 1; let edge = false;
+  while (stack.length) { const i = stack.pop(), x = i % N; if (x === 0 || x === N - 1 || i < N || i >= N * N - N) edge = true;
+    for (const j of [x > 0 ? i - 1 : -1, x < N - 1 ? i + 1 : -1, i - N, i + N]) if (j >= 0 && j < N * N && !reg[j] && !wall[j]) { reg[j] = 1; stack.push(j); } }
+  if (edge) { toast('Dat vlak is niet gesloten. Tik binnen de omtrek, of sluit de lijn eerst.'); return; }
+  // spread a little under the lines so no rim of base colour shows, but never past the outline
+  const inside = computeFill(pad.strokes, +$('#padSize').value), ins = inside ? inside.getContext('2d').getImageData(0, 0, N, N).data : null;
+  const full = grow(reg, N, 5), g = pad.paint.getContext('2d'), img = g.getImageData(0, 0, N, N), [r, gg, b] = hexRgb($('#padPaint').value);
+  for (let i = 0; i < N * N; i++) if (full[i] && (!ins || ins[i * 4 + 3])) { img.data[i * 4] = r; img.data[i * 4 + 1] = gg; img.data[i * 4 + 2] = b; img.data[i * 4 + 3] = 255; }
+  g.putImageData(img, 0, 0); pad.paintVer++;
+}
+function padDab(a, b) {
+  const g = pad.paint.getContext('2d'); g.save(); g.setTransform(2, 0, 0, 2, 100, 100); g.lineCap = 'round'; g.lineWidth = 5;
+  g.globalCompositeOperation = pad.tool === 'kleurgum' ? 'destination-out' : 'source-over'; g.strokeStyle = $('#padPaint').value;
+  g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x + .01, b.y); g.stroke(); g.restore(); pad.paintVer++;
+}
 const f1 = v => Math.round(v * 10) / 10;
+function grow(a, N, r) {
+  let cur = a;
+  for (let k = 0; k < r; k++) { const nx = cur.slice(); for (let i = 0; i < N * N; i++) if (cur[i]) { const x = i % N; if (x > 0) nx[i - 1] = 1; if (x < N - 1) nx[i + 1] = 1; if (i >= N) nx[i - N] = 1; if (i < N * N - N) nx[i + N] = 1; } cur = nx; }
+  return cur;
+}
+/* The inside of a drawing on a square canvas: everything the outside cannot reach. The ink is thickened by `gap`
+   pixels first, so a small opening in a hand-drawn outline still counts as closed. Returns how much is inside. */
+function insideOf(c, gap = 5) {
+  const N = c.width, g = c.getContext('2d', { willReadFrequently: true }), d = g.getImageData(0, 0, N, N).data, ink = new Uint8Array(N * N);
+  for (let i = 0; i < N * N; i++) ink[i] = d[i * 4 + 3] >= 100 ? 1 : 0;
+  const wall = grow(ink, N, gap), seen = new Uint8Array(N * N), stack = [];
+  const push = i => { if (!seen[i] && !wall[i]) { seen[i] = 1; stack.push(i); } };
+  for (let i = 0; i < N; i++) { push(i); push((N - 1) * N + i); push(i * N); push(i * N + N - 1); }
+  while (stack.length) { const i = stack.pop(), x = i % N; if (x > 0) push(i - 1); if (x < N - 1) push(i + 1); if (i >= N) push(i - N); if (i < N * N - N) push(i + N); }
+  const outside = grow(seen, N, gap), out = g.createImageData(N, N); let any = 0; // give the outside back what the thicker ink took
+  for (let i = 0; i < N * N; i++) if (!outside[i]) { out.data[i * 4 + 3] = 255; any++; }
+  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, N, N); g.putImageData(out, 0, 0);
+  return any / (N * N);
+}
 function computeFill(strokes, size) {
   const N = 200, c = document.createElement('canvas'); c.width = c.height = N; const g = c.getContext('2d', { willReadFrequently: true });
   g.setTransform(2, 0, 0, 2, 100, 100); g.strokeStyle = '#000'; g.lineCap = 'round'; g.lineJoin = 'round';
   for (const st of strokes) { g.lineWidth = Math.max(1, st.w * 100 / size); g.stroke(pathOf(st.pts)); }
-  const d = g.getImageData(0, 0, N, N).data, seen = new Uint8Array(N * N), stack = [];
-  const push = i => { if (!seen[i] && d[i * 4 + 3] < 100) { seen[i] = 1; stack.push(i); } };
-  for (let i = 0; i < N; i++) { push(i); push((N - 1) * N + i); push(i * N); push(i * N + N - 1); }
-  while (stack.length) { const i = stack.pop(), x = i % N; if (x > 0) push(i - 1); if (x < N - 1) push(i + 1); if (i >= N) push(i - N); if (i < N * N - N) push(i + N); }
-  const out = g.createImageData(N, N); let any = 0;
-  for (let i = 0; i < N * N; i++) if (!seen[i]) { out.data[i * 4 + 3] = 255; any++; }
-  if (!any) return null;
-  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, N, N); g.putImageData(out, 0, 0); return c;
+  return insideOf(c) > 0 ? c : null;
+}
+// uploaded line art can be coloured too: its inside is found once, from the transparent outside of the picture
+function imageMask(a) {
+  if (a.maskDone) return a.mask; a.maskDone = true; a.tints = {};
+  const N = 200, c = document.createElement('canvas'); c.width = c.height = N; const m = Math.max(a.iw, a.ih);
+  c.getContext('2d').drawImage(a.image, (1 - a.iw / m) * 100, (1 - a.ih / m) * 100, a.iw / m * 200, a.ih / m * 200);
+  const part = insideOf(c, 2); a.mask = part > 0 && part < .97 ? c : null; // a picture without transparent surroundings keeps its own colours
+  return a.mask;
 }
 function openPad(shape, fromBrush) {
-  pad = { strokes: shape ? JSON.parse(JSON.stringify(shape.strokes)) : [], hist: [], tool: '1.8', edit: shape || null, fromBrush: !!fromBrush, cur: null, erasing: false };
+  pad = { strokes: shape ? JSON.parse(JSON.stringify(shape.strokes)) : [], hist: [], tool: '1.8', edit: shape || null, fromBrush: !!fromBrush, cur: null, erasing: false, painting: null, paintVer: 0 };
+  pad.paint = document.createElement('canvas'); pad.paint.width = pad.paint.height = 200;
+  if (shape && typeof shape.paint === 'string') { const img = new Image(), P = pad; img.onload = () => { P.paint.getContext('2d').drawImage(img, 0, 0); P.paintVer++; if (pad === P) drawPad(); }; img.src = shape.paint; }
   $('#padTitle').textContent = shape ? 'Vorm bewerken' : 'Vorm tekenen';
   $('#padName').value = shape ? shape.name : (kind === 'world' ? 'Mijn berg' : 'Mijn vorm');
   $('#padSize').value = shape ? shape.size : (kind === 'world' ? 64 : 50); $('#padSizeOut').textContent = $('#padSize').value;
   $('#padFill').checked = shape ? !!shape.fill : true;
   const refs = kind === 'world' ? [['', 'Geen'], ['berg', 'Berg'], ['heuvels', 'Heuvels'], ['naald', 'Naaldboom'], ['loof', 'Loofboom'], ['stad', 'Stad']] : [['', 'Geen'], ['boom', 'Boom'], ['tafel', 'Tafel'], ['ton', 'Ton']];
   $('#padRef').innerHTML = refs.map(([v, t]) => `<option value="${v}">${t}</option>`).join(''); $('#padRef').value = shape ? '' : refs[1][0];
+  pad.colorSet = !!(shape && shape.color); $('#padColor').value = pad.colorSet ? shape.color : refColor($('#padRef').value);
   $('#padDelete').hidden = !shape; syncPadTools();
   $('#padModal').hidden = false; drawPad();
 }
@@ -2272,7 +2358,8 @@ function syncPadTools() {
 }
 function padDraft(size) {
   const fill = $('#padFill').checked && pad.strokes.length ? computeFill(pad.strokes, size) : null;
-  return registerShape({ id: '__draft', name: 'Voorbeeld', size, strokes: pad.strokes }, fill);
+  $('#padOpen').hidden = !($('#padFill').checked && pad.strokes.length && !fill);
+  return registerShape({ id: '__draft', name: 'Voorbeeld', size, strokes: pad.strokes, color: $('#padColor').value }, fill, pad.paint);
 }
 function drawPad() {
   if (!pad) return;
@@ -2281,8 +2368,8 @@ function drawPad() {
   g.strokeStyle = 'rgba(42,154,214,.13)'; g.lineWidth = 1 / k; g.beginPath(); for (let i = -50; i <= 50; i += 10) { g.moveTo(i, -50); g.lineTo(i, 50); g.moveTo(-50, i); g.lineTo(50, i); } g.stroke();
   g.strokeStyle = 'rgba(42,154,214,.7)'; g.lineWidth = 2 / k; g.setLineDash([3, 2]); g.beginPath(); g.moveTo(-50, 36); g.lineTo(50, 36); g.stroke(); g.setLineDash([]);
   const ref = $('#padRef').value; if (ref && ASSETS[ref]) { g.save(); g.globalAlpha = .15; drawAsset(g, ref, 0, 0, 100, 0, false, 0); g.restore(); }
-  const draft = padDraft(size);
-  g.save(); g.globalAlpha = .9; drawAsset(g, 'c:__draft', 0, 0, 100, 0, false, 0); g.restore();
+  const draft = padDraft(size), mapPal = CUR;
+  CUR = PALETTES.kleur; g.save(); g.globalAlpha = .9; drawAsset(g, 'c:__draft', 0, 0, 100, 0, false, 0); g.restore(); CUR = mapPal;
   // preview at real map size and twice that
   const pv = $('#padPrev'), pg = pv.getContext('2d'), W = pv.width, H = pv.height;
   pg.setTransform(1, 0, 0, 1, 0, 0); pg.fillStyle = PAPERC; pg.fillRect(0, 0, W, H);
@@ -2296,20 +2383,32 @@ function padPt(e) { const r = padCv.getBoundingClientRect(); return { x: (e.clie
 function padErase(p) { pad.strokes = pad.strokes.filter(st => { for (let i = 0; i < st.pts.length; i += 2) if (Math.hypot(st.pts[i] - p.x, st.pts[i + 1] - p.y) < 3.5) return false; return true; }); }
 padCv.addEventListener('pointerdown', e => {
   if (!pad) return; try { padCv.setPointerCapture(e.pointerId); } catch {} const p = padPt(e);
-  pad.hist.push(JSON.stringify(pad.strokes));
-  if (pad.tool === 'gum') { pad.erasing = true; padErase(p); } else { pad.cur = { w: +pad.tool, pts: [f1(p.x), f1(p.y)] }; pad.strokes.push(pad.cur); }
+  pad.hist.push(padSnap());
+  if (pad.tool === 'emmer') padBucket(p);
+  else if (pad.tool === 'potlood' || pad.tool === 'kleurgum') { pad.painting = p; padDab(p, p); }
+  else if (pad.tool === 'gum') { pad.erasing = true; padErase(p); } else { pad.cur = { w: +pad.tool, pts: [f1(p.x), f1(p.y)] }; pad.strokes.push(pad.cur); }
   drawPad();
 });
 padCv.addEventListener('pointermove', e => {
-  if (!pad || (!pad.cur && !pad.erasing)) return; const p = padPt(e);
-  if (pad.cur) { const q = pad.cur.pts, n = q.length; if (Math.hypot(p.x - q[n - 2], p.y - q[n - 1]) >= .7) q.push(f1(p.x), f1(p.y)); } else padErase(p);
+  if (!pad || (!pad.cur && !pad.erasing && !pad.painting)) return; const p = padPt(e);
+  if (pad.painting) { padDab(pad.painting, p); pad.painting = p; }
+  else if (pad.cur) { const q = pad.cur.pts, n = q.length; if (Math.hypot(p.x - q[n - 2], p.y - q[n - 1]) >= .7) q.push(f1(p.x), f1(p.y)); } else padErase(p);
   drawPad();
 });
-const padUp = () => { if (!pad) return; pad.cur = null; pad.erasing = false; if (pad.hist.length && pad.hist[pad.hist.length - 1] === JSON.stringify(pad.strokes)) pad.hist.pop(); drawPad(); };
+const padUp = () => {
+  if (!pad) return;
+  if (pad.painting && pad.tool === 'potlood') { const m = computeFill(pad.strokes, +$('#padSize').value); if (m) { const g = pad.paint.getContext('2d'); g.globalCompositeOperation = 'destination-in'; g.drawImage(m, 0, 0); g.globalCompositeOperation = 'source-over'; } } // colour stays inside the outline
+  pad.cur = null; pad.erasing = false; pad.painting = null;
+  const h = pad.hist[pad.hist.length - 1]; if (h && h.s === JSON.stringify(pad.strokes) && h.v === pad.paintVer) pad.hist.pop();
+  drawPad();
+};
 padCv.addEventListener('pointerup', padUp); padCv.addEventListener('pointercancel', padUp);
-$('#padUndo').addEventListener('click', () => { if (pad?.hist.length) { pad.strokes = JSON.parse(pad.hist.pop()); drawPad(); } });
-$('#padClear').addEventListener('click', () => { if (!pad || !pad.strokes.length) return; pad.hist.push(JSON.stringify(pad.strokes)); pad.strokes = []; drawPad(); });
-$('#padRef').addEventListener('change', drawPad); $('#padFill').addEventListener('change', drawPad);
+$('#padUndo').addEventListener('click', () => { if (pad?.hist.length) { const h = pad.hist.pop(); pad.strokes = JSON.parse(h.s); pad.paint.getContext('2d').putImageData(h.p, 0, 0); pad.paintVer++; drawPad(); } });
+$('#padClear').addEventListener('click', () => { if (!pad || !pad.strokes.length) return; pad.hist.push(padSnap()); pad.strokes = []; pad.paint.getContext('2d').clearRect(0, 0, 200, 200); pad.paintVer++; drawPad(); });
+// a new shape takes the colour of the example it is drawn over, until a colour is picked by hand
+const refColor = key => { const a = ASSETS[key]; return (a && (PALETTES.kleur.fill[a.key] || PALETTES.kleur.fill[a.cat])) || '#d6c6a0'; };
+$('#padRef').addEventListener('change', () => { if (!pad.colorSet) $('#padColor').value = refColor($('#padRef').value); drawPad(); }); $('#padFill').addEventListener('change', drawPad);
+$('#padColor').addEventListener('input', () => { pad.colorSet = true; drawPad(); });
 $('#padSize').addEventListener('input', e => { $('#padSizeOut').textContent = e.target.value; drawPad(); });
 const closePad = () => { $('#padModal').hidden = true; pad = null; };
 $('#padCancel').addEventListener('click', closePad);
@@ -2327,9 +2426,11 @@ $('#padDelete').addEventListener('click', e => {
 $('#padForm').addEventListener('submit', e => {
   e.preventDefault(); if (!pad.strokes.length) { toast('Teken eerst iets.'); return; }
   const size = +$('#padSize').value, fillC = $('#padFill').checked ? computeFill(pad.strokes, size) : null;
-  const sh = { id: pad.edit ? pad.edit.id : newId(), name: $('#padName').value.trim() || 'Eigen vorm', size, strokes: pad.strokes, fill: fillC ? fillC.toDataURL('image/png') : null };
+  const pd = pad.paint.getContext('2d').getImageData(0, 0, 200, 200).data; let painted = false; for (let i = 3; i < pd.length; i += 4) if (pd[i]) { painted = true; break; }
+  const paintC = painted ? pad.paint : null;
+  const sh = { id: pad.edit ? pad.edit.id : newId(), name: $('#padName').value.trim() || 'Eigen vorm', size, strokes: pad.strokes, fill: fillC ? fillC.toDataURL('image/png') : null, color: $('#padColor').value, paint: paintC ? paintC.toDataURL('image/png') : null };
   const i = lib.shapes.findIndex(x => x.id === sh.id); if (i >= 0) lib.shapes[i] = sh; else lib.shapes.push(sh);
-  registerShape(sh, fillC); saveLib();
+  registerShape(sh, fillC, paintC); saveLib();
   if (pad.fromBrush && be && !be.items.some(it => it.a === 'c:' + sh.id)) be.items.push({ a: 'c:' + sh.id, v: 0, zone: 'overal', n: 3, rel: 1 });
   const fromBrush = pad.fromBrush; closePad();
   if (fromBrush && be) { beCat = 'eigen'; buildBeCats(); buildBeGrid(); buildBeItems(); }
@@ -2908,6 +3009,7 @@ cv.addEventListener('pointermove', e => {
   if (ptrs.has(e.pointerId)) ptrs.set(e.pointerId, sp);
   if (pinch) { if (ptrs.size >= 2) { const [a, b] = [...ptrs.values()], dd = Math.hypot(a.x - b.x, a.y - b.y), m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, z = Math.min(8, Math.max(.08, pinch.z * dd / pinch.d)), mx = (pinch.m.x - pinch.ox) / pinch.z, my = (pinch.m.y - pinch.oy) / pinch.z, v = V(); v.z = z; v.ox = m.x - mx * z; v.oy = m.y - my * z; updZoom(); req(); } return; }
   hover = toMap(sp);
+  if (!action && e.pointerType !== 'touch') { const hd = handleAt(hover, false); if (hd) cv.style.cursor = hd.t === 'resize' ? 'nwse-resize' : 'grab'; else if (!spaceDown) setCursor(); }
   if (action) moveTool(hover, e, sp); else if (tool !== 'select' && tool !== 'hand') req();
 });
 const endPtr = e => { ptrs.delete(e.pointerId); if (pinch) { if (ptrs.size < 2) pinch = null; return; } if (action) endTool(); };
@@ -3039,8 +3141,12 @@ function buildAssets() {
     const d = document.createElement('div'); d.className = 'asset'; d.dataset.key = key; d.tabIndex = 0; d.setAttribute('role', 'button'); d.setAttribute('aria-pressed', U().asset === key && tool === 'stamp');
     const s = document.createElement('span'); s.textContent = a.name; d.append(assetCanvas(key, 48), s); d.title = a.name;
     d.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); chooseAsset(key); } });
-    if (a.custom) { d.title = a.name + ' · dubbelklik om te bewerken'; d.addEventListener('dblclick', () => openPad(lib.shapes.find(sh => 'c:' + sh.id === key), false)); }
-    if (a.image) { d.title = a.name + ' · dubbelklik om te beheren'; d.addEventListener('dblclick', () => openUploads(a.upType)); }
+    const edit = a.custom ? () => openPad(lib.shapes.find(sh => 'c:' + sh.id === key), false) : a.image ? () => openUploads(a.upType) : null;
+    if (edit) {
+      d.title = a.name + (a.custom ? ' · potlood: bewerken of verwijderen' : ' · potlood: beheren of verwijderen'); d.addEventListener('dblclick', edit);
+      const eb = document.createElement('button'); eb.type = 'button'; eb.className = 'tile-edit'; eb.innerHTML = svg(ICONS.paint); eb.setAttribute('aria-label', (a.custom ? 'Bewerken: ' : 'Beheren: ') + a.name);
+      eb.addEventListener('click', e => { e.stopPropagation(); edit(); }); d.append(eb);
+    }
     box.append(d);
   }
   { const u = document.createElement('button'); u.type = 'button'; u.className = 'asset'; u.innerHTML = '<span class="plus">+</span><span>Afbeelding uploaden</span>'; u.addEventListener('click', () => openUploads(catLabel(kind, U().cat), 'symbool')); box.append(u); }
@@ -3050,7 +3156,7 @@ function buildAssets() {
 }
 function chooseAsset(key) { U().asset = key; setTool('stamp'); closeSheetSoon(); for (const x of $('#assets').children) x.setAttribute('aria-pressed', x.dataset.key === key); }
 $('#assets').addEventListener('pointerdown', e => {
-  const tile = e.target.closest('.asset'); if (!tile || !doc) return;
+  const tile = e.target.closest('.asset'); if (!tile || !doc || e.target.closest('.tile-edit')) return;
   const key = tile.dataset.key, id = e.pointerId, start = { x: e.clientX, y: e.clientY }; let ghost = null, gs = 0;
   const move = ev => {
     if (ev.pointerId !== id) return;
@@ -3196,7 +3302,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.11.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.12.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;
