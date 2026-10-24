@@ -1,5 +1,14 @@
 # Wijzigingen
 
+## 1.15.2
+
+- **Witte achtergrond echt weg:**
+  - Bij een afbeelding in kleur verdwijnt nu alle wit, ook tussen de takken.
+  - Langs de rand wordt het wit uit de kleur gehaald, zodat er geen licht randje meer rond het symbool staat.
+  - Zwart-witte lijntekeningen houden hun wit binnenin, om ze te kunnen inkleuren.
+- Afbeeldingen in bleke kleuren worden niet meer als zwart-wit gezien en houden hun kleur.
+- Uploads worden op 1024 pixels bewaard in plaats van 512: scherper als je inzoomt. Afbeeldingen die je al had, worden bij het tonen meteen goed uitgeknipt; voor de scherpere versie upload je ze opnieuw.
+
 ## 1.15.1
 
 - Herstel: *Nu bijwerken* in de Windows-app meldde altijd "GitHub gaf geen nieuwe versie", ook als er een was. Deze versie moet je nog één keer zelf installeren; daarna werkt bijwerken vanuit de app.
