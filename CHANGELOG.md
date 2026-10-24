@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## 1.20.1
+
+- Bergen, heuvels en de dwergenmijn in de stijl **Oud** vervagen aan de open onderkant in de ondergrond, zodat ze natuurlijk in het landschap overlopen.
+
 ## 1.20.0
 
 - **Kaart uit een verhaal:** je schrijft de landen uit je boek op, één per regel, en Kartograpper tekent er meteen een wereldkaart van. Per land kun je opgeven:
