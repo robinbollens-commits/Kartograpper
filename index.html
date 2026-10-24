@@ -337,6 +337,8 @@ body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
       <label class="row"><span>Hoeveelheid</span><input type="range" id="natDensity" min="30" max="300" value="140"><output id="natDensityOut">140%</output></label>
       <label class="row"><span>Grootte</span><input type="range" id="natScale" min="30" max="250" value="100"><output id="natScaleOut">100%</output></label>
       <label class="row"><span>Variatie</span><input type="range" id="natVary" min="0" max="60" value="25"><output id="natVaryOut">25%</output></label>
+      <label class="check"><input type="checkbox" id="natOver"> Overschilderen: vervangt wat eronder staat</label>
+      <p class="note" id="natOverNote" hidden>Bergen, heuvels, bomen en alles wat een penseel kan schilderen, maakt plaats voor dit penseel. Land, water, ondergrond, gebouwen, plekken en namen blijven altijd staan.</p>
       <div class="colorrow" id="natColorRow" hidden><span>Kleur</span><input type="color" id="natColor" aria-label="Kleur van dit penseel"><label class="check"><input type="checkbox" id="natAuto" checked> Automatisch</label></div>
       <p class="note" id="natNote"></p>
       <div class="btns"><button type="button" class="btn" id="bReset">Standaardpenselen terugzetten</button></div>
@@ -1971,7 +1973,7 @@ function startTool(p, e, sp) {
       paintSeg(p, p); break;
     case 'nature': {
       const B = curBrush(); if (!B || !B.items.some(it => ASSETS[it.a])) { toast('Dit penseel heeft nog geen vormen. Kies Bewerken.'); break; }
-      beginObj(); action = { t: 'nature', brush: B, foot: brushFoot(B), erase: e.altKey, last: p, acc: 0, n: 0, land: kind === 'world' ? doc.layers.base.ctx.getImageData(0, 0, doc.w, doc.h).data : null };
+      beginObj(); action = { t: 'nature', brush: B, foot: brushFoot(B), erase: e.altKey, last: p, acc: 0, n: 0, over: !e.altKey && !!U().natOver, repl: new Set(lib.brushes[kind].flatMap(b => b.items.map(it => it.a))), mine: new Set(), land: kind === 'world' ? doc.layers.base.ctx.getImageData(0, 0, doc.w, doc.h).data : null };
       natDab(action, p); break;
     }
     case 'genland': action = { t: 'genrect', a: p, b: p }; break;
@@ -2117,6 +2119,8 @@ function landAt(A, x, y) { const ix = Math.round(x), iy = Math.round(y); return 
 function natDab(A, p) {
   const rad = U().brush / 2, B = A.brush;
   if (A.erase) { const keys = new Set(B.items.map(it => it.a)), n = doc.stamps.length; doc.stamps = doc.stamps.filter(s => { const hit = keys.has(s.a) && Math.hypot(s.x - p.x, s.y - p.y) < rad; if (hit) objDirty(s); return !hit; }); if (doc.stamps.length !== n) req(); return; }
+  // painting over: symbols any brush can paint make way, except what this stroke just placed; the map itself is never touched
+  if (A.over) doc.stamps = doc.stamps.filter(s => { const hit = A.repl.has(s.a) && !A.mine.has(s.id) && Math.hypot(s.x - p.x, s.y - p.y) < rad; if (hit) objDirty(s); return !hit; });
   const near = doc.stamps.filter(s => Math.abs(s.x - p.x) < rad + 200 && Math.abs(s.y - p.y) < rad + 200);
   const tries = Math.min(900, Math.ceil(Math.PI * rad * rad / A.foot * 1.6 * B.amount) + 3);
   for (let k = 0; k < tries; k++) {
@@ -2126,7 +2130,7 @@ function natDab(A, p) {
     if (A.land) { const fy = y + pk.size * .34; if (!landAt(A, x, y) || !landAt(A, x, fy) || !landAt(A, x - pk.size * .36, fy) || !landAt(A, x + pk.size * .36, fy)) continue; }
     if (collides(pk.key, x, y, pk.size, near, B.amount)) continue;
     const st = addStampTo(doc, pk.key, x, y, pk.size, 0, B.flip && Math.random() < .5, pk.v); if (B.color) st.c = B.color;
-    near.push(st); objDirty(st); A.n++;
+    near.push(st); A.mine.add(st.id); objDirty(st); A.n++;
   }
   req();
 }
@@ -2952,6 +2956,7 @@ $('#brushSize').addEventListener('input', e => setBrush(+e.target.value));
 $('#brushRough').addEventListener('input', e => { U().rough = +e.target.value / 100; $('#brushRoughOut').textContent = e.target.value + '%'; });
 $('#textSize').addEventListener('input', e => { U().textSize = +e.target.value; $('#textSizeOut').textContent = e.target.value; });
 $('#optVary').addEventListener('change', e => { U().vary = e.target.checked; });
+$('#natOver').addEventListener('change', e => { U().natOver = e.target.checked; $('#natOverNote').hidden = !e.target.checked; });
 $('#scatDens').addEventListener('input', e => { U().scatDens = +e.target.value / 100; $('#scatDensOut').textContent = e.target.value + '%'; });
 $('#roomMode').addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (!b) return; roomMode = b.dataset.mode; for (const x of $('#roomMode').children) x.setAttribute('aria-pressed', x === b); });
 $('#styleChips').addEventListener('click', e => { const b = e.target.closest('[data-style]'); if (!b || !doc || doc.kind !== 'local') return; doc.style = b.dataset.style; syncMapPanel(); fullRebuild(doc); scheduleSave(); req(); });
@@ -2978,7 +2983,7 @@ function setTool(t) {
   $('#pushRow').hidden = !(kind === 'world' && t === 'paint');
   $('#secGen').hidden = t !== 'genland'; $('#secGum').hidden = t !== 'gum'; if (t === 'gum') buildGumPicks();
   $('#gumNote').textContent = kind === 'world' ? 'Land en water gom je niet weg: daarvoor teken je water of land.' : 'Vloer gom je niet weg: daarvoor gebruik je Rots terugzetten.';
-  $('#secNature').hidden = !nature; if (nature) buildBrushes();
+  $('#secNature').hidden = !nature; if (nature) { buildBrushes(); $('#natOver').checked = !!U().natOver; $('#natOverNote').hidden = !U().natOver; }
   $('#roughRow').hidden = !(t === 'paint' || t === 'erase' || t === 'terrain'); $('#brushRough').value = Math.round((U().rough || 0) * 100); $('#brushRoughOut').textContent = Math.round((U().rough || 0) * 100) + '%';
   const tt = TOOLS.find(x => x.id === t); $('#brushTitle').textContent = brushy ? pick(tt.name, kind) : 'Penseel';
   $('#brushNote').textContent = t === 'terrain' ? 'Een ondergrond vervangt de vorige op dezelfde plek.' : t === 'paint' ? 'Houd Alt ingedrukt om uit te gommen.' : t === 'erase' ? 'Houd Alt ingedrukt om weer bij te tekenen.' : '';
@@ -3203,7 +3208,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.9.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.10.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;

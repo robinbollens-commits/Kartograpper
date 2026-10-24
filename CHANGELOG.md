@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## 1.10.0
+
+- **Overschilderen** bij de strooipenselen: zet het aan en een penseel vervangt wat eronder staat, bv. een gebergte over heuvels of dode bossen over een loofbos. Alleen symbolen die een penseel kan schilderen maken plaats. Land, water, ondergrond, gebouwen, plekken en namen blijven altijd staan. Eén keer ongedaan maken zet de hele streek terug.
+
 ## 1.9.0
 
 - Nieuwe symbolen voor de wereldkaart, in drie nieuwe categorieën:
