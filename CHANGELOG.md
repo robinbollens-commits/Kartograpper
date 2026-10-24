@@ -1,5 +1,11 @@
 # Wijzigingen
 
+## 1.13.1
+
+- **Geüploade afbeeldingen inkleuren werkt nu voor elk soort plaatje.** Zwarte lijnen blijven zwart, de rest krijgt de gekozen kleur, met behoud van licht en donker. Dat werkt voor lijntekeningen, silhouetten en gekleurde iconen.
+- **Witte achtergrond weg:** heeft een afbeelding een witte rand (de meeste plaatjes en alle JPG's), dan wordt het wit rondom doorzichtig, zodat het symbool op de kaart staat in plaats van in een wit vak. Wit binnen in de tekening blijft. Per afbeelding uit te zetten in *Instellingen › Mijn assets*.
+- Elke upload kan daar ook een **standaardkleur** krijgen voor kleurenkaarten. Een kleur bij het symbool of het penseel gaat voor.
+
 ## 1.13.0
 
 - **Beter tekenvenster** voor eigen vormen:

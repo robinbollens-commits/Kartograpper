@@ -992,7 +992,7 @@ function drawAsset(g, key, x, y, s, rot, flip, v, col) {
   const fill = (CUR.colorful && col) || fillFor(a), k = s / 100;
   g.save(); g.translate(x, y); if (rot) g.rotate(rot * Math.PI / 180); g.scale(flip ? -k : k, k);
   g.lineJoin = 'round'; g.lineCap = 'round'; g.strokeStyle = INKC;
-  if (a.image) { const m = Math.max(a.iw, a.ih); if (CUR.colorful && col && imageMask(a)) g.drawImage(tinted(a, col), -50, -50, 100, 100); g.drawImage(a.image, -a.iw / m * 50, -a.ih / m * 50, a.iw / m * 100, a.ih / m * 100); g.restore(); return; }
+  if (a.image) { const m = Math.max(a.iw, a.ih), ic = CUR.colorful ? col || a.color : null; if (ic && imageMask(a)) g.drawImage(tinted(a, ic), -50, -50, 100, 100); g.drawImage(ic ? inked(a, ic) : a.image, -a.iw / m * 50, -a.ih / m * 50, a.iw / m * 100, a.ih / m * 100); g.restore(); return; }
   if (a.custom) {
     if (a.mask) g.drawImage(tinted(a, fill), -50, -50, 100, 100);
     if (a.paint && CUR.colorful && !col) g.drawImage(a.paint, -50, -50, 100, 100); // coloured in by hand in the drawing pad
@@ -2370,6 +2370,36 @@ function computeFill(strokes, size) {
   for (const st of strokes) { g.lineWidth = Math.max(1, st.w * 100 / size); g.stroke(strokePath(st)); }
   return insideOf(c) > 0 ? c : null;
 }
+/* An uploaded picture in a colour: black lines stay black, everything else takes the colour, keeping its own light and
+   dark (the lightest part of the picture gets the colour itself, darker parts darker shades of it). */
+function inked(a, color) {
+  a.inks = a.inks || {}; let c = a.inks[color]; if (c) return c;
+  const k = Math.min(1, 400 / Math.max(a.iw, a.ih)); c = document.createElement('canvas'); c.width = Math.max(1, Math.round(a.iw * k)); c.height = Math.max(1, Math.round(a.ih * k));
+  const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(a.image, 0, 0, c.width, c.height);
+  const img = g.getImageData(0, 0, c.width, c.height), d = img.data, [cr, cg, cb] = hexRgb(color), LINE = .16;
+  let lo = 1, hi = 0;
+  for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 40) { const L = (d[i] * .299 + d[i + 1] * .587 + d[i + 2] * .114) / 255; if (L >= LINE) { if (L < lo) lo = L; if (L > hi) hi = L; } }
+  for (let i = 0; i < d.length; i += 4) {
+    if (!d[i + 3]) continue; const L = (d[i] * .299 + d[i + 1] * .587 + d[i + 2] * .114) / 255;
+    const t = L < LINE ? L / LINE * .35 : .45 + .55 * (hi > lo + .02 ? (L - lo) / (hi - lo) : 1); // lines dark, the rest a shade of the colour
+    d[i] = cr * t; d[i + 1] = cg * t; d[i + 2] = cb * t;
+  }
+  g.putImageData(img, 0, 0); return a.inks[color] = c;
+}
+/* Most pictures come with a white background. When their border is mostly white, the white that touches the border
+   is made transparent, so the symbol sits on the map; white inside the drawing (a window, the middle of a mountain) stays. */
+function cutWhite(bmp) {
+  const k = Math.min(1, 1024 / Math.max(bmp.width, bmp.height)), W = Math.max(1, Math.round(bmp.width * k)), H = Math.max(1, Math.round(bmp.height * k));
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(bmp, 0, 0, W, H);
+  const img = g.getImageData(0, 0, W, H), d = img.data, light = i => d[i * 4 + 3] > 200 && d[i * 4] > 228 && d[i * 4 + 1] > 228 && d[i * 4 + 2] > 228;
+  const border = []; for (let x = 0; x < W; x++) border.push(x, (H - 1) * W + x); for (let y = 1; y < H - 1; y++) border.push(y * W, y * W + W - 1);
+  if (border.filter(light).length < border.length * .6) return bmp;
+  const seen = new Uint8Array(W * H), stack = [];
+  for (const i of border) if (!seen[i] && light(i)) { seen[i] = 1; stack.push(i); }
+  while (stack.length) { const i = stack.pop(), x = i % W; d[i * 4 + 3] = 0;
+    for (const j of [x > 0 ? i - 1 : -1, x < W - 1 ? i + 1 : -1, i - W, i + W]) if (j >= 0 && j < W * H && !seen[j] && light(j)) { seen[j] = 1; stack.push(j); } }
+  g.putImageData(img, 0, 0); return c;
+}
 // uploaded line art can be coloured too: its inside is found once, from the transparent outside of the picture
 function imageMask(a) {
   if (a.maskDone) return a.mask; a.maskDone = true; a.tints = {};
@@ -2737,7 +2767,9 @@ function registerUpload(u, bmp) {
     const tile = { c, C: g.getImageData(0, 0, W, H).data, W, H, S: W };
     for (const k of ['world', 'local']) if (usableIn(u, k)) TERRAINS[k].push({ id: 'x:' + u.id, name: u.name, tile, upload: u, color: null });
   } else {
-    ASSETS['img:' + u.id] = { key: 'img:' + u.id, name: u.name, cat: 'up', upType: u.type, size: Math.max(6, Math.min(500, +u.size || 48)), kind: 'any', image: bmp, iw: bmp.width, ih: bmp.height, foot: .45 * bmp.height / Math.max(bmp.width, bmp.height) };
+    const im = u.keepWhite ? bmp : cutWhite(bmp);
+    ASSETS['img:' + u.id] = { key: 'img:' + u.id, name: u.name, cat: 'up', upType: u.type, size: Math.max(6, Math.min(500, +u.size || 48)), kind: 'any', image: im, iw: im.width, ih: im.height, foot: .45 * im.height / Math.max(im.width, im.height),
+      color: typeof u.color === 'string' && /^#[0-9a-f]{6}$/i.test(u.color) ? u.color : null };
   }
 }
 function catLabel(k, catId) { return catId.startsWith('up:') ? catId.slice(3) : catId === 'eigen' ? null : (CATS[k].find(c => c[0] === catId) || [])[1] || null; }
@@ -2860,13 +2892,20 @@ function buildUpList() {
       saveLib(); afterUploadChange(true); toast(uses ? 'Verwijderd. Op deze kaart is hij nu ook weg.' : 'Verwijderd');
     }));
     wide.append(info, del);
+    const look = document.createElement('div'); look.className = 'wide'; look.hidden = u.kind !== 'symbool';
+    look.innerHTML = '<label class="check"><input type="checkbox"> Witte achtergrond weg</label><label class="check"><input type="checkbox"> Kleur <input type="color" style="width:34px;padding:0"></label>';
+    const [cutBox, colBox, colIn] = look.querySelectorAll('input'); cutBox.checked = !u.keepWhite; colBox.checked = !!u.color; colIn.value = u.color || '#8fba67';
+    cutBox.addEventListener('change', () => { u.keepWhite = !cutBox.checked; commit(false); });
+    colBox.addEventListener('change', () => { u.color = colBox.checked ? colIn.value : null; commit(false); });
+    colIn.addEventListener('change', () => { colBox.checked = true; u.color = colIn.value; commit(false); });
+    colBox.closest('label').title = 'Standaardkleur op een kleurenkaart. Een kleur bij het symbool of het penseel gaat voor.';
     const commit = retex => { saveLib(); registerUpload(u, UPBMP.get(u.id)); afterUploadChange(retex); };
     name.addEventListener('change', () => { u.name = name.value.trim() || 'Afbeelding'; commit(false); });
     type.addEventListener('change', () => { u.type = type.value; commit(false); });
     kindS.addEventListener('change', () => { u.kind = kindS.value; u.size = u.kind === 'textuur' ? 128 : (TYPE_SIZE[u.type] || 48); commit(true); });
     use.addEventListener('change', () => { u.use = use.value; commit(true); });
     size.addEventListener('change', () => { u.size = Math.max(6, Math.min(512, +size.value || 48)); size.value = u.size; commit(u.kind === 'textuur'); });
-    card.append(upThumb(u), name, r1, r2, wide); box.append(card);
+    card.append(upThumb(u), name, r1, r2, look, wide); box.append(card);
   }
 }
 const drop = $('#upDrop');
@@ -3370,7 +3409,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.13.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.13.1', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;
