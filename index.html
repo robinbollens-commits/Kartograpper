@@ -394,6 +394,7 @@ body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
         <button type="button" class="chip" data-pal="inkt" aria-pressed="true">Inkt</button>
         <button type="button" class="chip" data-pal="perkament" aria-pressed="false">Perkament</button>
         <button type="button" class="chip" data-pal="kleur" aria-pressed="false">Kleur</button>
+        <button type="button" class="chip" data-pal="oud" aria-pressed="false">Oude kaart</button>
       </div>
       <div class="btns" id="genRow"><button type="button" class="btn" id="genBtn">Willekeurig werelddeel maken…</button></div>
       <div id="mapLocal" style="display:grid;gap:10px">
@@ -661,6 +662,12 @@ const PALETTES = {
       nederzetting: '#ecdcb8', plek: '#e2d5b8', elf: '#e6eed6', elfboom: '#9cc47c', elfwoud: '#86b97a', dwerg: '#d8cbb0', dwergpoort: '#cdb994', duister: '#a39a92', orkkamp: '#c2a77f', schedelrots: '#d6cdbd', draak: '#a7b97c', kraken: '#cf9a94', steencirkel: '#c9c2b4', magiertoren: '#cdc6e4', schat: '#c9955a', schip: '#caa77c', zeeslang: '#93b58e', anker: '#ecdcb8', kompas: '#f4ecd8', schaal: '#f4ecd8',
       door: '#c08f5e', geheim: '#ebe3d2', meubel: '#c9a073', bed: '#ebe3d2', tapijt: '#b8665a', kerker: '#d2cbbf', boom: '#7fab60', struik: '#94bd6d', huis: '#c97a55', fontein: '#a9d0e2', kraam: '#e7d3a5', kar: '#c08f5e', tent: '#e6d2a2', boot: '#c08f5e', torenrond: '#d2cbbf', kampvuur: '#c2b8a8' } },
 };
+// an old map: sepia ink on sandy parchment, muted greens, dark green rivers
+PALETTES.oud = { name: 'Oude kaart', colorful: true, ink: [58, 44, 30], paper: [233, 220, 187], water: [176, 186, 160], deep: [150, 164, 140], floor: [236, 225, 196], rock: [205, 190, 160], ground: [228, 215, 182], river: '#3f5a40',
+  terr: { gras: [214, 212, 162], woestijn: [238, 222, 180], moeras: [190, 192, 152], sneeuw: [242, 238, 224], akkers: [226, 210, 164], rotsgrond: [214, 200, 170], dor: [204, 184, 150], bloemen: [216, 214, 168], kasseien: [222, 208, 180], tegels: [230, 218, 192], planken: [222, 200, 160], aarde: [218, 198, 160], water: [190, 196, 172] },
+  fill: { berg: '#e2d1a6', berg2: '#e2d1a6', heuvels: '#d8cf9e', vulkaan: '#cdb592', rotsen: '#cfc3a5', riet: '#9aa268', naald: '#6f7c48', spar: '#5f6c3c', loof: '#7c8a52', palm: '#7c8a52', boom: '#7c8a52', struik: '#8a9660',
+    nederzetting: '#e8dbbb', plek: '#e2d3b0', schip: '#b08a5c', zeeslang: '#8a9a68', anker: '#e8dbbb', kompas: '#efe3c4', schaal: '#efe3c4', elf: '#dfe3cf', dwerg: '#d9ccb0', duister: '#a39a92',
+    door: '#a07850', meubel: '#b89466', kerker: '#d2c7b2', huis: '#b9805a', fontein: '#b8c8b0', kraam: '#e3d0a2', kar: '#a07850', tent: '#e3d0a2', boot: '#a07850', torenrond: '#d2c7b2', kampvuur: '#c2b8a8' } };
 let CUR = PALETTES.inkt;
 const rgb = c => `rgb(${c[0]},${c[1]},${c[2]})`;
 function applyPalette(name) {
@@ -1033,6 +1040,110 @@ const FOLK_GENERATORS = { 'g-elfwoud': genDElfwoud, 'g-spookboom': genDSpookboom
 const FOLK_FILL = { 'g-elfwoud': '#b7dcd0', 'g-spookboom': '#4a3f4f' };
 
 DETAIL_ASSETS.push(...FOLK_ASSETS); Object.assign(DETAIL_GENERATORS, FOLK_GENERATORS); Object.assign(DETAIL_FILL, FOLK_FILL);
+/* ---------- old cartography: pen-and-ink symbols with hatching on the shadow side (light from the left) ---------- */
+const SAND = '#e6d6ad', OLIVE = '#7c8a52', OLIVE2 = '#5f6c3c', SEPIA = '#8a6a44';
+// a hand-drawn line: the points of a straight segment, slightly wobbling
+function wob(a, b, n, amp, r) { const P = [a]; for (let i = 1; i < n; i++) { const t = i / n, nx = -(b[1] - a[1]), ny = b[0] - a[0], L = Math.hypot(nx, ny) || 1, o = (r() - .5) * amp; P.push([a[0] + (b[0] - a[0]) * t + nx / L * o, a[1] + (b[1] - a[1]) * t + ny / L * o]); } P.push(b); return P; }
+const pl = P => 'M' + P.map(p => f2(p[0]) + ' ' + f2(p[1])).join('L');
+// short parallel strokes to the right of a ridge line, falling down the slope, denser and longer close to the ridge
+function hatchRight(ridge, len, gap, r, slant = .55) {
+  let d = '';
+  for (let i = 0; i < ridge.length - 1; i++) {
+    const a = ridge[i], b = ridge[i + 1], L = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.max(1, Math.round(L / gap));
+    for (let k = 0; k < n; k++) { const t = (k + r() * .6) / n, x = a[0] + (b[0] - a[0]) * t, y = a[1] + (b[1] - a[1]) * t, l = len * (.6 + r() * .6);
+      d += `M${f2(x + .6)} ${f2(y + .4)}L${f2(x + l * slant + (r() - .5))} ${f2(y + l)}`; }
+  }
+  return d;
+}
+// is a point inside a polygon?
+function inPoly(x, y, P) { let c = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++) { const [xi, yi] = P[i], [xj, yj] = P[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; }
+// shade a region with strokes that run down the slope from a ridge: dense and long near the ridge, shorter further out
+function shadeFrom(ridge, region, dir, len, gap, r) {
+  let d = '';
+  for (let i = 0; i < ridge.length - 1; i++) {
+    const a = ridge[i], b = ridge[i + 1], L = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.max(1, Math.round(L / gap));
+    for (let k = 0; k < n; k++) {
+      const t = (k + r() * .7) / n; let x = a[0] + (b[0] - a[0]) * t + .7, y = a[1] + (b[1] - a[1]) * t + .3, l = len * (.55 + r() * .7);
+      const dx = dir[0] + (r() - .5) * .15, dy = dir[1];
+      let ex = x + dx * l, ey = y + dy * l;
+      while (l > 1.5 && !inPoly(ex, ey, region)) { l *= .8; ex = x + dx * l; ey = y + dy * l; }
+      if (l > 1.5 && inPoly(x + dx, y + dy, region)) d += `M${f2(x)} ${f2(y)}L${f2(ex)} ${f2(ey)}`;
+    }
+  }
+  return d;
+}
+function genOldBerg(seed) {
+  const r = rng(seed * 1213 + 17), px = (r() - .5) * 14, top = -44 + r() * 12, ops = [];
+  const left = wob([-46, 40], [px, top], 6, 5, r), right = wob([px, top], [46, 40], 6, 5, r), body = [...left, ...right.slice(1)];
+  if (r() < .75) { const bx = (r() < .5 ? -1 : 1) * (18 + r() * 10), bt = top + 18 + r() * 8, bl = wob([bx - 26, 40], [bx, bt], 4, 4, r), br = wob([bx, bt], [bx + 26, 40], 4, 4, r), back = [...bl, ...br.slice(1)];
+    const bridge = wob([bx, bt], [bx + 8, 40], 3, 3, r);
+    ops.push(['w', pl(back) + 'Z', 1.1], ['s', shadeFrom(bridge, back, [.45, 1], 14, 1.6, r), .45]); }
+  ops.push(['w', pl(body) + 'Z', 1.3]);
+  // the main ridge from the peak down towards the right: everything right of it is in shadow, closely hatched
+  const rx = px + 12 + r() * 10, ridge = wob([px, top], [rx, 40], 7, 5, r);
+  ops.push(['s', shadeFrom(ridge, body, [.5, 1], 34, 1.1, r), .5], ['s', shadeFrom(ridge, body, [.95, 1], 18, 1.8, r), .45], ['s', shadeFrom(right, body, [-.15, 1], 10, 2.4, r), .4], ['s', pl(ridge), 1]);
+  // spurs on the sunny side, each with its own small shadow
+  for (let s = 0; s < 2 + (r() * 2 | 0); s++) { const t = .2 + r() * .45, i = Math.min(ridge.length - 2, Math.floor(t * (ridge.length - 1))), a = ridge[i], sp = wob(a, [a[0] - 12 - r() * 16, 40 - r() * 4], 4, 4, r);
+    ops.push(['s', pl(sp), .8], ['s', shadeFrom(sp, body, [.35, 1], 8, 1.8, r), .42]); }
+  let lit = ''; for (let k = 0; k < 5; k++) { const y = top + 12 + r() * (40 - top - 18), x = px - (px + 46) * (y - top) / (40 - top) * (.3 + r() * .5); lit += `M${f2(x)} ${f2(y)}L${f2(x - 3 - r() * 3)} ${f2(y + 3 + r() * 2)}`; }
+  ops.push(['s', lit, .4]);
+  return ops;
+}
+function genOldHeuvel(seed) {
+  const r = rng(seed * 401 + 3), w = 30 + r() * 10, h = 16 + r() * 10, ops = [];
+  const arc = []; for (let i = 0; i <= 12; i++) { const t = i / 12, x = -w + 2 * w * t, y = 36 - Math.sin(t * Math.PI) * h + (r() - .5) * 1.6; arc.push([x, y]); }
+  ops.push(['w', pl(arc) + 'Z', 1.2]);
+  const body = [...arc, [w, 36], [-w, 36]], crest = arc.slice(5); ops.push(['s', shadeFrom(crest, body, [.3, 1], 12, 1.4, r), .45]);
+  return ops;
+}
+function genOldLoof(seed) { // a small round tree, drawn quickly, shaded on the right
+  const r = rng(seed * 97 + 5), rx = 12 + r() * 4, ry = 11 + r() * 3, cy = 8 - r() * 4;
+  const ops = [['s', `M0 ${f2(cy + ry - 2)}L${f2((r() - .5) * 2)} 40`, 1.2], ['w', bumps(0, cy, rx, ry, 8, seed * 5 + 1, 1.22, .16), 1.1]];
+  let d = ''; for (let k = 0; k < 7; k++) { const a = -.9 + k * .32, x = Math.cos(a) * rx * .82, y = cy + Math.sin(a) * ry * .82; d += `M${f2(x)} ${f2(y)}L${f2(x + 2.5)} ${f2(y + 3)}`; }
+  let c = ''; for (let k = 0; k < 4; k++) { const x = (r() - .7) * rx, y = cy + (r() - .6) * ry; c += `M${f2(x - 2.5)} ${f2(y)}Q${f2(x)} ${f2(y - 3)} ${f2(x + 2.5)} ${f2(y)}`; }
+  ops.push(['s', d, .5], ['s', c, .5], ['s', 'M-6 41L6 41', .5]);
+  return ops;
+}
+function genOldDen(seed) {
+  const r = rng(seed * 59 + 7), h = 44 + r() * 10, w = 10 + r() * 3, top = 34 - h, P = [[0, top]];
+  for (let i = 1; i <= 5; i++) { const y = top + h * i / 5, x = w * i / 5; P.push([x + 1.5, y - 2], [x * .6, y - .5]); }
+  const L = P.slice(1).reverse().map(([x, y]) => [-x, y]);
+  const ops = [['s', 'M0 32L0 41', 1.1], ['w', pl([...P, ...L]) + 'Z', 1]];
+  let d = ''; for (let i = 1; i <= 8; i++) { const y = top + h * i / 9, x = w * i / 9; d += `M${f2(x * .2)} ${f2(y)}L${f2(x * .8)} ${f2(y + 3)}`; }
+  ops.push(['s', d, .5]); return ops;
+}
+const OLD_ASSETS = [
+  ['o-berg', 'Berg', 'land', 74, genOldBerg(0)],
+  ['o-heuvel', 'Heuvel', 'land', 52, genOldHeuvel(0)],
+  ['o-loof', 'Loofboom', 'boom', 22, genOldLoof(0)],
+  ['o-den', 'Den', 'boom', 24, genOldDen(0)],
+  ['o-hut', 'Hut', 'nederzetting', 30, [['w', 'M-14 40L-14 8L14 8L14 40Z', 1.2, '#d9c8a0'], ['s', 'M10 10L10 38M6 12L6 38', .5], ['w', 'M-18 10L0 -30L18 10Q0 14 -18 10Z', 1.3, SEPIA], ['s', 'M0 -30L-10 10M0 -30L-4 11M0 -30L4 11M0 -30L9 10M0 -30L14 9', .5], ['w', 'M-4 40L-4 28Q0 24 4 28L4 40Z', .9, '#5a4632']]],
+  ['o-stad', 'Stad (bovenaanzicht)', 'nederzetting', 50, [['w', circ(0, 0, 40), 1.6, '#efe3c4'], ['s', circ(0, 0, 36), .6],
+    ...Array.from({ length: 34 }, (_, i) => { const r = rng(i * 31 + 4), a = r() * Math.PI * 2, d = 6 + Math.sqrt(r()) * 25, x = Math.cos(a) * d, y = Math.sin(a) * d, w = 3 + r() * 4, h = 3 + r() * 4; return ['w', `M${f2(x)} ${f2(y)}l${f2(w)} ${f2(r() - .5)}l${f2(r() - .5)} ${f2(h)}l${f2(-w)} ${f2(r() - .5)}Z`, .7, SEPIA]; }),
+    ['w', circ(0, 0, 5), 1, '#d9c8a0'], ['s', 'M-36 0L-5 0M5 0L36 0M0 -36L0 -5M0 5L0 36', .8], ['s', 'M-40 0L-47 0M40 0L47 0M0 -40L0 -47M0 40L0 47', 1.3]]],
+  ['o-toren', 'Stenen toren', 'plek', 56, [['w', 'M-20 40L-14 -24L14 -24L20 40Z', 1.3, '#d8ccb2'], ['w', 'M-18 -24C-18 -34 18 -34 18 -24C18 -18 -18 -18 -18 -24Z', 1.2, '#e4dac4'], ...[-12, -4, 4, 12].flatMap(x => [['k', `M${x - 1.4} -24L${x - 1.4} -28Q${x} -30 ${x + 1.4} -28L${x + 1.4} -24Z`]]),
+    ...[[-10, -12], [-3, -12], [4, -12], [11, -12], [-9, -2], [-2, -2], [5, -2], [11, -2]].map(([x, y]) => ['k', `M${x - 1.3} ${y + 4}L${x - 1.3} ${y}Q${x} ${y - 2} ${x + 1.3} ${y}L${x + 1.3} ${y + 4}Z`]),
+    ['s', 'M-8 40L-6 8M0 40L0 8M8 40L6 8M14 40L12 8', .7], ['s', lines(L => { for (let y = -18; y < 38; y += 3) L(9 + (y + 24) * .1, y, 16 + (y + 24) * .1, y + 2); }), .45], ['s', 'M-28 42L28 42', .7]]],
+  ['o-burcht', 'Burcht', 'nederzetting', 54, [['w', 'M-26 40L-26 -6L18 -6L18 40Z', 1.4, '#ddd2bb'], ['w', 'M18 -6L30 -14L30 32L18 40Z', 1.3, '#bfb197'], ['w', 'M-26 -6L-14 -14L30 -14L18 -6Z', 1.3, '#e9e0cc'], ['s', lines(L => { for (let y = -10; y < 36; y += 3) L(19, y + 2, 29, y - 4); }), .45],
+    ['s', 'M-26 6L18 6M-26 18L18 18M-26 30L18 30M-14 -6L-14 40M2 -6L2 40', .45], ['w', 'M-8 40L-8 28Q-4 24 0 28L0 40Z', .9, '#5a4632'], ['k', rect(-20, -1, 4, 5)], ['k', rect(8, -1, 4, 5)]]],
+];
+function oldTrees(seed, n, w, h) { // a small clump of round trees, the way old maps draw woods
+  const r = rng(seed), T = []; for (let i = 0; i < n; i++) T.push([(r() - .5) * w, (r() - .5) * h, 7 + r() * 3]);
+  T.sort((a, b) => a[1] - b[1]); const ops = [];
+  for (const [x, y, s] of T) { ops.push(['s', `M${f2(x)} ${f2(y + s * .6)}L${f2(x)} ${f2(y + s * 1.5)}`, .9], ['w', bumps(x, y, s, s * .85, 7, seed + x * 7 | 0, 1.22, .18), .9],
+    ['s', `M${f2(x + s * .3)} ${f2(y - s * .2)}L${f2(x + s * .7)} ${f2(y + s * .3)}M${f2(x + s * .1)} ${f2(y + s * .2)}L${f2(x + s * .5)} ${f2(y + s * .6)}`, .45]); }
+  return ops;
+}
+OLD_ASSETS.push(
+  ['o-bosje', 'Bosje', 'boom', 44, oldTrees(7, 9, 44, 24)],
+  ['o-dorp', 'Dorp', 'nederzetting', 44, [[-18, 10, .8], [10, 2, .75], [22, 22, .9], [-4, 26, 1]].sort((a, b) => a[1] - b[1]).flatMap(([x, y, k]) => [['w', `M${f2(x - 9 * k)} ${f2(y + 14 * k)}L${f2(x - 9 * k)} ${f2(y)}L${f2(x + 9 * k)} ${f2(y)}L${f2(x + 9 * k)} ${f2(y + 14 * k)}Z`, 1, '#d9c8a0'], ['w', `M${f2(x - 12 * k)} ${f2(y + 1)}L${x} ${f2(y - 16 * k)}L${f2(x + 12 * k)} ${f2(y + 1)}Z`, 1.1, SEPIA], ['s', `M${x} ${f2(y - 16 * k)}L${f2(x + 5 * k)} ${f2(y + 1)}M${x} ${f2(y - 16 * k)}L${f2(x + 9 * k)} ${f2(y)}`, .45], ['k', rect(x - 1.5 * k, y + 7 * k, 3 * k, 7 * k)]])],
+  ['o-ruine', 'Ruïne', 'plek', 46, [['w', 'M-36 38L36 38L36 42L-36 42Z', 1, '#cbbd9c'], ['w', 'M-28 38L-28 -4L-24 -8L-21 -2L-18 -6L-18 38Z', 1.1, '#ddd2bb'], ['w', 'M-8 38L-8 -24L-2 -28L2 -22L4 38Z', 1.1, '#ddd2bb'], ['w', 'M14 38L14 -10L18 -16L24 -12L24 38Z', 1.1, '#ddd2bb'], ['w', 'M-14 -30L20 -28L19 -21L-15 -23Z', 1.1, '#cbbd9c'],
+    ['s', lines(L => { for (const [x0, x1] of [[-22, -18], [-1, 4], [20, 24]]) for (let y = -14; y < 36; y += 3) L(x0, y, x1, y + 2); }), .45], ['s', 'M-36 44Q-30 41 -24 44M24 44Q30 41 36 44', .6]]],
+  ['o-schip', 'Schip', 'zee', 56, [['w', 'M-40 10C-28 14 28 14 40 10L30 26C10 30 -10 30 -30 26Z', 1.2, SEPIA], ['s', lines(L => { for (let x = -26; x < 28; x += 3) L(x, 16, x + 2, 25); }), .4], ['s', 'M-6 12L-6 -40M14 12L14 -28', 1], ['w', 'M-22 -34Q-6 -30 8 -34Q12 -22 8 -8Q-6 -12 -22 -8Q-18 -22 -22 -34Z', 1, '#efe3c4'], ['w', 'M6 -24Q16 -20 26 -24Q29 -16 26 -8Q16 -11 6 -8Q8 -16 6 -24Z', 1, '#efe3c4'], ['s', 'M-14 -30Q-12 -20 -14 -10M16 -22Q18 -16 16 -10', .45], ['s', 'M-44 32Q-38 29 -32 32M18 32Q24 29 30 32Q36 35 42 32', .7]]],
+);
+const OLD_GENERATORS = { 'o-berg': genOldBerg, 'o-heuvel': genOldHeuvel, 'o-loof': genOldLoof, 'o-den': genOldDen };
+const OLD_FILL = { 'o-bosje': OLIVE, 'o-berg': SAND, 'o-heuvel': SAND, 'o-loof': OLIVE, 'o-den': OLIVE2 };
+
 
 const WORLD_ASSETS = [
   ['berg', 'Berg', 'land', 64, [['w', 'M-46 36L-20 -8L-12 -2L4 -38L46 36Z'], ['s', 'M4 -38L8 -18L2 -4L10 12L6 36'], ['s', 'M14 -14L20 -6M16 0L26 8M14 14L30 22M18 26L36 32', .7], ['s', 'M-20 -8L-16 6L-20 20', .7]]],
@@ -1187,7 +1298,7 @@ function genLeafy(seed) {
   ops.push(['s', `M${f2(cx + R * .15)} ${f2(cy + R * .5)}Q${f2(cx + R * .55)} ${f2(cy + R * .35)} ${f2(cx + R * .6)} ${f2(cy - R * .05)}M${f2(cx - R * .35)} ${f2(cy + R * .55)}Q${f2(cx - R * .05)} ${f2(cy + R * .7)} ${f2(cx + R * .2)} ${f2(cy + R * .62)}`, .6]);
   return ops;
 }
-const GENERATORS = { berg: genMountain, heuvels: genHills, naald: genPine, loof: genLeafy, ...FANTASY_GENERATORS, ...DETAIL_GENERATORS };
+const GENERATORS = { berg: genMountain, heuvels: genHills, naald: genPine, loof: genLeafy, ...FANTASY_GENERATORS, ...DETAIL_GENERATORS, ...OLD_GENERATORS };
 // an op may carry its own colour (4th item): on a colour map that part keeps it, other parts take the symbol's colour
 const compileOps = ops => ops.map(o => o[0] === 't' ? { m: 't', t: o[1], x: o[2], y: o[3], fs: o[4] } : { m: o[0], p: new Path2D(o[1]), lw: o[2] || 1, col: o[3] || null });
 
@@ -1197,14 +1308,15 @@ const CATS = {
   local: [['door', 'Doorgangen'], ['meubel', 'Meubels'], ['kerker', 'Kerker'], ['buiten', 'Buiten'], ['eigen', 'Eigen']],
 };
 const ASSET_LIST = { world: [], local: [] };
-for (const [k, list] of [['world', [...WORLD_ASSETS, ...FANTASY_ASSETS, ...DETAIL_ASSETS]], ['local', LOCAL_ASSETS]]) {
+for (const [k, list] of [['world', [...WORLD_ASSETS, ...FANTASY_ASSETS, ...DETAIL_ASSETS, ...OLD_ASSETS]], ['local', LOCAL_ASSETS]]) {
   for (const [key, name, cat, size, ops] of list) {
     ASSETS[key] = { key, name, cat, size, kind: k, c: compileOps(ops) };
     ASSET_LIST[k].push(key);
   }
 }
 for (const [key] of DETAIL_ASSETS) ASSETS[key].detail = true; // the detailed pack, shown instead of the classic symbols when chosen
-Object.assign(PALETTES.kleur.fill, DETAIL_FILL);
+for (const [key] of OLD_ASSETS) ASSETS[key].old = true; // and the old-map pack
+Object.assign(PALETTES.kleur.fill, DETAIL_FILL, OLD_FILL); Object.assign(PALETTES.oud.fill, DETAIL_FILL, OLD_FILL);
 
 for (const key in GENERATORS) { const a = ASSETS[key]; a.vars = [a.c]; for (let i = 1; i < 10; i++) a.vars.push(compileOps(GENERATORS[key](i))); }
 const pickVar = key => ASSETS[key]?.vars ? Math.floor(Math.random() * ASSETS[key].vars.length) : 0;
@@ -1213,7 +1325,7 @@ const FLAT = new Set(['stip-hoofdstad', 'stip-stad', 'stip-dorp', 'kompas', 'sch
 for (const k in ASSETS) ASSETS[k].foot = ASSETS[k].kind === 'world' && !FLAT.has(k) ? .38 : 0;
 
 // symbols shaded on their right side; never mirrored, so the light always comes from the left
-const SHADED = new Set(['g-berg', 'g-vulkaan', 'g-grot', 'g-rotsen', 'g-bergpoort', 'g-mijn', 'berg', 'berg2', 'heuvels', 'vulkaan', 'rotsen', 'naald', 'spar', 'loof', 'elfstad', 'elfboom', 'elfwoud', 'elfpoort', 'elftoren', 'dwergpoort', 'dwergvesting', 'smidse', 'runensteen', 'schedelrots', 'magiertoren', 'schat']);
+const SHADED = new Set(['o-berg', 'o-heuvel', 'o-loof', 'o-den', 'o-bosje', 'o-toren', 'o-burcht', 'o-ruine', 'g-berg', 'g-vulkaan', 'g-grot', 'g-rotsen', 'g-bergpoort', 'g-mijn', 'berg', 'berg2', 'heuvels', 'vulkaan', 'rotsen', 'naald', 'spar', 'loof', 'elfstad', 'elfboom', 'elfwoud', 'elfpoort', 'elftoren', 'dwergpoort', 'dwergvesting', 'smidse', 'runensteen', 'schedelrots', 'magiertoren', 'schat']);
 function tinted(a, color) {
   let c = a.tints[color]; if (c) return c;
   c = document.createElement('canvas'); c.width = c.height = 200; const g = c.getContext('2d');
@@ -1548,7 +1660,7 @@ function drawLabel(g, L) {
 const footY = s => s.y + s.s * (ASSETS[s.a]?.foot || 0);
 function stampOrder(d) { return d.kind === 'world' ? d.stamps.slice().sort((a, b) => footY(a) - footY(b)) : d.stamps; }
 /* Minimum spacing as an ellipse (fraction of the average size): wide and shallow, so a range shows its back peaks above the front ones. */
-const SPACING = { 'g-elfwoud': [.42, .24], 'g-spookboom': [.5, .3], 'g-doornen': [.45, .3], 'g-kristallen': [.5, .32], 'g-loof': [.5, .28], 'g-eik': [.55, .3], 'g-den': [.42, .24], 'g-berk': [.42, .24], 'g-struik': [.55, .3], 'g-dood': [.45, .26], 'g-palm': [.48, .28], 'g-berg': [.56, .3], 'g-heuvel': [.52, .28], 'g-rotsen': [.5, .35], 'g-gras': [.45, .3], berg: [.56, .3], berg2: [.58, .3], heuvels: [.52, .28], vulkaan: [.5, .3], naald: [.42, .24], spar: [.4, .24], loof: [.46, .26], palm: [.48, .28], riet: [.45, .3], rotsen: [.5, .35], boom: [.62, .62], struik: [.62, .62] };
+const SPACING = { 'o-berg': [.72, .42], 'o-heuvel': [.62, .36], 'o-loof': [.8, .55], 'o-den': [.7, .5], 'o-bosje': [.8, .55], 'g-elfwoud': [.42, .24], 'g-spookboom': [.5, .3], 'g-doornen': [.45, .3], 'g-kristallen': [.5, .32], 'g-loof': [.5, .28], 'g-eik': [.55, .3], 'g-den': [.42, .24], 'g-berk': [.42, .24], 'g-struik': [.55, .3], 'g-dood': [.45, .26], 'g-palm': [.48, .28], 'g-berg': [.56, .3], 'g-heuvel': [.52, .28], 'g-rotsen': [.5, .35], 'g-gras': [.45, .3], berg: [.56, .3], berg2: [.58, .3], heuvels: [.52, .28], vulkaan: [.5, .3], naald: [.42, .24], spar: [.4, .24], loof: [.46, .26], palm: [.48, .28], riet: [.45, .3], rotsen: [.5, .35], boom: [.62, .62], struik: [.62, .62] };
 const spacing = k => SPACING[k] || (k.startsWith('c:') || k.startsWith('img:') ? [.5, .3] : [.8, .7]);
 function collides(key, x, y, size, list, dens) {
   const [ax, ay] = spacing(key);
@@ -2103,7 +2215,7 @@ function refreshSel() {
     if (SHADED.has(o.a)) list.pop();
     if (kind === 'local') list.push(['Naar voren', () => objEdit(() => { doc.stamps = doc.stamps.filter(x => x !== o); doc.stamps.push(o); })], ['Naar achteren', () => objEdit(() => { doc.stamps = doc.stamps.filter(x => x !== o); doc.stamps.unshift(o); })]);
     body.append(btnRow(list));
-    if (doc.palette === 'kleur') {
+    if (PALETTES[doc.palette]?.colorful) {
       const row = document.createElement('div'); row.className = 'colorrow';
       row.innerHTML = '<span>Kleur</span><input type="color" id="selColor" aria-label="Kleur van dit symbool"><button type="button" class="btn">Automatisch</button>';
       const ci = row.querySelector('input'); ci.value = o.c || toHex(fillFor(ASSETS[o.a]));
@@ -2310,6 +2422,8 @@ const PRESETS = {
     { id: 'dodebossen', since: 2, name: 'Dode bossen', items: [{ a: 'dodeboom', v: -1 }] },
     { id: 'g-bos', since: 3, name: 'Gedetailleerd bos', items: [{ a: 'g-loof', v: -1, n: 6 }, { a: 'g-eik', v: -1, n: 1 }, { a: 'g-den', v: -1, n: 3 }] },
     { id: 'g-dennen', since: 3, name: 'Gedetailleerd dennenbos', items: [{ a: 'g-den', v: -1, n: 6 }, { a: 'g-berk', v: -1, n: 1 }] },
+    { id: 'o-bos', since: 5, name: 'Oud bos', items: [{ a: 'o-loof', v: -1, n: 4 }, { a: 'o-den', v: -1, n: 2 }] },
+    { id: 'o-gebergte', since: 5, name: 'Oud gebergte', grow: true, items: [{ a: 'o-berg', v: -1, n: 4 }, { a: 'o-heuvel', v: -1, zone: 'rand', n: 3, rel: .7 }] },
     { id: 'g-elfenwoud', since: 4, name: 'Gedetailleerd elfenwoud', items: [{ a: 'g-elfwoud', v: -1, n: 6 }, { a: 'g-berk', v: -1, n: 1 }] },
     { id: 'g-duisterwoud', since: 4, name: 'Duister woud', items: [{ a: 'g-spookboom', v: -1, n: 6 }, { a: 'g-doornen', v: 0, n: 3 }, { a: 'g-dood', v: -1, n: 1 }] },
     { id: 'g-gebergte', since: 3, name: 'Gedetailleerd gebergte', grow: true, items: [{ a: 'g-berg', v: -1, n: 6 }, { a: 'g-heuvel', v: -1, zone: 'rand', n: 3, rel: .7 }] },
@@ -2326,7 +2440,7 @@ const normBrush = b => ({ id: String(b.id), name: String(b.name || 'Penseel').sl
   amount: +b.amount || 1.4, scale: +b.scale || 1, vary: b.vary ?? .25,
   items: (b.items || []).map(it => ({ a: String(it.a), v: Number.isInteger(it.v) ? it.v : 0, zone: ['overal', 'midden', 'rand'].includes(it.zone) ? it.zone : 'overal', n: snapN(+it.n || 3), rel: Math.max(.2, Math.min(3, +it.rel || 1)) })) });
 const presetBrushes = k => PRESETS[k].map(normBrush);
-const PRESET_LEVEL = 4; // raise together with `since` on brushes added later, so saved libraries get them once
+const PRESET_LEVEL = 5; // raise together with `since` on brushes added later, so saved libraries get them once
 const DEFAULT_TYPES = ['Bomen', 'Bergen', 'Heuvels', 'Gras en planten', 'Rotsen', 'Water', 'Gebouwen', 'Steden', 'Versiering', 'Overig'];
 const lib = { brushes: { world: presetBrushes('world'), local: presetBrushes('local') }, shapes: [], terrains: [], uploads: [], types: DEFAULT_TYPES.slice(), sel: { world: 'gebergte', local: 'bomen' }, presetsSeen: PRESET_LEVEL };
 const newId = () => Math.random().toString(36).slice(2, 9);
@@ -2430,7 +2544,7 @@ function syncBrushControls() {
   const B = curBrush(); if (!B) return;
   const set = (id, v) => { $('#' + id).value = Math.round(v * 100); $('#' + id + 'Out').textContent = Math.round(v * 100) + '%'; };
   set('natDensity', B.amount); set('natScale', B.scale); set('natVary', B.vary);
-  $('#natColorRow').hidden = !(doc && doc.palette === 'kleur');
+  $('#natColorRow').hidden = !(doc && PALETTES[doc.palette]?.colorful);
   $('#natColor').value = B.color || toHex(fillFor(ASSETS[B.items[0]?.a] || { key: '', cat: '' })); $('#natAuto').checked = !B.color;
   $('#natNote').textContent = `${B.name} strooit ${B.items.length} soort${B.items.length === 1 ? '' : 'en'} vorm. Dubbelklik een penseel om te kiezen welke vormen erin zitten, of teken er zelf een.`;
 }
@@ -3323,7 +3437,7 @@ $('#icSave').addEventListener('click', () => {
   u.paint = any ? paint.toDataURL('image/png') : null; saveLib(); registerUpload(u, UPBMP.get(u.id));
   const A = ASSETS['img:' + u.id]; if (A && any) { A.paintImg = paint; A.comp = {}; } // use it right away; the saved copy loads next time
   closeColorer(); objEpoch++; afterUploadChange(false); refreshSel(); req();
-  toast(doc && doc.palette !== 'kleur' ? 'Bewaard. De kleuren zie je als de kaart op Kleur staat.' : 'Kleuren bewaard');
+  toast(doc && !PALETTES[doc.palette]?.colorful ? 'Bewaard. De kleuren zie je als de kaart op Kleur of Oude kaart staat.' : 'Kleuren bewaard');
 });
 const drop = $('#upDrop');
 drop.addEventListener('click', () => $('#upFile').click());
@@ -3659,11 +3773,12 @@ function buildAssets() {
   if (!catList(kind).some(c => c[0] === U().cat)) U().cat = CATS[kind][0][0];
   for (const [k, n] of catList(kind)) { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = n; b.setAttribute('aria-pressed', U().cat === k); b.addEventListener('click', () => { U().cat = k; buildAssets(); }); cats.append(b); }
   const pk = $('#assetPack'); pk.textContent = ''; pk.hidden = kind !== 'world';
-  for (const [k, n] of [['klassiek', 'Klassiek'], ['detail', 'Gedetailleerd']]) { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = n; b.setAttribute('aria-pressed', (U().pack || 'klassiek') === k); b.addEventListener('click', () => { U().pack = k; lsSet('kartograaf.pack', k); buildAssets(); }); pk.append(b); }
+  for (const [k, n] of [['klassiek', 'Klassiek'], ['detail', 'Gedetailleerd'], ['oud', 'Oud']]) { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = n; b.setAttribute('aria-pressed', (U().pack || 'klassiek') === k); b.addEventListener('click', () => { U().pack = k; lsSet('kartograaf.pack', k); buildAssets(); }); pk.append(b); }
   const box = $('#assets'); box.textContent = '';
   // the detailed pack replaces the classic symbols of a category when it has its own; otherwise the classic ones stay
-  const inCat = ASSET_LIST[kind].filter(k => ASSETS[k].cat === U().cat), detailed = inCat.filter(k => ASSETS[k].detail);
-  const shown = kind === 'world' && U().pack === 'detail' && detailed.length ? detailed : inCat.filter(k => !ASSETS[k].detail);
+  const pack = kind === 'world' ? U().pack || 'klassiek' : 'klassiek', inCat = ASSET_LIST[kind].filter(k => ASSETS[k].cat === U().cat);
+  const styled = inCat.filter(k => pack === 'detail' ? ASSETS[k].detail : pack === 'oud' ? ASSETS[k].old : false);
+  const shown = styled.length ? styled : inCat.filter(k => !ASSETS[k].detail && !ASSETS[k].old);
   const keys = (U().cat === 'eigen' ? lib.shapes.map(sh => 'c:' + sh.id).filter(k => ASSETS[k]) : shown).concat(uploadKeys(kind, U().cat));
   for (const key of keys) {
     const a = ASSETS[key];
@@ -3831,7 +3946,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.17.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.18.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;

@@ -1,5 +1,17 @@
 # Wijzigingen
 
+## 1.18.0
+
+- Nieuwe symboolstijl **Oud**, in de stijl van een oude, getekende kaart. Je kiest hem naast Klassiek en Gedetailleerd. De stijl bevat:
+  - gegraveerde bergen met arcering;
+  - heuvels;
+  - olijfgroene loofbomen, dennen en bosjes;
+  - een hut met kegeldak en een stad in bovenaanzicht;
+  - een burcht, een dorp, een stenen toren, een ruïne en een oud schip.
+- Nieuwe kaartstijl **Oude kaart**: sepia-inkt op zandkleurig perkament, met gedempte groenen en donkergroene rivieren.
+- Nieuwe penselen: *Oud bos* en *Oud gebergte*.
+- Eigen kleuren en ingekleurde afbeeldingen zie je nu ook op Oude kaart, niet alleen op Kleur.
+
 ## 1.17.0
 
 - Meer gedetailleerde symbolen voor de volken:
