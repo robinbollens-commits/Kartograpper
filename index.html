@@ -379,6 +379,7 @@ body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
     </section>
     <section class="sec" id="secAssets">
       <h3>Symbolen</h3>
+      <div class="chips" id="assetPack" aria-label="Stijl van de symbolen"></div>
       <div class="chips" id="assetCats"></div>
       <div class="assets" id="assets"></div>
       <label class="check"><input type="checkbox" id="optScatter" checked> Strooien als je sleept</label>
@@ -844,6 +845,140 @@ const FANTASY_ASSETS = [
 ];
 const FANTASY_GENERATORS = { elfwoud: genElfTree, dodeboom: genDeadTree };
 
+/* ---------- detailed pack: cartoon icons with a thick outline, flat colours and a few detail lines ---------- */
+// a crown of round bumps around an ellipse
+function bumps(cx, cy, rx, ry, n, seed, out = 1.32, jit = .12, notch = 0) {
+  const r = rng(seed), P = [];
+  for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2 + (r() - .5) * .25, s = (1 + (r() - .5) * jit * 2) * (1 - notch * Math.max(0, Math.sin(a)) ** 6); P.push([cx + Math.cos(a) * rx * s, cy + Math.sin(a) * ry * s]); }
+  let d = `M${f2(P[0][0])} ${f2(P[0][1])}`;
+  for (let i = 0; i < n; i++) { const p = P[i], q = P[(i + 1) % n], mx = (p[0] + q[0]) / 2, my = (p[1] + q[1]) / 2, k = out + (r() - .5) * .14;
+    d += `Q${f2(cx + (mx - cx) * k)} ${f2(cy + (my - cy) * k)} ${f2(q[0])} ${f2(q[1])}`; }
+  return d + 'Z';
+}
+// little marks inside a crown: short flat arcs, like the inner edge of a bump of leaves
+function leafMarks(cx, cy, rx, ry, n, seed) {
+  const r = rng(seed); let d = '';
+  for (let i = 0; i < n; i++) { const a = r() * Math.PI * 2, t = Math.sqrt(r()) * .7, x = cx + Math.cos(a) * rx * t, y = cy + Math.sin(a) * ry * t, w = 3.5 + r() * 3, h = 1.6 + r() * 1.2;
+    d += `M${f2(x - w)} ${f2(y + h * .6)}Q${f2(x - w * .6)} ${f2(y - h)} ${f2(x)} ${f2(y)}`; if (r() < .45) d += `Q${f2(x + w * .4)} ${f2(y - h * .8)} ${f2(x + w * .8)} ${f2(y + h * .3)}`; }
+  return d;
+}
+// a trunk from the ground up to `top`, with flared roots
+function trunkPath(w, top, flare = 1.9, lean = 0) {
+  return `M${f2(-w + lean)} ${f2(top)}C${f2(-w)} 22 ${f2(-w * .9)} 36 ${f2(-w * flare - 3)} 44L${f2(-w * .5)} 41L${f2(-w * .2)} 45L${f2(w * .3)} 41L${f2(w * flare + 3)} 44C${f2(w * .9)} 36 ${f2(w)} 22 ${f2(w + lean)} ${f2(top)}Z`;
+}
+function branch(x0, y0, x1, y1, w) { const dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L;
+  return poly([[x0 + nx * w, y0 + ny * w], [x1 + nx * w * .35, y1 + ny * w * .35], [x1 - nx * w * .35, y1 - ny * w * .35], [x0 - nx * w, y0 - ny * w]]); }
+const BARK = '#8b5e3c', BARK2 = '#a3784f';
+function genDLoof(seed) { // a round leafy tree, like the yellow one: the trunk forks into the crown through a notch
+  const r = rng(seed * 811 + 3), w = 4.5 + r() * 2, cy = -16 - r() * 5, rx = 26 + r() * 6, ry = 24 + r() * 5, fork = cy + ry * .5;
+  const ops = [['w', trunkPath(w, fork + 8), 1.6, BARK]];
+  ops.push(['w', branch(-1, fork + 10, -11 - r() * 4, fork - 6, 2.8), 1.3, BARK], ['w', branch(1, fork + 10, 10 + r() * 4, fork - 8, 2.6), 1.3, BARK]);
+  ops.push(['w', bumps(0, cy, rx, ry, 11 + (r() * 3 | 0), seed * 7 + 1, 1.3, .12, .55), 1.6]);
+  ops.push(['s', leafMarks(0, cy - 6, rx * .8, ry * .5, 4 + (r() * 3 | 0), seed * 13 + 2), .9], ['s', `M-1 ${f2(fork + 18)}L-1.5 ${f2(fork + 28)}M2 ${f2(fork + 22)}L2.4 38`, .7]);
+  return ops;
+}
+function genDEik(seed) { // a broad oak with a thick trunk and spreading branches, like the green one
+  const r = rng(seed * 593 + 9), w = 8 + r() * 2, top = 0, j = () => (r() - .5) * 4;
+  const ops = [['w', trunkPath(w, top, 2.1), 1.7, BARK]];
+  for (const [x, y, t] of [[-34, -8, 3.2], [-16, -22, 3.4], [14, -24, 3.4], [33, -6, 3.2], [-4, -28, 2.6]]) ops.push(['w', branch(x * .12, top + 8, x + j(), y + j(), t), 1.3, BARK]);
+  // lobes of leaves, back to front, leaving gaps low in the middle where the branches show
+  ops.push(['w', bumps(0, -28, 32, 15, 11, seed * 3 + 1, 1.3), 1.7]);
+  ops.push(['w', bumps(-28, -14, 18, 12, 8, seed * 3 + 2, 1.3), 1.6], ['w', bumps(28, -12, 19, 12, 8, seed * 3 + 3, 1.3), 1.6]);
+  ops.push(['w', bumps(-13, -27, 11, 7, 7, seed * 3 + 4, 1.3), 1.3], ['w', bumps(14, -28, 11, 7, 7, seed * 3 + 5, 1.3), 1.3]);
+  ops.push(['w', bumps(-36, -2, 11, 7, 6, seed * 3 + 6, 1.3), 1.4], ['w', bumps(37, 0, 11, 7, 6, seed * 3 + 7, 1.3), 1.4]);
+  ops.push(['s', leafMarks(0, -32, 24, 8, 4, seed * 17 + 1), .9], ['s', leafMarks(-28, -14, 12, 6, 2, seed * 17 + 2), .9], ['s', leafMarks(28, -12, 12, 6, 2, seed * 17 + 3), .9]);
+  ops.push(['s', 'M-2 16L-3 30M3 20L3.5 34M-5 34L-6 40', .7]);
+  return ops;
+}
+function genDDen(seed) { // a pine in stacked tiers
+  const r = rng(seed * 433 + 7), tiers = 3 + (r() * 2 | 0), top = -46 + r() * 4, base = 24 + r() * 4, hw = 18 + r() * 6;
+  const ops = [['w', 'M-4 20L-4.5 42L4.5 42L4 20Z', 1.4, BARK]];
+  for (let i = tiers - 1; i >= 0; i--) { const t0 = top + (base - top) * i / tiers * .82, t1 = top + (base - top) * (i + 1) / tiers, w = hw * (.45 + .55 * (i + 1) / tiers);
+    const pts = [[0, t0]], n = 5; for (let k = 0; k <= n; k++) { const x = -w + 2 * w * k / n, y = t1 + (k % 2 ? 0 : 3); pts.push([x, y]); }
+    ops.push(['w', `M0 ${f2(t0)}L${f2(-w)} ${f2(t1)}` + pts.slice(1).map(([x, y], k) => `${k ? 'Q' + f2(x - w / n) + ' ' + f2(t1 + 5) + ' ' : 'L'}${f2(x)} ${f2(y - 2)}`).join('') + 'Z', 1.5]);
+    ops.push(['s', `M${f2(w * .25)} ${f2(t1 - (t1 - t0) * .45)}L${f2(w * .45)} ${f2(t1 - 4)}`, .8]); }
+  return ops;
+}
+const ROCK = '#b9a586', ROCK2 = '#9c876a', SNOW = '#f6f3ec', STONE = '#cdc5b3', STONE2 = '#ada592', WALL = '#efe2c4', ROOF = '#b5523b', SLATE = '#5f7ea6', WOOD = '#8b5e3c', GLASS = '#a9cfe0', GOLD = '#e8c45a';
+const jag = (a, b, n, amp, r) => { const P = []; for (let i = 1; i < n; i++) { const t = i / n; P.push([a[0] + (b[0] - a[0]) * t + (r() - .5) * amp, a[1] + (b[1] - a[1]) * t + (r() - .5) * amp * .6]); } return P; };
+function genDBerg(seed) { // a mountain with a snow cap and its right side in shadow
+  const r = rng(seed * 997 + 5), px = (r() - .5) * 12, top = -42 + r() * 10, L = [-46, 40], R = [46, 40], P = [px, top];
+  const left = jag(L, P, 4, 6, r), right = jag(P, R, 4, 6, r), ops = [];
+  if (r() < .7) { const bx = -24 + r() * 8, bt = top + 16 + r() * 8; ops.push(['w', poly([[-48, 40], [bx, bt], [bx + 26, 40]]), 1.4], ['w', poly([[bx, bt], [bx + 5, bt + 9], [bx + 1, bt + 7], [bx - 4, bt + 10]]), 1, SNOW]); }
+  ops.push(['w', poly([L, ...left, P, ...right, R]), 1.7]);
+  const rx = px + 12 + r() * 10, ridge = jag(P, [rx, 40], 4, 5, r);
+  ops.push(['w', poly([P, ...ridge, [rx, 40], R, ...right.slice().reverse()]), 1.2, ROCK2]);
+  const sy = top + 13 + r() * 4, sl = px - (px - L[0]) * (sy - top) / (40 - top), sr = px + (R[0] - px) * (sy - top) / (40 - top);
+  ops.push(['w', poly([P, [sl, sy], [sl + (px - sl) * .35, sy + 4], [px - 2, sy - 1], [px + (sr - px) * .45, sy + 5], [sr, sy]]), 1.3, SNOW]);
+  ops.push(['s', `M${f2(px - 14)} ${f2(top + 32)}L${f2(px - 18)} ${f2(top + 40)}M${f2(px + 18)} ${f2(top + 30)}L${f2(px + 24)} ${f2(top + 40)}M${f2(px + 25)} ${f2(top + 46)}L${f2(px + 32)} ${f2(top + 54)}`, .8]);
+  return ops;
+}
+function genDHeuvel(seed) { // grassy hills with a few tufts
+  const r = rng(seed * 379 + 11), h1 = 22 + r() * 8, h2 = 14 + r() * 8, ops = [];
+  ops.push(['w', `M-46 34C-40 ${f2(34 - h2 * 1.5)} -6 ${f2(34 - h2 * 1.5)} 2 34Z`, 1.5]);
+  ops.push(['w', `M-18 36C-10 ${f2(36 - h1 * 1.6)} 38 ${f2(36 - h1 * 1.6)} 46 36Z`, 1.6]);
+  ops.push(['s', `M${f2(22)} ${f2(36 - h1 * .9)}Q30 ${f2(36 - h1 * .5)} 32 30`, .9], ['s', 'M-8 30L-6 25M-5 30L-4 24M-2 30L-3 25M14 22L15 17M17 22L17 16M20 22L19 17', .8]);
+  return ops;
+}
+function genDStruik(seed) { const r = rng(seed * 211 + 5), ops = [['w', bumps(0, 14, 28 + r() * 6, 22 + r() * 4, 10, seed * 3 + 1, 1.3, .12, .2), 1.5]];
+  ops.push(['s', leafMarks(0, 18, 26, 9, 3, seed * 5 + 2), .9], ['s', 'M-30 36L-24 36M24 36L32 36', .8]); return ops; }
+function dHouse(x, base, w, h, rh, roof = ROOF, door = true) {
+  const ops = [['w', rect(x - w / 2, base - h, w, h), 1.4, WALL], ['w', poly([[x - w / 2 - 3, base - h + 1], [x, base - h - rh], [x + w / 2 + 3, base - h + 1]]), 1.5, roof], ['s', `M${f2(x - w * .2)} ${f2(base - h - rh * .45)}L${f2(x - w * .38)} ${f2(base - h - 1)}M${f2(x + w * .1)} ${f2(base - h - rh * .6)}L${f2(x + w * .25)} ${f2(base - h - 1)}`, .7]];
+  if (door) ops.push(['w', `M${f2(x - 3.5)} ${base}L${f2(x - 3.5)} ${f2(base - 9)}Q${x} ${f2(base - 12)} ${f2(x + 3.5)} ${f2(base - 9)}L${f2(x + 3.5)} ${base}Z`, 1.1, WOOD]);
+  if (w > 18) ops.push(['w', rect(x + w / 2 - 9, base - h + 4, 6, 6), 1, GLASS], ['s', `M${f2(x + w / 2 - 6)} ${f2(base - h + 4)}L${f2(x + w / 2 - 6)} ${f2(base - h + 10)}`, .6]);
+  return ops;
+}
+function dTower(x, base, w, h, roof = SLATE, crenel = false) {
+  const ops = [['w', rect(x - w / 2, base - h, w, h), 1.4, STONE]];
+  if (crenel) ops.push(['w', cren(x - w / 2 - 2, x + w / 2 + 2, base - h, base - h + 5, 3), 1.3, STONE]);
+  else ops.push(['w', poly([[x - w / 2 - 3, base - h + 1], [x, base - h - w * 1.1], [x + w / 2 + 3, base - h + 1]]), 1.5, roof]);
+  ops.push(['w', `M${f2(x - 1.6)} ${f2(base - h * .55)}L${f2(x - 1.6)} ${f2(base - h * .55 - 5)}Q${x} ${f2(base - h * .55 - 7)} ${f2(x + 1.6)} ${f2(base - h * .55 - 5)}L${f2(x + 1.6)} ${f2(base - h * .55)}Z`, .8, GLASS]);
+  ops.push(['s', `M${f2(x + w * .15)} ${f2(base - h * .3)}L${f2(x + w * .4)} ${f2(base - h * .3)}M${f2(x - w * .4)} ${f2(base - h * .8)}L${f2(x - w * .1)} ${f2(base - h * .8)}`, .6]);
+  return ops;
+}
+function genDPalm() { const ops = [['w', 'M-2 44C-4 24 -2 4 4 -16L9 -15C4 4 3 24 5 44Z', 1.4, BARK2], ['s', 'M-2 32L4 31M-2 20L4 19M-1 8L5 7M1 -4L6 -5', .7]];
+  for (const [a, b, c, d] of [[-34, -26, -40, -8], [-30, -40, -18, -46], [26, -42, 38, -34], [34, -22, 40, -6], [4, -48, -4, -50]]) ops.push(['w', `M6 -16Q${f2((a + 6) / 2)} ${f2(b - 4)} ${a} ${b}Q${f2(c)} ${f2(d)} ${f2((a + c) / 2 * .4 + 3)} ${f2(-14 + (d + 16) * .2)}Z`, 1.3]);
+  ops.push(['w', circ(4, -14, 3.2), 1, BARK], ['w', circ(9, -12, 3), 1, BARK]); return ops; }
+function genDBerk(seed) { const r = rng(seed * 61 + 2), ops = [['w', 'M-4 44C-4 30 -3 10 -2 -6L3 -6C4 10 4 30 5 44Z', 1.4, '#f1eee6'], ['b', 'M-3 30L1 29L1 31L-3 32ZM0 16L4 15L4 17L0 18ZM-3 4L0 3L0 5L-3 6ZM1 38L4 37L4 39L1 40Z']];
+  ops.push(['w', bumps(0, -22, 18 + r() * 4, 22 + r() * 4, 10, seed * 9 + 1, 1.3, .14, .3), 1.5], ['s', leafMarks(0, -26, 13, 13, 3, seed * 9 + 2), .9]); return ops; }
+function genDDood(seed) { const r = rng(seed * 47 + 3), ops = [['w', trunkPath(5, -6, 2), 1.5, '#7d6f62']];
+  for (const [x, y] of [[-24, -30], [-14, -40], [12, -42], [26, -26], [-30, -14]]) ops.push(['w', branch(x * .1, -2, x + (r() - .5) * 6, y + (r() - .5) * 6, 2.2), 1.2, '#7d6f62']);
+  ops.push(['s', 'M-1 10L-2 26M2 18L2.5 32', .7]); return ops; }
+const DETAIL_ASSETS = [
+  ['g-loof', 'Loofboom', 'boom', 40, genDLoof(0)],
+  ['g-eik', 'Eik', 'boom', 52, genDEik(0)],
+  ['g-den', 'Den', 'boom', 36, genDDen(0)],
+  ['g-berk', 'Berk', 'boom', 36, genDBerk(0)],
+  ['g-palm', 'Palmboom', 'boom', 40, genDPalm()],
+  ['g-struik', 'Struik', 'boom', 28, genDStruik(0)],
+  ['g-dood', 'Dode boom', 'boom', 40, genDDood(0)],
+  ['g-berg', 'Berg', 'land', 70, genDBerg(0)],
+  ['g-heuvel', 'Heuvels', 'land', 56, genDHeuvel(0)],
+  ['g-rotsen', 'Rotsen', 'land', 36, [['w', 'M-34 34L-38 18L-28 6L-12 8L-6 22L-12 34Z', 1.5], ['w', 'M-6 34L-4 14L12 2L30 10L34 34Z', 1.6], ['w', 'M-18 38L-20 30L-8 26L0 32L-2 38Z', 1.3], ['w', 'M14 6L24 14L22 32L30 34L34 34L30 10Z', 1, ROCK2], ['s', 'M-26 12L-20 24M6 10L12 22M-30 22L-24 28', .8]]],
+  ['g-vulkaan', 'Vulkaan', 'land', 72, [['w', 'M-46 40L-14 -14L14 -14L46 40Z', 1.7], ['w', 'M14 -14L46 40L22 40L8 4Z', 1.1, ROCK2], ['w', 'M-14 -14Q0 -8 14 -14Q0 -20 -14 -14Z', 1.3, '#5a463a'], ['w', 'M-6 -13L-10 6L-4 2L-6 22L2 -2L-2 0L2 -13Z', 1.1, '#e0592b'], ['w', 'M-4 -20C-14 -22 -12 -36 -2 -34C0 -46 14 -44 12 -34C22 -34 20 -20 10 -22C6 -18 -2 -18 -4 -20Z', 1.2, '#cfcac3']]],
+  ['g-gras', 'Graspol', 'land', 22, [['w', 'M-20 32Q-22 10 -26 -4Q-14 10 -12 32ZM-10 32Q-10 4 -4 -16Q0 4 0 32ZM2 32Q4 6 14 -8Q10 12 10 32ZM10 32Q16 14 26 6Q20 18 18 32Z', 1.2], ['s', 'M-28 34L28 34', .9]]],
+  ['g-huis', 'Huis', 'nederzetting', 34, [['w', rect(7, -10, 6, 16), 1.2, STONE], ...dHouse(0, 36, 34, 24, 18)]],
+  ['g-dorp', 'Dorp', 'nederzetting', 54, [...dHouse(-18, 22, 24, 16, 13, ROOF), ...dHouse(18, 18, 22, 15, 12, SLATE), ...dHouse(0, 42, 28, 18, 14, '#c98a3c'), ['w', bumps(34, 34, 8, 7, 6, 4, 1.3), 1.2, '#4f8f45']]],
+  ['g-stad', 'Stad', 'nederzetting', 70, [...dHouse(-12, 10, 20, 18, 14, ROOF, false), ...dHouse(12, 6, 18, 20, 14, SLATE, false), ...dTower(0, 4, 10, 30, ROOF), ['w', rect(-42, 14, 84, 24), 1.6, STONE], ['w', cren(-44, 44, 14, 20, 4), 1.4, STONE], ...dTower(-38, 38, 14, 34, SLATE), ...dTower(38, 38, 14, 34, SLATE), ['w', 'M-7 38L-7 26Q0 19 7 26L7 38Z', 1.3, WOOD], ['s', 'M-28 24L-16 24M16 30L28 30M-26 32L-18 32', .7]]],
+  ['g-kasteel', 'Kasteel', 'nederzetting', 66, [...dTower(0, 6, 22, 30, SLATE, true), ['s', 'M0 -30L0 -46', 1.1], ['w', 'M0 -46L13 -42L0 -38Z', 1, ROOF], ['w', rect(-34, 4, 68, 34), 1.6, STONE], ['w', cren(-36, 36, 4, 10, 4), 1.4, STONE], ...dTower(-34, 38, 16, 42, SLATE), ...dTower(34, 38, 16, 42, SLATE), ['w', 'M-8 38L-8 24Q0 16 8 24L8 38Z', 1.3, WOOD], ['s', 'M-8 30L8 30M0 20L0 38', .6]]],
+  ['g-toren', 'Toren', 'nederzetting', 46, [...dTower(0, 42, 22, 56, ROOF), ['w', 'M-4 42L-4 33Q0 29 4 33L4 42Z', 1, WOOD]]],
+  ['g-molen', 'Molen', 'nederzetting', 48, [['w', 'M-14 42L-10 -6L10 -6L14 42Z', 1.5, WALL], ['w', 'M-13 -6C-12 -20 12 -20 13 -6Z', 1.4, WOOD], ['w', 'M-4 42L-4 32Q0 28 4 32L4 42Z', 1, WOOD], ['w', rect(-3, 10, 6, 6), 1, GLASS],
+    ...[45, 135, 225, 315].flatMap(deg => { const a = deg * Math.PI / 180, R = q => [f2(q[0] * Math.cos(a) - q[1] * Math.sin(a)), f2(-12 + q[0] * Math.sin(a) + q[1] * Math.cos(a))]; return [['w', poly([[1.5, -4], [8, -4], [8, -36], [1.5, -36]].map(R)), 1.1, '#efe7d6'], ['s', `M${R([0, 0]).join(' ')}L${R([0, -36]).join(' ')}M${R([5, -8]).join(' ')}L${R([5, -34]).join(' ')}`, .8]]; }), ['w', circ(0, -12, 3), 1, WOOD]]],
+  ['g-grot', 'Grot', 'plek', 48, [['w', 'M-46 38C-44 8 -30 -22 -4 -26C20 -30 42 -8 46 38Z', 1.7], ['w', 'M20 -18C34 -8 44 12 46 38L28 38C26 18 22 0 14 -12Z', 1, ROCK2], ['k', 'M-16 38C-16 16 -6 4 2 4C12 4 18 18 18 38Z'], ['s', 'M-30 -2L-24 8M26 -2L32 6M-10 -16L-4 -12', .8]]],
+  ['g-tempel', 'Tempel', 'plek', 52, [['w', 'M-42 32L42 32L42 38L-42 38Z', 1.4, STONE], ['w', 'M-46 38L46 38L46 44L-46 44Z', 1.4, STONE2], ...[-27, -9, 9, 27].map(c => ['w', rect(c - 4, -4, 8, 36), 1.3, '#efe9da']), ['w', 'M-38 -10L38 -10L38 -4L-38 -4Z', 1.3, STONE], ['w', 'M-40 -10L0 -34L40 -10Z', 1.5, '#d7c9a6'], ['w', circ(0, -19, 4), 1, GOLD]]],
+  ['g-ruine', 'Ruïne', 'plek', 48, [['w', 'M-38 36L38 36L38 42L-38 42Z', 1.3, STONE2], ['w', 'M-29 36L-29 -2L-25 -6L-22 0L-19 -4L-19 36Z', 1.3, STONE], ['w', 'M-10 36L-10 -26L-4 -30L0 -24L2 36Z', 1.3, STONE], ['w', 'M12 36L12 -12L16 -18L22 -14L22 36Z', 1.3, STONE], ['w', 'M-16 -32L18 -30L17 -23L-17 -25Z', 1.3, STONE2], ['w', 'M26 36L28 28L36 29L38 36Z', 1.2, STONE2], ['w', bumps(-36, 32, 7, 5, 6, 2, 1.3), 1.1, '#6f9c4c'], ['s', 'M-24 10L-24 26M-4 -10L-4 20M17 4L17 26', .6]]],
+  ['g-vuurtoren', 'Vuurtoren', 'plek', 50, [['w', 'M-22 44C-20 36 -12 34 0 36C12 34 22 38 24 44Z', 1.4, ROCK], ['w', 'M-10 38L-7 -10L7 -10L10 38Z', 1.4, '#f4f1ea'], ['w', 'M-9.5 26L9.5 26L9 16L-9 16Z', 1, '#c44536'], ['w', 'M-8.5 6L8.5 6L8 -3L-8 -3Z', 1, '#c44536'], ['w', rect(-12, -14, 24, 4), 1.2, STONE2], ['w', rect(-7, -26, 14, 12), 1.2, GOLD], ['w', 'M-10 -26L0 -36L10 -26Z', 1.3, '#c44536'], ['s', 'M14 -22L30 -26M14 -17L30 -13M-14 -22L-30 -26M-14 -17L-30 -13', .9]]],
+  ['g-mijn', 'Mijn', 'plek', 46, [['w', 'M-46 38C-40 10 -24 -14 0 -16C24 -14 40 10 46 38Z', 1.6], ['k', rect(-13, 6, 26, 32)], ['w', rect(-17, 2, 6, 36), 1.3, WOOD], ['w', rect(11, 2, 6, 36), 1.3, WOOD], ['w', rect(-21, -4, 42, 7), 1.3, WOOD], ['w', 'M20 32L34 32L32 40L22 40Z', 1.1, WOOD], ['w', 'M21 32Q27 26 33 32Z', 1, '#8c8c8c'], ['b', circ(24, 41, 1.6)], ['b', circ(31, 41, 1.6)]]],
+  ['g-brug', 'Brug', 'plek', 50, [['w', 'M-46 -2L46 -2L46 6L-46 6Z', 1.4, STONE2], ['w', 'M-40 6L40 6L40 26L30 26C24 12 -24 12 -30 26L-40 26Z', 1.5, STONE], ['s', 'M-46 -2L-46 -10L46 -10L46 -2M-28 -10L-28 -2M-10 -10L-10 -2M10 -10L10 -2M28 -10L28 -2', .9], ['s', 'M-20 32Q-10 28 0 32Q10 36 20 32', .8]]],
+  ['g-schip', 'Schip', 'zee', 62, [['w', 'M-42 8C-30 12 30 12 42 8L32 28C10 32 -10 32 -32 28Z', 1.6, WOOD], ['s', 'M-36 16C-20 19 20 19 36 16', .7], ['s', 'M-8 10L-8 -44M16 10L16 -32', 1.2], ['w', 'M-26 -38L10 -38C14 -28 14 -18 10 -8L-26 -8C-22 -18 -22 -28 -26 -38Z', 1.4, '#f4f1ea'], ['w', 'M4 -28L28 -28C31 -22 31 -14 28 -8L4 -8C7 -14 7 -22 4 -28Z', 1.3, '#f4f1ea'], ['w', 'M-8 -44L5 -41L-8 -38Z', 1, '#c44536'], ['w', rect(-20, 14, 5, 5), .9, GOLD], ['w', rect(-4, 14, 5, 5), .9, GOLD], ['w', rect(12, 14, 5, 5), .9, GOLD], ['s', 'M-46 36Q-40 32 -34 36Q-28 40 -22 36M20 36Q26 32 32 36Q38 40 44 36', .8]]],
+  ['g-zeeslang', 'Zeeslang', 'zee', 80, [['w', 'M-46 22C-46 -2 -28 -2 -28 22Z', 1.5], ['w', 'M-20 22C-20 -12 6 -12 6 22Z', 1.5], ['w', 'M12 22C10 -6 22 -30 36 -28C47 -27 50 -16 44 -12C38 -9 32 -12 30 -6C28 2 30 12 32 22Z', 1.6], ['w', 'M36 -28C38 -36 30 -40 28 -34Z', 1, '#c44536'], ['b', circ(37, -20, 2.2)], ['s', 'M-14 -1L-16 -7M-8 -4L-8 -10M-1 -2L1 -8M-40 6L-42 1M-35 4L-35 -1', .9], ['s', 'M-50 24Q-46 20 -42 24M-26 24Q-24 21 -22 24M2 24Q6 20 10 24M32 24Q38 20 44 24Q48 27 50 24', .9]]],
+  ['g-elfboom', 'Elfenboom', 'elf', 66, [['w', trunkPath(7, 6, 2), 1.6, '#c7c1b4'], ['w', branch(0, 12, -16, -4, 2.6), 1.2, '#c7c1b4'], ['w', branch(0, 12, 16, -6, 2.6), 1.2, '#c7c1b4'], ['w', bumps(0, -18, 34, 26, 12, 41, 1.3, .12, .5), 1.6], ['w', bumps(-18, -28, 14, 10, 7, 42, 1.3), 1.3], ['w', bumps(16, -30, 15, 10, 7, 43, 1.3), 1.3], ['s', leafMarks(0, -16, 24, 14, 4, 44), .9], ['w', circ(-20, -2, 3), 1, GOLD], ['w', circ(22, -6, 3), 1, GOLD], ['w', circ(4, -36, 3), 1, GOLD], ['k', 'M-3 40L-3 32Q0 28 3 32L3 40Z']]],
+  ['g-bergpoort', 'Bergpoort', 'dwerg', 72, [['w', 'M-48 40L-22 -12L-12 -4L4 -42L48 40Z', 1.7], ['w', 'M4 -42L48 40L26 40L10 -20Z', 1, ROCK2], ['w', poly([[4, -42], [10, -32], [5, -28], [-1, -33]]), 1, SNOW], ['w', poly([[-24, 40], [-24, 6], [-28, 6], [0, -14], [28, 6], [24, 6], [24, 40]]), 1.5, STONE], ['w', rect(-11, 12, 22, 28), 1.4, GOLD], ['s', 'M0 12L0 40M-11 26L11 26', .8], ['s', 'M-8 0L-5 -5L-2 0M2 0L5 -5L8 0', .6]]],
+  ['g-duistertoren', 'Duistere toren', 'duister', 66, [['w', 'M-32 44L-26 34L-16 36L-12 44Z', 1.3, '#6b6460'], ['w', 'M12 44L18 33L28 35L34 44Z', 1.3, '#6b6460'], ['w', poly([[-16, 44], [-10, -8], [-17, -16], [-9, -20], [-13, -33], [-4, -29], [0, -48], [4, -29], [13, -33], [9, -20], [17, -16], [10, -8], [16, 44]]), 1.5, '#3b3540'], ['w', 'M-7 -18Q0 -25 7 -18Q0 -11 -7 -18Z', 1, '#f2b134'], ['b', 'M0 -21.5C1.4 -20 1.4 -16 0 -14.5C-1.4 -16 -1.4 -20 0 -21.5Z'], ['w', rect(-1.5, 2, 3, 7), .8, '#e0592b'], ['w', rect(-1.5, 18, 3, 7), .8, '#e0592b']]],
+];
+const DETAIL_GENERATORS = { 'g-loof': genDLoof, 'g-eik': genDEik, 'g-den': genDDen, 'g-berk': genDBerk, 'g-struik': genDStruik, 'g-dood': genDDood, 'g-berg': genDBerg, 'g-heuvel': genDHeuvel };
+const DETAIL_FILL = { 'g-loof': '#c9a63f', 'g-eik': '#4f8f45', 'g-den': '#3f7a4a', 'g-berk': '#8fc06a', 'g-palm': '#5e9a48', 'g-struik': '#5f9a4c', 'g-berg': ROCK, 'g-heuvel': '#9cc46a', 'g-rotsen': '#b3ada2', 'g-vulkaan': '#a08670', 'g-gras': '#7fb05a', 'g-grot': ROCK, 'g-mijn': '#a8957a', 'g-zeeslang': '#6fa860', 'g-elfboom': '#a8d5c8', 'g-bergpoort': ROCK };
+
 const WORLD_ASSETS = [
   ['berg', 'Berg', 'land', 64, [['w', 'M-46 36L-20 -8L-12 -2L4 -38L46 36Z'], ['s', 'M4 -38L8 -18L2 -4L10 12L6 36'], ['s', 'M14 -14L20 -6M16 0L26 8M14 14L30 22M18 26L36 32', .7], ['s', 'M-20 -8L-16 6L-20 20', .7]]],
   ['berg2', 'Dubbele top', 'land', 72, [['w', 'M-48 36L-26 -20L-14 -6L-2 -30L8 -18L14 -26L48 36Z'], ['s', 'M-2 -30L2 -14L-4 2L4 20L0 36'], ['s', 'M14 -26L18 -10L14 4', .7], ['s', 'M22 -6L28 2M24 8L34 16M22 20L40 28', .7], ['s', 'M-26 -20L-24 -4L-30 10', .7]]],
@@ -997,8 +1132,9 @@ function genLeafy(seed) {
   ops.push(['s', `M${f2(cx + R * .15)} ${f2(cy + R * .5)}Q${f2(cx + R * .55)} ${f2(cy + R * .35)} ${f2(cx + R * .6)} ${f2(cy - R * .05)}M${f2(cx - R * .35)} ${f2(cy + R * .55)}Q${f2(cx - R * .05)} ${f2(cy + R * .7)} ${f2(cx + R * .2)} ${f2(cy + R * .62)}`, .6]);
   return ops;
 }
-const GENERATORS = { berg: genMountain, heuvels: genHills, naald: genPine, loof: genLeafy, ...FANTASY_GENERATORS };
-const compileOps = ops => ops.map(o => o[0] === 't' ? { m: 't', t: o[1], x: o[2], y: o[3], fs: o[4] } : { m: o[0], p: new Path2D(o[1]), lw: o[2] || 1 });
+const GENERATORS = { berg: genMountain, heuvels: genHills, naald: genPine, loof: genLeafy, ...FANTASY_GENERATORS, ...DETAIL_GENERATORS };
+// an op may carry its own colour (4th item): on a colour map that part keeps it, other parts take the symbol's colour
+const compileOps = ops => ops.map(o => o[0] === 't' ? { m: 't', t: o[1], x: o[2], y: o[3], fs: o[4] } : { m: o[0], p: new Path2D(o[1]), lw: o[2] || 1, col: o[3] || null });
 
 const ASSETS = {};
 const CATS = {
@@ -1006,12 +1142,14 @@ const CATS = {
   local: [['door', 'Doorgangen'], ['meubel', 'Meubels'], ['kerker', 'Kerker'], ['buiten', 'Buiten'], ['eigen', 'Eigen']],
 };
 const ASSET_LIST = { world: [], local: [] };
-for (const [k, list] of [['world', [...WORLD_ASSETS, ...FANTASY_ASSETS]], ['local', LOCAL_ASSETS]]) {
+for (const [k, list] of [['world', [...WORLD_ASSETS, ...FANTASY_ASSETS, ...DETAIL_ASSETS]], ['local', LOCAL_ASSETS]]) {
   for (const [key, name, cat, size, ops] of list) {
     ASSETS[key] = { key, name, cat, size, kind: k, c: compileOps(ops) };
     ASSET_LIST[k].push(key);
   }
 }
+for (const [key] of DETAIL_ASSETS) ASSETS[key].detail = true; // the detailed pack, shown instead of the classic symbols when chosen
+Object.assign(PALETTES.kleur.fill, DETAIL_FILL);
 
 for (const key in GENERATORS) { const a = ASSETS[key]; a.vars = [a.c]; for (let i = 1; i < 10; i++) a.vars.push(compileOps(GENERATORS[key](i))); }
 const pickVar = key => ASSETS[key]?.vars ? Math.floor(Math.random() * ASSETS[key].vars.length) : 0;
@@ -1020,7 +1158,7 @@ const FLAT = new Set(['stip-hoofdstad', 'stip-stad', 'stip-dorp', 'kompas', 'sch
 for (const k in ASSETS) ASSETS[k].foot = ASSETS[k].kind === 'world' && !FLAT.has(k) ? .38 : 0;
 
 // symbols shaded on their right side; never mirrored, so the light always comes from the left
-const SHADED = new Set(['berg', 'berg2', 'heuvels', 'vulkaan', 'rotsen', 'naald', 'spar', 'loof', 'elfstad', 'elfboom', 'elfwoud', 'elfpoort', 'elftoren', 'dwergpoort', 'dwergvesting', 'smidse', 'runensteen', 'schedelrots', 'magiertoren', 'schat']);
+const SHADED = new Set(['g-berg', 'g-vulkaan', 'g-grot', 'g-rotsen', 'g-bergpoort', 'g-mijn', 'berg', 'berg2', 'heuvels', 'vulkaan', 'rotsen', 'naald', 'spar', 'loof', 'elfstad', 'elfboom', 'elfwoud', 'elfpoort', 'elftoren', 'dwergpoort', 'dwergvesting', 'smidse', 'runensteen', 'schedelrots', 'magiertoren', 'schat']);
 function tinted(a, color) {
   let c = a.tints[color]; if (c) return c;
   c = document.createElement('canvas'); c.width = c.height = 200; const g = c.getContext('2d');
@@ -1047,7 +1185,7 @@ function drawAsset(g, key, x, y, s, rot, flip, v, col) {
       g.fillText(o.t, flip ? -o.x : o.x, o.y); g.restore(); continue;
     }
     g.lineWidth = o.lw * 1.8 / k;
-    if (o.m === 'w' || o.m === 'f') { g.fillStyle = fill; g.fill(o.p); }
+    if (o.m === 'w' || o.m === 'f') { g.fillStyle = (CUR.colorful && o.col) || fill; g.fill(o.p); }
     if (o.m === 'k' || o.m === 'b') { g.fillStyle = INKC; g.fill(o.p); }
     if (o.m === 'w' || o.m === 'k' || o.m === 's') g.stroke(o.p);
   }
@@ -1355,7 +1493,7 @@ function drawLabel(g, L) {
 const footY = s => s.y + s.s * (ASSETS[s.a]?.foot || 0);
 function stampOrder(d) { return d.kind === 'world' ? d.stamps.slice().sort((a, b) => footY(a) - footY(b)) : d.stamps; }
 /* Minimum spacing as an ellipse (fraction of the average size): wide and shallow, so a range shows its back peaks above the front ones. */
-const SPACING = { berg: [.56, .3], berg2: [.58, .3], heuvels: [.52, .28], vulkaan: [.5, .3], naald: [.42, .24], spar: [.4, .24], loof: [.46, .26], palm: [.48, .28], riet: [.45, .3], rotsen: [.5, .35], boom: [.62, .62], struik: [.62, .62] };
+const SPACING = { 'g-loof': [.5, .28], 'g-eik': [.55, .3], 'g-den': [.42, .24], 'g-berk': [.42, .24], 'g-struik': [.55, .3], 'g-dood': [.45, .26], 'g-palm': [.48, .28], 'g-berg': [.56, .3], 'g-heuvel': [.52, .28], 'g-rotsen': [.5, .35], 'g-gras': [.45, .3], berg: [.56, .3], berg2: [.58, .3], heuvels: [.52, .28], vulkaan: [.5, .3], naald: [.42, .24], spar: [.4, .24], loof: [.46, .26], palm: [.48, .28], riet: [.45, .3], rotsen: [.5, .35], boom: [.62, .62], struik: [.62, .62] };
 const spacing = k => SPACING[k] || (k.startsWith('c:') || k.startsWith('img:') ? [.5, .3] : [.8, .7]);
 function collides(key, x, y, size, list, dens) {
   const [ax, ay] = spacing(key);
@@ -1672,7 +1810,7 @@ const docs = { world: null, local: null };
 let kind = 'world', doc = null, tool = 'select', sel = null, action = null, hover = null, txn = null, editing = null, spaceDown = false;
 const ui = {
   world: { tool: 'select', terr: 'gras', line: 'weg', asset: 'berg', cat: 'land', textStyle: 'gewoon', textSize: 20, brush: 40, rough: .6, vary: true,
-    scatDens: 1 },
+    scatDens: 1, pack: (() => { try { return localStorage.getItem('kartograaf.pack') || 'klassiek'; } catch { return 'klassiek'; } })() },
   local: { tool: 'select', terr: 'tegels', line: 'muur', asset: 'deur', cat: 'door', textStyle: 'nummer', textSize: 18, brush: 30, rough: 0, vary: false,
     scatDens: 1 },
 };
@@ -2115,6 +2253,9 @@ const PRESETS = {
     { id: 'riet', name: 'Riet', items: [{ a: 'riet', v: 0 }] },
     { id: 'elfenwoud', since: 2, name: 'Elfenwoud', items: [{ a: 'elfwoud', v: -1, n: 6 }, { a: 'loof', v: -1, n: 1 }] },
     { id: 'dodebossen', since: 2, name: 'Dode bossen', items: [{ a: 'dodeboom', v: -1 }] },
+    { id: 'g-bos', since: 3, name: 'Gedetailleerd bos', items: [{ a: 'g-loof', v: -1, n: 6 }, { a: 'g-eik', v: -1, n: 1 }, { a: 'g-den', v: -1, n: 3 }] },
+    { id: 'g-dennen', since: 3, name: 'Gedetailleerd dennenbos', items: [{ a: 'g-den', v: -1, n: 6 }, { a: 'g-berk', v: -1, n: 1 }] },
+    { id: 'g-gebergte', since: 3, name: 'Gedetailleerd gebergte', grow: true, items: [{ a: 'g-berg', v: -1, n: 6 }, { a: 'g-heuvel', v: -1, zone: 'rand', n: 3, rel: .7 }] },
     { id: 'doornenland', since: 2, name: 'Doornenland', items: [{ a: 'doornen', v: 0, n: 6 }, { a: 'dodeboom', v: -1, n: 1 }, { a: 'rotsen', v: 0, n: 1, rel: .7 }] },
   ],
   local: [
@@ -2128,7 +2269,7 @@ const normBrush = b => ({ id: String(b.id), name: String(b.name || 'Penseel').sl
   amount: +b.amount || 1.4, scale: +b.scale || 1, vary: b.vary ?? .25,
   items: (b.items || []).map(it => ({ a: String(it.a), v: Number.isInteger(it.v) ? it.v : 0, zone: ['overal', 'midden', 'rand'].includes(it.zone) ? it.zone : 'overal', n: snapN(+it.n || 3), rel: Math.max(.2, Math.min(3, +it.rel || 1)) })) });
 const presetBrushes = k => PRESETS[k].map(normBrush);
-const PRESET_LEVEL = 2; // raise together with `since` on brushes added later, so saved libraries get them once
+const PRESET_LEVEL = 3; // raise together with `since` on brushes added later, so saved libraries get them once
 const DEFAULT_TYPES = ['Bomen', 'Bergen', 'Heuvels', 'Gras en planten', 'Rotsen', 'Water', 'Gebouwen', 'Steden', 'Versiering', 'Overig'];
 const lib = { brushes: { world: presetBrushes('world'), local: presetBrushes('local') }, shapes: [], terrains: [], uploads: [], types: DEFAULT_TYPES.slice(), sel: { world: 'gebergte', local: 'bomen' }, presetsSeen: PRESET_LEVEL };
 const newId = () => Math.random().toString(36).slice(2, 9);
@@ -3460,8 +3601,13 @@ function buildAssets() {
   const cats = $('#assetCats'); cats.textContent = '';
   if (!catList(kind).some(c => c[0] === U().cat)) U().cat = CATS[kind][0][0];
   for (const [k, n] of catList(kind)) { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = n; b.setAttribute('aria-pressed', U().cat === k); b.addEventListener('click', () => { U().cat = k; buildAssets(); }); cats.append(b); }
+  const pk = $('#assetPack'); pk.textContent = ''; pk.hidden = kind !== 'world';
+  for (const [k, n] of [['klassiek', 'Klassiek'], ['detail', 'Gedetailleerd']]) { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = n; b.setAttribute('aria-pressed', (U().pack || 'klassiek') === k); b.addEventListener('click', () => { U().pack = k; lsSet('kartograaf.pack', k); buildAssets(); }); pk.append(b); }
   const box = $('#assets'); box.textContent = '';
-  const keys = (U().cat === 'eigen' ? lib.shapes.map(sh => 'c:' + sh.id).filter(k => ASSETS[k]) : ASSET_LIST[kind].filter(k => ASSETS[k].cat === U().cat)).concat(uploadKeys(kind, U().cat));
+  // the detailed pack replaces the classic symbols of a category when it has its own; otherwise the classic ones stay
+  const inCat = ASSET_LIST[kind].filter(k => ASSETS[k].cat === U().cat), detailed = inCat.filter(k => ASSETS[k].detail);
+  const shown = kind === 'world' && U().pack === 'detail' && detailed.length ? detailed : inCat.filter(k => !ASSETS[k].detail);
+  const keys = (U().cat === 'eigen' ? lib.shapes.map(sh => 'c:' + sh.id).filter(k => ASSETS[k]) : shown).concat(uploadKeys(kind, U().cat));
   for (const key of keys) {
     const a = ASSETS[key];
     const d = document.createElement('div'); d.className = 'asset'; d.dataset.key = key; d.tabIndex = 0; d.setAttribute('role', 'button'); d.setAttribute('aria-pressed', U().asset === key && tool === 'stamp');
@@ -3628,7 +3774,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.15.2', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.16.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;

@@ -1,5 +1,16 @@
 # Wijzigingen
 
+## 1.16.0
+
+- **Gedetailleerd pakket** voor de wereldkaart: een tweede set symbolen in een rijkere stijl, met een dikke omlijning, egale kleuren en detaillijntjes. Kies *Klassiek* of *Gedetailleerd* boven de categorieën.
+  - Bomen: loofboom, eik, den, berk, palmboom, struik en dode boom (de meeste met verschillende vormen).
+  - Landschap: berg met sneeuwtop, heuvels, rotsen, vulkaan en graspol.
+  - Nederzettingen: huis, dorp, stad, kasteel, toren en molen.
+  - Plekken: grot, tempel, ruïne, vuurtoren, mijn en brug.
+  - Elfenboom, Bergpoort, Duistere toren, Schip en Zeeslang.
+- Nieuwe penselen: *Gedetailleerd bos*, *Gedetailleerd dennenbos* en *Gedetailleerd gebergte*.
+- Op een kleurenkaart hebben de nieuwe symbolen meerdere kleuren (bv. groene kruin en bruine stam); een kleur die je zelf kiest, kleurt het hoofddeel. Op Inkt en Perkament worden het lijntekeningen.
+
 ## 1.15.2
 
 - **Witte achtergrond echt weg:**

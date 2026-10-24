@@ -42,6 +42,7 @@ Kartograpper is ook een website die je als app kunt installeren. Daarna start hi
 - **Eigen materiaal:** teken je eigen vormen en ondergronden, of upload afbeeldingen en hele mappen of zips met assets, gesorteerd per type.
 - **Stijlen:** inkt, perkament of kleur, per kaart te kiezen.
 - **Exporteren:** als PNG, of als bewerkbaar bestand.
+- **Twee stijlen symbolen:** *Klassiek* (inkt) of *Gedetailleerd* (rijkere, ingekleurde icoontjes voor bomen, bergen, gebouwen en plekken), met bijpassende penselen.
 - **Gum per soort:** gom enkel loofbomen, enkel een bepaalde ondergrond of enkel rivieren weg.
 - **Afdrukken op A4:** een plattegrond als PDF over meerdere A4-bladen, met vakken op ware grootte (standaard 25 mm), lijmranden en een overzichtsblad. Handig om aan elkaar te plakken en mee te spelen. Druk af op 100 % (“Werkelijke grootte”).
 
