@@ -458,6 +458,9 @@ body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
       <canvas id="pad" width="600" height="600" aria-label="Tekenvlak"></canvas>
       <div class="padside">
         <div class="chips" id="padTools"></div>
+        <div class="chips" id="padWidths" aria-label="Lijndikte"></div>
+        <div class="btns"><label class="check"><input type="checkbox" id="padSnap"> Uitlijnen op raster</label><label class="check"><input type="checkbox" id="padMirror"> Spiegelen</label></div>
+        <p class="note" id="padHint"></p>
         <div class="btns"><button type="button" class="btn" id="padUndo">Ongedaan maken</button><button type="button" class="btn" id="padClear">Alles wissen</button></div>
         <label class="field"><span>Voorbeeld op de achtergrond</span><select id="padRef"></select></label>
         <label class="check"><input type="checkbox" id="padFill" checked> Binnenkant vullen (sluit de omtrek)</label>
@@ -2128,19 +2131,21 @@ async function loadLib() {
   lib.uploads = Array.isArray(L.uploads) ? L.uploads.filter(validUpload) : [];
   for (const u of lib.uploads) { const blob = await store.get('img:' + u.id); if (blob instanceof Blob) { try { UPBLOB.set(u.id, blob); registerUpload(u, await createImageBitmap(blob)); } catch {} } }
 }
-function pathOf(pts) {
+// a stroke is smoothed through its points, unless it is `sharp` (lines, rectangles, polygons); `closed` joins the ends
+function pathOf(pts, sharp, closed) {
   const p = new Path2D(), n = pts.length / 2; p.moveTo(pts[0], pts[1]);
   if (n === 1) { p.lineTo(pts[0] + .01, pts[1]); return p; }
-  if (n === 2) { p.lineTo(pts[2], pts[3]); return p; }
+  if (sharp || n === 2) { for (let i = 1; i < n; i++) p.lineTo(pts[i * 2], pts[i * 2 + 1]); if (closed) p.closePath(); return p; }
   for (let i = 1; i < n - 1; i++) p.quadraticCurveTo(pts[i * 2], pts[i * 2 + 1], (pts[i * 2] + pts[i * 2 + 2]) / 2, (pts[i * 2 + 1] + pts[i * 2 + 3]) / 2);
-  p.lineTo(pts[pts.length - 2], pts[pts.length - 1]); return p;
+  p.lineTo(pts[pts.length - 2], pts[pts.length - 1]); if (closed) p.closePath(); return p;
 }
+const strokePath = st => pathOf(st.pts.map(Number), !!st.sharp, !!st.closed);
 let thumbT = null;
 const refreshThumbs = () => { clearTimeout(thumbT); thumbT = setTimeout(() => { if (doc) { buildAssets(); buildBrushes(); } }, 60); };
 function registerShape(sh, maskCanvas, paintCanvas) {
   const a = { key: 'c:' + sh.id, name: sh.name || 'Eigen vorm', cat: 'eigen', size: Math.max(8, Math.min(400, +sh.size || 60)), kind: 'any', custom: true, foot: .38, tints: {}, mask: maskCanvas || null,
     color: typeof sh.color === 'string' && /^#[0-9a-f]{6}$/i.test(sh.color) ? sh.color : null,
-    strokes: sh.strokes.filter(st => Array.isArray(st.pts) && st.pts.length >= 2).map(st => ({ w: +st.w || 1.8, p: pathOf(st.pts.map(Number)) })) };
+    strokes: sh.strokes.filter(st => Array.isArray(st.pts) && st.pts.length >= 2).map(st => ({ w: +st.w || 1.8, p: strokePath(st) })) };
   if (!maskCanvas && typeof sh.fill === 'string' && sh.fill.startsWith('data:image/')) { const img = new Image(); img.onload = () => { a.mask = img; a.tints = {}; objEpoch++; req(); refreshThumbs(); }; img.src = sh.fill; }
   a.paint = paintCanvas || null;
   if (!paintCanvas && typeof sh.paint === 'string' && sh.paint.startsWith('data:image/')) { const img = new Image(); img.onload = () => { a.paint = img; objEpoch++; req(); refreshThumbs(); }; img.src = sh.paint; }
@@ -2298,22 +2303,57 @@ $('#brushForm').addEventListener('submit', e => {
 /* drawing pad for own shapes */
 let pad = null;
 const padCv = $('#pad'), padG = padCv.getContext('2d');
-const PAD_TOOLS = [['2.6', 'Dikke pen'], ['1.8', 'Pen'], ['1', 'Fijne pen'], ['gum', 'Gum'], ['emmer', 'Verfemmer'], ['potlood', 'Kleurpotlood'], ['kleurgum', 'Kleur wissen']];
+const PAD_TOOLS = [['pen', 'Pen'], ['lijn', 'Lijn'], ['rechthoek', 'Rechthoek'], ['ellips', 'Ovaal'], ['veelhoek', 'Veelhoek'], ['schuif', 'Verschuiven'], ['gum', 'Gum'], ['emmer', 'Verfemmer'], ['potlood', 'Kleurpotlood'], ['kleurgum', 'Kleur wissen']];
+const PAD_WIDTHS = [[2.6, 'Dik'], [1.8, 'Normaal'], [1, 'Fijn']];
+const PAD_HINTS = { pen: 'Teken vrij.', lijn: 'Sleep een rechte lijn. Met Shift in stappen van 15°.', rechthoek: 'Sleep een rechthoek. Met Shift een vierkant.', ellips: 'Sleep een ovaal. Met Shift een cirkel.',
+  veelhoek: 'Tik de hoekpunten aan. Tik op het eerste punt om te sluiten, of dubbeltik om te stoppen.', schuif: 'Sleep een lijn of vorm naar een andere plek.', gum: 'Veeg over een lijn om ze weg te halen.',
+  emmer: 'Tik in een vlak om het te vullen met de verfkleur.', potlood: 'Kleur vrij in, binnen de omtrek.', kleurgum: 'Veeg om kleur weg te halen.' };
+const padSnapPt = q => $('#padSnap').checked ? { x: Math.round(q.x / 5) * 5, y: Math.round(q.y / 5) * 5 } : q;
+const mirrored = st => ({ ...st, pts: st.pts.map((v, i) => i % 2 ? v : f1(-v)) });
+// the stroke being drawn right now, and its mirror image
+const padLive = () => { if (!pad.live) return []; const L = [pad.live]; if ($('#padMirror').checked && pad.tool !== 'schuif') L.push(mirrored(pad.live)); return L; };
+function padShape(tool, a, b, shift) {
+  if (tool === 'lijn') {
+    if (shift) { const ang = Math.round(Math.atan2(b.y - a.y, b.x - a.x) / (Math.PI / 12)) * Math.PI / 12, L = Math.hypot(b.x - a.x, b.y - a.y); b = { x: a.x + Math.cos(ang) * L, y: a.y + Math.sin(ang) * L }; }
+    return { w: pad.w, pts: [a.x, a.y, b.x, b.y].map(f1), sharp: true };
+  }
+  let w = b.x - a.x, h = b.y - a.y; if (shift) { const m = Math.max(Math.abs(w), Math.abs(h)); w = Math.sign(w || 1) * m; h = Math.sign(h || 1) * m; }
+  if (tool === 'rechthoek') return { w: pad.w, pts: [a.x, a.y, a.x + w, a.y, a.x + w, a.y + h, a.x, a.y + h].map(f1), sharp: true, closed: true };
+  const cx = a.x + w / 2, cy = a.y + h / 2, pts = [];
+  for (let i = 0; i < 48; i++) { const t = i / 48 * Math.PI * 2; pts.push(f1(cx + Math.cos(t) * Math.abs(w) / 2), f1(cy + Math.sin(t) * Math.abs(h) / 2)); }
+  return { w: pad.w, pts, sharp: true, closed: true };
+}
+// finish the stroke being drawn: keep it (and its mirror), unless it is too small to see
+function padCommit() {
+  const L = pad.live, wasPoly = !!pad.poly; pad.live = null; pad.poly = null; if (!L) return;
+  if (wasPoly) { L.pts.length -= 2; if (L.pts.length < 4) return; } // a polygon's last point follows the pointer; it is not a corner
+  const q = L.pts; let span = 0; for (let i = 2; i < q.length; i += 2) span = Math.max(span, Math.hypot(q[i] - q[0], q[i + 1] - q[1]));
+  if (q.length > 2 && span < .8) return;
+  pad.strokes.push(L);
+  if ($('#padMirror').checked) { const M = mirrored(L); if (M.pts.some((v, i) => Math.abs(v - L.pts[i]) > .5)) pad.strokes.push(M); }
+}
+function padStrokeAt(p) {
+  let best = null, bd = 4;
+  for (const st of pad.strokes) { const q = st.pts, n = q.length / 2;
+    for (let i = 0; i < n; i++) { const j = st.closed ? (i + 1) % n : i + 1; if (j >= n) { if (n === 1 && Math.hypot(p.x - q[0], p.y - q[1]) < bd) { bd = Math.hypot(p.x - q[0], p.y - q[1]); best = st; } continue; }
+      const d = segDist(p.x, p.y, q[i * 2], q[i * 2 + 1], q[j * 2], q[j * 2 + 1]); if (d < bd) { bd = d; best = st; } } }
+  return best;
+}
 // colouring in: a 200 × 200 layer over the same -50..50 box as the shape, kept apart from the lines
 const padInk = size => { const N = 200, c = document.createElement('canvas'); c.width = c.height = N; const g = c.getContext('2d', { willReadFrequently: true });
   g.setTransform(2, 0, 0, 2, 100, 100); g.strokeStyle = '#000'; g.lineCap = 'round'; g.lineJoin = 'round';
-  for (const st of pad.strokes) { g.lineWidth = Math.max(1, st.w * 100 / size); g.stroke(pathOf(st.pts)); }
+  for (const st of pad.strokes) { g.lineWidth = Math.max(1, st.w * 100 / size); g.stroke(strokePath(st)); }
   return g.getImageData(0, 0, N, N).data; };
 const padSnap = () => ({ s: JSON.stringify(pad.strokes), p: pad.paint.getContext('2d').getImageData(0, 0, 200, 200), v: pad.paintVer });
-function padBucket(p) {
+function padBucket(p, quiet) {
   const N = 200, d = padInk(+$('#padSize').value), ink = new Uint8Array(N * N);
   for (let i = 0; i < N * N; i++) ink[i] = d[i * 4 + 3] >= 100 ? 1 : 0;
   const wall = grow(ink, N, 3), px = Math.round((p.x + 50) * 2), py = Math.round((p.y + 50) * 2);
-  if (px < 0 || py < 0 || px >= N || py >= N || wall[py * N + px]) { toast('Tik midden in een vlak, niet op een lijn.'); return; }
+  if (px < 0 || py < 0 || px >= N || py >= N || wall[py * N + px]) { if (!quiet) toast('Tik midden in een vlak, niet op een lijn.'); return; }
   const reg = new Uint8Array(N * N), stack = [py * N + px]; reg[py * N + px] = 1; let edge = false;
   while (stack.length) { const i = stack.pop(), x = i % N; if (x === 0 || x === N - 1 || i < N || i >= N * N - N) edge = true;
     for (const j of [x > 0 ? i - 1 : -1, x < N - 1 ? i + 1 : -1, i - N, i + N]) if (j >= 0 && j < N * N && !reg[j] && !wall[j]) { reg[j] = 1; stack.push(j); } }
-  if (edge) { toast('Dat vlak is niet gesloten. Tik binnen de omtrek, of sluit de lijn eerst.'); return; }
+  if (edge) { if (!quiet) toast('Dat vlak is niet gesloten. Tik binnen de omtrek, of sluit de lijn eerst.'); return; }
   // spread a little under the lines so no rim of base colour shows, but never past the outline
   const inside = computeFill(pad.strokes, +$('#padSize').value), ins = inside ? inside.getContext('2d').getImageData(0, 0, N, N).data : null;
   const full = grow(reg, N, 5), g = pad.paint.getContext('2d'), img = g.getImageData(0, 0, N, N), [r, gg, b] = hexRgb($('#padPaint').value);
@@ -2348,7 +2388,7 @@ function insideOf(c, gap = 5) {
 function computeFill(strokes, size) {
   const N = 200, c = document.createElement('canvas'); c.width = c.height = N; const g = c.getContext('2d', { willReadFrequently: true });
   g.setTransform(2, 0, 0, 2, 100, 100); g.strokeStyle = '#000'; g.lineCap = 'round'; g.lineJoin = 'round';
-  for (const st of strokes) { g.lineWidth = Math.max(1, st.w * 100 / size); g.stroke(pathOf(st.pts)); }
+  for (const st of strokes) { g.lineWidth = Math.max(1, st.w * 100 / size); g.stroke(strokePath(st)); }
   return insideOf(c) > 0 ? c : null;
 }
 // uploaded line art can be coloured too: its inside is found once, from the transparent outside of the picture
@@ -2360,7 +2400,7 @@ function imageMask(a) {
   return a.mask;
 }
 function openPad(shape, fromBrush) {
-  pad = { strokes: shape ? JSON.parse(JSON.stringify(shape.strokes)) : [], hist: [], tool: '1.8', edit: shape || null, fromBrush: !!fromBrush, cur: null, erasing: false, painting: null, paintVer: 0 };
+  pad = { strokes: shape ? JSON.parse(JSON.stringify(shape.strokes)) : [], hist: [], tool: 'pen', w: 1.8, edit: shape || null, fromBrush: !!fromBrush, live: null, poly: null, drag: null, erasing: false, painting: null, paintVer: 0 };
   pad.paint = document.createElement('canvas'); pad.paint.width = pad.paint.height = 200;
   if (shape && typeof shape.paint === 'string') { const img = new Image(), P = pad; img.onload = () => { P.paint.getContext('2d').drawImage(img, 0, 0); P.paintVer++; if (pad === P) drawPad(); }; img.src = shape.paint; }
   $('#padTitle').textContent = shape ? 'Vorm bewerken' : 'Vorm tekenen';
@@ -2374,13 +2414,17 @@ function openPad(shape, fromBrush) {
   $('#padModal').hidden = false; drawPad();
 }
 function syncPadTools() {
+  const wb = $('#padWidths'); wb.textContent = '';
+  for (const [w, n] of PAD_WIDTHS) { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = n; b.setAttribute('aria-pressed', pad.w === w); b.addEventListener('click', () => { pad.w = w; syncPadTools(); }); wb.append(b); }
+  $('#padHint').textContent = PAD_HINTS[pad.tool] || '';
   const box = $('#padTools'); box.textContent = '';
-  for (const [k, n] of PAD_TOOLS) { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = n; b.setAttribute('aria-pressed', pad.tool === k); b.addEventListener('click', () => { pad.tool = k; syncPadTools(); }); box.append(b); }
+  for (const [k, n] of PAD_TOOLS) { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = n; b.setAttribute('aria-pressed', pad.tool === k); b.addEventListener('click', () => { padCommit(); pad.tool = k; drawPad(); syncPadTools(); }); box.append(b); }
 }
 function padDraft(size) {
-  const fill = $('#padFill').checked && pad.strokes.length ? computeFill(pad.strokes, size) : null;
-  $('#padOpen').hidden = !($('#padFill').checked && pad.strokes.length && !fill);
-  return registerShape({ id: '__draft', name: 'Voorbeeld', size, strokes: pad.strokes, color: $('#padColor').value }, fill, pad.paint);
+  const strokes = [...pad.strokes, ...padLive()];
+  const fill = $('#padFill').checked && strokes.length ? computeFill(strokes, size) : null;
+  $('#padOpen').hidden = !($('#padFill').checked && pad.strokes.length && !fill) || !!pad.live;
+  return registerShape({ id: '__draft', name: 'Voorbeeld', size, strokes, color: $('#padColor').value }, fill, pad.paint);
 }
 function drawPad() {
   if (!pad) return;
@@ -2388,6 +2432,7 @@ function drawPad() {
   g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = PAPERC; g.fillRect(0, 0, S, S); g.setTransform(k, 0, 0, k, S / 2, S / 2);
   g.strokeStyle = 'rgba(42,154,214,.13)'; g.lineWidth = 1 / k; g.beginPath(); for (let i = -50; i <= 50; i += 10) { g.moveTo(i, -50); g.lineTo(i, 50); g.moveTo(-50, i); g.lineTo(50, i); } g.stroke();
   g.strokeStyle = 'rgba(42,154,214,.7)'; g.lineWidth = 2 / k; g.setLineDash([3, 2]); g.beginPath(); g.moveTo(-50, 36); g.lineTo(50, 36); g.stroke(); g.setLineDash([]);
+  if ($('#padMirror').checked) { g.strokeStyle = 'rgba(214,69,69,.55)'; g.setLineDash([2, 2]); g.beginPath(); g.moveTo(0, -50); g.lineTo(0, 50); g.stroke(); g.setLineDash([]); } // the mirror axis
   const ref = $('#padRef').value; if (ref && ASSETS[ref]) { g.save(); g.globalAlpha = .15; drawAsset(g, ref, 0, 0, 100, 0, false, 0); g.restore(); }
   const draft = padDraft(size), mapPal = CUR;
   CUR = PALETTES.kleur; g.save(); g.globalAlpha = .9; drawAsset(g, 'c:__draft', 0, 0, 100, 0, false, 0); g.restore(); CUR = mapPal;
@@ -2401,30 +2446,49 @@ function drawPad() {
   void draft;
 }
 function padPt(e) { const r = padCv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * 100 - 50, y: (e.clientY - r.top) / r.height * 100 - 50 }; }
-function padErase(p) { pad.strokes = pad.strokes.filter(st => { for (let i = 0; i < st.pts.length; i += 2) if (Math.hypot(st.pts[i] - p.x, st.pts[i + 1] - p.y) < 3.5) return false; return true; }); }
+function padErase(p) { for (;;) { const st = padStrokeAt(p); if (!st || padStrokeDist(st, p) > 3) return; pad.strokes = pad.strokes.filter(x => x !== st); } }
+const padStrokeDist = (st, p) => { const q = st.pts, n = q.length / 2; let d = Math.hypot(p.x - q[0], p.y - q[1]); for (let i = 0; i < n; i++) { const j = st.closed ? (i + 1) % n : i + 1; if (j < n) d = Math.min(d, segDist(p.x, p.y, q[i * 2], q[i * 2 + 1], q[j * 2], q[j * 2 + 1])); } return d; };
 padCv.addEventListener('pointerdown', e => {
-  if (!pad) return; try { padCv.setPointerCapture(e.pointerId); } catch {} const p = padPt(e);
+  if (!pad) return; try { padCv.setPointerCapture(e.pointerId); } catch {} const p = padPt(e), mir = $('#padMirror').checked, back = { x: -p.x, y: p.y };
+  if (pad.tool === 'veelhoek') {
+    const q = padSnapPt(p);
+    if (!pad.poly) { pad.hist.push(padSnap()); pad.poly = true; pad.live = { w: pad.w, pts: [f1(q.x), f1(q.y), f1(q.x), f1(q.y)], sharp: true }; }
+    else { const pts = pad.live.pts, n = pts.length;
+      if (n >= 8 && Math.hypot(q.x - pts[0], q.y - pts[1]) < 3) { pad.live.closed = true; padCommit(); } // back at the first point: close it
+      else { pts[n - 2] = f1(q.x); pts[n - 1] = f1(q.y); pts.push(f1(q.x), f1(q.y)); } }
+    drawPad(); return;
+  }
   pad.hist.push(padSnap());
-  if (pad.tool === 'emmer') padBucket(p);
-  else if (pad.tool === 'potlood' || pad.tool === 'kleurgum') { pad.painting = p; padDab(p, p); }
-  else if (pad.tool === 'gum') { pad.erasing = true; padErase(p); } else { pad.cur = { w: +pad.tool, pts: [f1(p.x), f1(p.y)] }; pad.strokes.push(pad.cur); }
+  if (pad.tool === 'emmer') { padBucket(p); if (mir) padBucket(back, true); }
+  else if (pad.tool === 'potlood' || pad.tool === 'kleurgum') { pad.painting = p; padDab(p, p); if (mir) padDab(back, back); }
+  else if (pad.tool === 'gum') { pad.erasing = true; padErase(p); if (mir) padErase(back); }
+  else if (pad.tool === 'schuif') { const st = padStrokeAt(p); if (st) pad.drag = { st, last: padSnapPt(p) }; }
+  else if (pad.tool === 'pen') pad.live = { w: pad.w, pts: [f1(p.x), f1(p.y)] };
+  else { const a = padSnapPt(p); pad.start = a; pad.live = padShape(pad.tool, a, a, e.shiftKey); }
   drawPad();
 });
 padCv.addEventListener('pointermove', e => {
-  if (!pad || (!pad.cur && !pad.erasing && !pad.painting)) return; const p = padPt(e);
-  if (pad.painting) { padDab(pad.painting, p); pad.painting = p; }
-  else if (pad.cur) { const q = pad.cur.pts, n = q.length; if (Math.hypot(p.x - q[n - 2], p.y - q[n - 1]) >= .7) q.push(f1(p.x), f1(p.y)); } else padErase(p);
+  if (!pad) return; const p = padPt(e), back = { x: -p.x, y: p.y }, mir = $('#padMirror').checked;
+  if (pad.poly) { const pts = pad.live.pts, q = padSnapPt(p); pts[pts.length - 2] = f1(q.x); pts[pts.length - 1] = f1(q.y); drawPad(); return; }
+  if (!pad.live && !pad.erasing && !pad.painting && !pad.drag) return;
+  if (pad.painting) { padDab(pad.painting, p); if (mir) padDab({ x: -pad.painting.x, y: pad.painting.y }, back); pad.painting = p; }
+  else if (pad.drag) { const q = padSnapPt(p), dx = q.x - pad.drag.last.x, dy = q.y - pad.drag.last.y; pad.drag.st.pts = pad.drag.st.pts.map((v, i) => f1(v + (i % 2 ? dy : dx))); pad.drag.last = q; }
+  else if (pad.erasing) { padErase(p); if (mir) padErase(back); }
+  else if (pad.tool === 'pen') { const q = pad.live.pts, n = q.length; if (Math.hypot(p.x - q[n - 2], p.y - q[n - 1]) >= .7) q.push(f1(p.x), f1(p.y)); }
+  else pad.live = padShape(pad.tool, pad.start, padSnapPt(p), e.shiftKey);
   drawPad();
 });
+padCv.addEventListener('dblclick', () => { if (!pad || !pad.poly) return; pad.live.pts.length -= 2; padCommit(); drawPad(); }); // a double tap ends an open polygon (its second tap added a point twice)
 const padUp = () => {
   if (!pad) return;
+  if (pad.poly) return; // a polygon goes on until it is closed or ended
   if (pad.painting && pad.tool === 'potlood') { const m = computeFill(pad.strokes, +$('#padSize').value); if (m) { const g = pad.paint.getContext('2d'); g.globalCompositeOperation = 'destination-in'; g.drawImage(m, 0, 0); g.globalCompositeOperation = 'source-over'; } } // colour stays inside the outline
-  pad.cur = null; pad.erasing = false; pad.painting = null;
+  if (pad.live) padCommit(); pad.erasing = false; pad.painting = null; pad.drag = null;
   const h = pad.hist[pad.hist.length - 1]; if (h && h.s === JSON.stringify(pad.strokes) && h.v === pad.paintVer) pad.hist.pop();
   drawPad();
 };
 padCv.addEventListener('pointerup', padUp); padCv.addEventListener('pointercancel', padUp);
-$('#padUndo').addEventListener('click', () => { if (pad?.hist.length) { const h = pad.hist.pop(); pad.strokes = JSON.parse(h.s); pad.paint.getContext('2d').putImageData(h.p, 0, 0); pad.paintVer++; drawPad(); } });
+$('#padUndo').addEventListener('click', () => { if (pad?.hist.length) { pad.live = null; pad.poly = null; const h = pad.hist.pop(); pad.strokes = JSON.parse(h.s); pad.paint.getContext('2d').putImageData(h.p, 0, 0); pad.paintVer++; drawPad(); } });
 $('#padClear').addEventListener('click', () => { if (!pad || !pad.strokes.length) return; pad.hist.push(padSnap()); pad.strokes = []; pad.paint.getContext('2d').clearRect(0, 0, 200, 200); pad.paintVer++; drawPad(); });
 // a new shape takes the colour of the example it is drawn over, until a colour is picked by hand
 const refColor = key => { const a = ASSETS[key]; return (a && (PALETTES.kleur.fill[a.key] || PALETTES.kleur.fill[a.cat])) || '#d6c6a0'; };
@@ -2433,7 +2497,11 @@ $('#padColor').addEventListener('input', () => { pad.colorSet = true; drawPad();
 $('#padSize').addEventListener('input', e => { $('#padSizeOut').textContent = e.target.value; drawPad(); });
 const closePad = () => { $('#padModal').hidden = true; pad = null; };
 $('#padCancel').addEventListener('click', closePad);
-$('#padModal').addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); closePad(); } });
+$('#padModal').addEventListener('keydown', e => {
+  if (pad && pad.poly && (e.key === 'Enter' || e.key === 'Escape')) { e.preventDefault(); e.stopPropagation(); if (e.key === 'Enter') padCommit(); else { pad.live = null; pad.poly = null; pad.hist.pop(); } drawPad(); return; }
+  if (e.key === 'Escape') { e.stopPropagation(); closePad(); }
+});
+$('#padMirror').addEventListener('change', () => drawPad());
 $('#padDelete').addEventListener('click', e => {
   if (!pad?.edit) return; const sh = pad.edit;
   armButton(e.currentTarget, 'Klik nogmaals om te verwijderen', () => {
@@ -3323,7 +3391,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.12.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.13.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;

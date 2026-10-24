@@ -1,5 +1,16 @@
 # Wijzigingen
 
+## 1.13.0
+
+- **Beter tekenvenster** voor eigen vormen:
+  - Nieuwe gereedschappen: **Lijn**, **Rechthoek**, **Ovaal**, **Veelhoek** en **Verschuiven**, naast Pen, Gum en de inkleurgereedschappen.
+  - **Lijndikte** (Dik, Normaal, Fijn) is nu een aparte keuze en geldt voor alle gereedschappen.
+  - Met **Shift**: lijnen in stappen van 15°, vierkanten en cirkels.
+  - **Uitlijnen op raster** zet punten vast op het raster.
+  - **Spiegelen** tekent links en rechts tegelijk, handig voor torens, kastelen en poorten. Ook de gum, de verfemmer en het kleurpotlood spiegelen mee.
+  - Lijnen, rechthoeken en veelhoeken hebben scherpe hoeken. De gum en Verschuiven pakken een lijn over zijn hele lengte vast.
+  - Een korte uitleg onder de gereedschappen zegt hoe het gekozen gereedschap werkt.
+
 ## 1.12.0
 
 - **Zelf inkleuren** in het tekenvenster voor eigen vormen: *Verfemmer* (tik in een vlak), *Kleurpotlood* en *Kleur wissen*, met een eigen verfkleur. Zo krijgt één vorm meerdere kleuren, bv. een donkere schaduwkant.
