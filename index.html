@@ -1143,6 +1143,137 @@ OLD_ASSETS.push(
 );
 const OLD_GENERATORS = { 'o-berg': genOldBerg, 'o-heuvel': genOldHeuvel, 'o-loof': genOldLoof, 'o-den': genOldDen };
 const OLD_FILL = { 'o-bosje': OLIVE, 'o-berg': SAND, 'o-heuvel': SAND, 'o-loof': OLIVE, 'o-den': OLIVE2 };
+/* old-map versions of the elven, dwarven and dark-land symbols */
+const OSTONE = '#ddd2bb', OSTONE2 = '#c9bc9f', ODARK = '#8f857a', OELF = '#e4e2c8', OWATER = '#b4c2a6';
+// parallel strokes filling a polygon (engraving), lines run x = c + slant * y
+function hatchPoly(P, gap, slant = 0) {
+  const cs = P.map(([x, y]) => x - slant * y), c0 = Math.min(...cs), c1 = Math.max(...cs); let d = '';
+  for (let c = c0 + gap / 2; c < c1; c += gap) {
+    const ys = [];
+    for (let i = 0, j = P.length - 1; i < P.length; j = i++) { const fa = P[j][0] - slant * P[j][1] - c, fb = P[i][0] - slant * P[i][1] - c; if ((fa > 0) !== (fb > 0)) ys.push(P[j][1] + (P[i][1] - P[j][1]) * fa / (fa - fb)); }
+    ys.sort((a, b) => a - b);
+    for (let k = 0; k + 1 < ys.length; k += 2) { const a = ys[k] + .5, b = ys[k + 1] - .5; if (b > a) d += `M${f2(c + slant * a)} ${f2(a)}L${f2(c + slant * b)} ${f2(b)}`; }
+  }
+  return d;
+}
+const hatchRect = (x0, y0, x1, y1, gap, slant) => hatchPoly([[x0, y0], [x1, y0], [x1, y1], [x0, y1]], gap, slant);
+const archWin = (x, y, w, h) => ['k', `M${f2(x - w / 2)} ${f2(y + h)}L${f2(x - w / 2)} ${f2(y + w / 2)}Q${f2(x)} ${f2(y - w / 2)} ${f2(x + w / 2)} ${f2(y + w / 2)}L${f2(x + w / 2)} ${f2(y + h)}Z`];
+// a slender tower with a tall pointed roof, its right side hatched
+function oTower(x, base, h, w, roof = SEPIA, stone = OSTONE) {
+  const top = base - h, rh = w * 2.6;
+  return [['w', pl([[x - w / 2, base], [x - w * .42, top], [x + w * .42, top], [x + w / 2, base]]) + 'Z', 1.1, stone],
+    ['s', hatchPoly([[x + w * .1, base], [x + w * .1, top], [x + w * .42, top], [x + w / 2, base]], 1.5), .4],
+    ['w', `M${f2(x - w * .64)} ${f2(top)}Q${f2(x - w * .22)} ${f2(top - rh * .45)} ${f2(x)} ${f2(top - rh)}Q${f2(x + w * .22)} ${f2(top - rh * .45)} ${f2(x + w * .64)} ${f2(top)}Z`, 1.1, roof],
+    ['s', lines(L => { for (let k = 0; k < 4; k++) L(x + .3, top - rh + 3, x + w * (.08 + k * .15), top - .6); }), .4],
+    archWin(x - w * .08, top + h * .18, Math.max(1.6, w * .26), Math.max(2.6, w * .4))];
+}
+// a rough stone: a wobbly blob, shaded on the right
+function oStone(x, y, rx, ry, seed, col = OSTONE2) {
+  const r = rng(seed), P = []; for (let i = 0; i < 9; i++) { const a = Math.PI * 2 * i / 9, k = .85 + r() * .25; P.push([x + Math.cos(a) * rx * k, y + Math.sin(a) * ry * k]); }
+  return [['w', pl(P) + 'Z', .9, col], ['s', hatchPoly(P.filter(p => p[0] > x - rx * .1).concat([[x + rx * .1, y + ry], [x + rx * .1, y - ry]]).sort((a, b) => Math.atan2(a[1] - y, a[0] - x) - Math.atan2(b[1] - y, b[0] - x)), 1.4, .3), .35]];
+}
+const grass = (x, y) => `M${x - 3} ${y}L${x - 4} ${y - 3}M${x} ${y}L${x} ${y - 4}M${x + 3} ${y}L${x + 4} ${y - 3}`;
+
+/* elves */
+function genOldElfwoud(seed) { // a tall slender tree with a narrow crown
+  const r = rng(seed * 733 + 11), cy = -6 - r() * 6, rx = 9 + r() * 3, ry = 24 + r() * 6, lean = (r() - .5) * 4;
+  const ops = [['s', `M0 40Q${f2(lean)} 26 ${f2(lean * .6)} ${f2(cy + ry - 4)}`, 1.3], ['w', bumps(lean * .5, cy, rx, ry, 12, seed * 3 + 2, 1.18, .14), 1.1]];
+  let d = ''; for (let k = 0; k < 9; k++) { const t = -1 + k * .24, y = cy + t * ry * .8, x = lean * .5 + Math.sqrt(Math.max(0, 1 - t * t)) * rx * .55; d += `M${f2(x)} ${f2(y)}L${f2(x + 2.4)} ${f2(y + 3)}`; }
+  ops.push(['s', d, .5], ['s', `M${f2(lean * .5)} ${f2(cy - ry * .5)}L${f2(lean * .5)} ${f2(cy + ry * .6)}`, .4], ['s', 'M-5 41L5 41', .5]);
+  return ops;
+}
+function genOldElfboom() { // a great tree in three rounded tiers
+  const ops = [['w', 'M-4 40C-3 26 -3 10 -2 0L2 0C3 10 3 26 4 40Z', 1.2, BARK2], ['s', 'M-1 6L-1 34M1.6 12L1.8 38', .4]];
+  for (const [cy, rx, ry, s] of [[-2, 26, 13, 3], [-18, 20, 12, 5], [-32, 13, 10, 8]]) {
+    ops.push(['w', bumps(0, cy, rx, ry, 10, s, 1.2, .14), 1.1]);
+    let d = ''; for (let k = 0; k < 6; k++) { const a = -.6 + k * .3, x = Math.cos(a) * rx * .78, y = cy + Math.sin(a) * ry * .7; d += `M${f2(x)} ${f2(y)}L${f2(x + 2.6)} ${f2(y + 2.8)}`; }
+    ops.push(['s', d, .5], ['s', `M${f2(-rx * .5)} ${f2(cy + 2)}Q${f2(-rx * .3)} ${f2(cy - 1)} ${f2(-rx * .1)} ${f2(cy + 2)}`, .45]);
+  }
+  ops.push(['s', 'M-10 41L10 41', .6]);
+  return ops;
+}
+const OLD_FOLK_ASSETS = [
+  ['o-elfstad', 'Elfenstad', 'elf', 58, [['w', 'M-44 40C-30 22 30 22 44 40Z', 1.1, '#d6d2a8'], ['s', hatchPoly([[6, 25], [30, 30], [44, 40], [6, 40]], 1.8, .4), .35],
+    ['w', 'M-26 40L-26 14L26 14L26 40Z', 1.1, OSTONE], ['s', hatchRect(14, 15, 26, 39, 1.6, 0), .4], ['s', 'M-26 22L26 22', .4], archWin(0, 28, 7, 12),
+    ...oTower(-20, 26, 30, 7), ...oTower(20, 26, 34, 7), ...oTower(-6, 16, 40, 8), ...oTower(9, 18, 44, 8),
+    ['s', 'M9 -46L9 -51L14 -49.5L9 -48', .7]]],
+  ['o-elftoren', 'Elfentoren', 'elf', 58, [...oStone(0, 38, 22, 6, 41), ...oTower(0, 36, 58, 11, SEPIA),
+    ['w', 'M-11 -2L11 -2L13 2L-13 2Z', 1, OSTONE], ['s', 'M-10 2L-10 6M-5 2L-5 6M0 2L0 6M5 2L5 6M10 2L10 6', .5], archWin(0, 14, 4, 7)]],
+  ['o-elfboom', 'Elfenboom', 'elf', 48, genOldElfboom()],
+  ['o-elfwoud', 'Elfenwoud (boom)', 'elf', 30, genOldElfwoud(0)],
+  ['o-maanpoort', 'Maanpoort', 'elf', 50, [['w', 'M-30 40L-30 -6Q-30 -36 0 -42Q30 -36 30 -6L30 40L20 40L20 -4Q20 -26 0 -30Q-20 -26 -20 -4L-20 40Z', 1.2, OSTONE],
+    ['s', hatchPoly([[20, 40], [20, -4], [24, -20], [30, -6], [30, 40]], 1.4), .4], ['s', 'M-25 40L-25 -6Q-25 -31 0 -36Q25 -31 25 -6L25 40', .45], ['s', 'M-34 40L34 40', .9],
+    ['w', 'M-4 -50A7 7 0 1 0 5 -41A5.5 5.5 0 1 1 -4 -50Z', 1, '#efe3c4'], ['s', 'M-14 10Q0 -2 14 10M-12 22Q0 12 12 22', .35]]],
+  ['o-elfbron', 'Elfenbron', 'elf', 44, [['w', 'M-30 30C-30 18 30 18 30 30C30 42 -30 42 -30 30Z', 1.2, OWATER], ['s', 'M-18 30Q0 25 18 30M-10 34Q0 31 10 34M-22 26Q-14 24 -6 26', .45],
+    ...[[-30, 26], [-22, 40], [0, 43], [22, 40], [31, 27], [-14, 19], [14, 19]].flatMap(([x, y], i) => oStone(x, y, 6, 4, 70 + i)),
+    ['s', 'M0 26L0 18M-3 22L0 16L3 22', .6]]],
+];
+
+/* dwarves */
+const OLD_DWARF = [
+  ['o-bergpoort', 'Bergpoort', 'dwerg', 74, [...genOldBerg(4), ['w', 'M-24 40L-24 14L8 14L8 40Z', 1.1, OSTONE], ['w', 'M-28 14L-8 2L12 14Z', 1.1, OSTONE2], ['s', hatchRect(1, 15, 8, 39, 1.4, 0), .4],
+    ['k', 'M-17 40L-17 26Q-8 16 1 26L1 40Z'], ['s', 'M-21 14L-21 40M5 14L5 40M-8 6L-8 10', .5], ['s', 'M-30 41L14 41', .9]]],
+  ['o-dwergvesting', 'Dwergenvesting', 'dwerg', 64, [['w', pl(wob([-46, 40], [-40, 14], 3, 3, rng(5)).concat(wob([-40, 14], [40, 12], 6, 3, rng(6)).slice(1), wob([40, 12], [46, 40], 3, 3, rng(7)).slice(1))) + 'Z', 1.2, OSTONE2],
+    ['s', hatchPoly([[20, 12], [40, 12], [46, 40], [24, 40]], 1.5, .25), .4], ['s', 'M-30 20L-26 28M-16 18L-20 30M8 20L12 30', .4],
+    ...[[-30, -10, 14, 26], [16, -10, 14, 26], [-14, -28, 28, 44]].flatMap(([x, y, w, h]) => [['w', rect(x, y, w, h), 1.2, OSTONE], ['s', hatchRect(x + w * .66, y + 1, x + w, y + h - .5, 1.4, 0), .4],
+      ['w', Array.from({ length: Math.floor(w / 5) }, (_, i) => rect(x + i * 5 + .8, y - 3.5, 3, 3.5)).join(''), .9, OSTONE]]),
+    ['k', 'M-5 16L-5 6Q0 0 5 6L5 16Z'], ['s', 'M-14 -16L14 -16M-14 -4L14 -4', .45], ['k', rect(-25, 0, 3, 5)], ['k', rect(21, 0, 3, 5)]]],
+  ['o-smidse', 'Smidse', 'dwerg', 42, [['w', rect(-30, 6, 40, 34), 1.2, OSTONE], ['s', hatchRect(2, 7, 10, 39, 1.4, 0), .4], ['w', 'M-34 8L-10 -14L14 8Z', 1.2, SEPIA], ['s', lines(L => { for (let k = 0; k < 4; k++) L(-10, -12, -4 + k * 5, 7.4); }), .4],
+    ['w', rect(2, -22, 7, 22), 1.1, OSTONE2], ['s', 'M5 -24C1 -30 9 -34 4 -40C0 -45 8 -48 6 -54', .8], ['k', 'M-20 40L-20 26Q-15 20 -10 26L-10 40Z'],
+    ['w', 'M18 26L36 26L33 30L30 30L30 36L34 40L20 40L24 36L24 30L18 30Z', 1, '#7d6f62']]],
+  ['o-runensteen', 'Runensteen', 'dwerg', 38, [['w', 'M-12 40L-14 -10L-6 -36L8 -38L14 -8L12 40Z', 1.3, OSTONE2], ['s', hatchPoly([[4, 40], [6, -37], [8, -38], [14, -8], [12, 40]], 1.3), .45],
+    ['s', 'M-6 -26L-2 -20L-6 -14M-7 -8L-1 -8M-4 -8L-4 2M-7 6L-1 12M-1 6L-7 12M-5 18L-5 28L-1 24', .8], ['s', grass(-18, 41) + grass(18, 41), .6], ['s', 'M-20 41L20 41', .7]]],
+  ['o-dwergmijn', 'Dwergenmijn', 'dwerg', 50, [['w', 'M-46 40C-40 6 -16 -16 4 -16C24 -16 40 6 46 40Z', 1.2, '#d8c9a2'], ['s', shadeFrom(wob([4, -16], [30, 40], 4, 2, rng(9)), [[-46, 40], [4, -17], [46, 40]], [.4, 1], 16, 1.4, rng(10)), .4],
+    ['k', 'M-12 40L-12 14L12 14L12 40Z'], ['w', rect(-16, 12, 4, 28), 1, '#a07850'], ['w', rect(12, 12, 4, 28), 1, '#a07850'], ['w', rect(-19, 7, 38, 5), 1, '#a07850'],
+    ['s', 'M-8 40L-16 50M8 40L16 50M-11 44L11 44M-13 47L13 47', .6], ['s', 'M24 26L34 16M30 14L38 22', 1]]],
+  ['o-kristallen', 'Kristallen', 'dwerg', 40, [...[[-14, 40, 9, 46, -.25], [12, 40, 9, 40, .3], [0, 40, 11, 62, 0], [-24, 40, 7, 24, -.5], [24, 40, 7, 22, .55]].sort((a, b) => a[3] - b[3]).reverse().flatMap(([x, y, w, h, t]) => {
+    const tx = x + t * h, P = [[x - w / 2, y], [tx - w / 2, y - h], [tx, y - h - w * .9], [tx + w / 2, y - h], [x + w / 2, y]];
+    return [['w', pl(P) + 'Z', 1, '#d5dccf'], ['s', `M${f2(tx)} ${f2(y - h - w * .9)}L${f2(x)} ${y}`, .45], ['s', hatchPoly([[x, y], [tx, y - h - w * .9], [tx + w / 2, y - h], [x + w / 2, y]], 1.3, t), .35]]; }),
+    ['s', 'M-32 41L32 41', .8]]],
+];
+
+/* the dark lands */
+function genOldDood(seed) { // a crooked dead tree, drawn in a few hard strokes
+  const r = rng(seed * 313 + 1), lean = (r() - .5) * 6, ops = [['w', `M-4 40Q-2 20 ${f2(lean - 2)} -6L${f2(lean + 2)} -6Q2 20 4 40Z`, 1.2, '#9a8a74']];
+  let d = '';
+  for (const [x, y, s] of [[-22, -30, 1], [-12, -40, 1], [14, -38, -1], [24, -22, -1], [-26, -12, 1]]) {
+    const bx = lean * .3, by = -2 + (r() * 10), ex = x + (r() - .5) * 8, ey = y + (r() - .5) * 8, mx = (bx + ex) / 2 + s * 3, my = (by + ey) / 2;
+    d += `M${f2(bx)} ${f2(by)}Q${f2(mx)} ${f2(my)} ${f2(ex)} ${f2(ey)}M${f2(ex * .7 + bx * .3)} ${f2(ey * .7 + by * .3)}L${f2(ex * .7 + bx * .3 + s * 6)} ${f2(ey * .7 + by * .3 - 6)}`;
+  }
+  ops.push(['s', d, 1.1], ['s', 'M1 4L2 34M-1 14L-1.5 28', .45], ['s', 'M-10 41L10 41', .6]);
+  return ops;
+}
+function thorns(seed) {
+  const r = rng(seed); let d = '', sp = '';
+  for (let i = 0; i < 6; i++) { const x0 = (r() - .5) * 50, y0 = 40, x1 = x0 + (r() - .5) * 40, y1 = -10 - r() * 26, cx = (x0 + x1) / 2 + (r() - .5) * 30, cy = (y0 + y1) / 2;
+    d += `M${f2(x0)} ${y0}Q${f2(cx)} ${f2(cy)} ${f2(x1)} ${f2(y1)}`;
+    for (let t = .2; t < .95; t += .15) { const a = 1 - t, x = a * a * x0 + 2 * a * t * cx + t * t * x1, y = a * a * y0 + 2 * a * t * cy + t * t * y1, s = (r() < .5 ? -1 : 1); sp += `M${f2(x)} ${f2(y)}L${f2(x + s * 4)} ${f2(y - 2)}`; } }
+  return [['s', d, 1.1], ['s', sp, .7], ['s', 'M-30 41L30 41', .6]];
+}
+const OLD_DARK = [
+  ['o-duistertoren', 'Duistere toren', 'duister', 62, [...oStone(0, 38, 24, 6, 91, ODARK), ['w', 'M-14 38L-9 -22L-14 -28L-5 -30L0 -50L5 -30L14 -28L9 -22L14 38Z', 1.3, ODARK],
+    ['s', hatchPoly([[3, 38], [3, -28], [5, -30], [14, -28], [9, -22], [14, 38]], 1.2), .45], ['s', hatchPoly([[-14, 38], [-9, -22], [-4, -22], [-4, 38]], 3, .1), .35],
+    ['w', 'M-14 -28L-22 -38L-9 -22Z', 1, ODARK], ['w', 'M14 -28L22 -38L9 -22Z', 1, ODARK], archWin(0, -16, 3.6, 6), archWin(-2, 2, 3.4, 6), archWin(1, 18, 3.4, 6), ['k', 'M-4 38L-4 30Q0 25 4 30L4 38Z']]],
+  ['o-orkkamp', 'Orkkamp', 'duister', 56, [['w', 'M-44 34C-44 20 44 20 44 34C44 46 -44 46 -44 34Z', 1, '#d2c19c'],
+    ['w', 'M-26 30L-12 4L2 30Z', 1.1, SEPIA], ['s', 'M-12 4L-6 30M-12 4L-2 29', .45], ['k', 'M-14 30L-12 20L-10 30Z'], ['w', 'M2 24L16 -2L30 24Z', 1.1, '#a7865c'], ['s', 'M16 -2L22 24M16 -2L26 23', .45], ['k', 'M14 24L16 15L18 24Z'],
+    ['s', 'M-2 26L-2 -22', 1], ['w', 'M-2 -22L14 -20L8 -15L14 -10L-2 -12Z', .9, '#7d4a3a'],
+    ...Array.from({ length: 19 }, (_, i) => { const a = Math.PI * (i / 18), x = -Math.cos(a) * 42, y = 38 + Math.sin(a) * 6; return ['w', `M${f2(x - 1.8)} ${f2(y)}L${f2(x - 1.8)} ${f2(y - 9)}L${f2(x)} ${f2(y - 13)}L${f2(x + 1.8)} ${f2(y - 9)}L${f2(x + 1.8)} ${f2(y)}Z`, .7, '#b08a5c']; })]],
+  ['o-dodeboom', 'Dode boom', 'duister', 40, genOldDood(0)],
+  ['o-schedelrots', 'Schedelrots', 'duister', 50, [['w', 'M-38 40C-42 10 -30 -30 0 -32C30 -30 42 10 38 40Z', 1.3, OSTONE2], ['s', shadeFrom(wob([0, -32], [26, 40], 4, 2, rng(31)), [[-38, 40], [-40, 0], [0, -33], [40, 0], [38, 40]], [.5, 1], 22, 1.3, rng(32)), .4],
+    ['k', 'M-20 -6C-20 -16 -6 -16 -6 -6C-6 2 -20 2 -20 -6Z'], ['k', 'M6 -6C6 -16 20 -16 20 -6C20 2 6 2 6 -6Z'], ['k', 'M-4 14L0 6L4 14Z'], ['w', 'M-14 24L14 24L12 34L-12 34Z', 1, '#efe3c4'], ['s', 'M-7 24L-7 34M0 24L0 34M7 24L7 34', .6], ['s', 'M-44 41L44 41', .8]]],
+  ['o-kerkhof', 'Kerkhof', 'duister', 48, [['w', 'M-44 38C-40 26 40 26 44 38C40 44 -40 44 -44 38Z', 1, '#cfc29f'],
+    ...[[-26, 20, 0], [-8, 16, 1], [10, 22, 0], [26, 18, 1], [-16, 32, 1], [4, 34, 0]].sort((a, b) => a[1] - b[1]).flatMap(([x, y, c]) => c
+      ? [['w', `M${x - 1.6} ${y}L${x - 1.6} ${y - 9}L${x - 5} ${y - 9}L${x - 5} ${y - 12}L${x - 1.6} ${y - 12}L${x - 1.6} ${y - 16}L${x + 1.6} ${y - 16}L${x + 1.6} ${y - 12}L${x + 5} ${y - 12}L${x + 5} ${y - 9}L${x + 1.6} ${y - 9}L${x + 1.6} ${y}Z`, .8, OSTONE]]
+      : [['w', `M${x - 5} ${y}L${x - 5} ${y - 10}Q${x} ${y - 17} ${x + 5} ${y - 10}L${x + 5} ${y}Z`, .9, OSTONE], ['s', hatchRect(x + 1.5, y - 11, x + 5, y - .5, 1.2, 0), .35]]),
+    ['s', 'M-46 26L-46 40M46 26L46 40M-46 28L-30 22M30 22L46 28', .6]]],
+  ['o-duisterpoort', 'Duistere poort', 'duister', 56, [['w', 'M-34 40L-30 -14L-36 -24L-24 -20L-14 -40L0 -30L14 -40L24 -20L36 -24L30 -14L34 40L18 40L18 0Q18 -16 0 -18Q-18 -16 -18 0L-18 40Z', 1.3, ODARK],
+    ['s', hatchPoly([[18, 40], [18, 0], [24, -20], [30, -14], [34, 40]], 1.2), .45], ['k', 'M-18 40L-18 0Q-18 -16 0 -18Q18 -16 18 0L18 40Z'], ['s', 'M-36 41L36 41', .9],
+    ['w', 'M-5 -26C-5 -32 5 -32 5 -26C5 -22 3 -21 3 -19L-3 -19C-3 -21 -5 -22 -5 -26Z', .8, '#efe3c4'], ['k', circ(-2, -26.5, 1.3)], ['k', circ(2, -26.5, 1.3)]]],
+  ['o-doornen', 'Doornen', 'duister', 38, thorns(5)],
+];
+OLD_FOLK_ASSETS.push(...OLD_DWARF, ...OLD_DARK);
+const OLD_FOLK_GENERATORS = { 'o-elfwoud': genOldElfwoud, 'o-dodeboom': genOldDood };
+const OLD_FOLK_FILL = { 'o-elfwoud': '#8f9c62', 'o-elfboom': '#9aa56a', 'o-elfstad': '#e4e2c8', 'o-dodeboom': '#9a8a74' };
 
 
 const WORLD_ASSETS = [
@@ -1298,7 +1429,7 @@ function genLeafy(seed) {
   ops.push(['s', `M${f2(cx + R * .15)} ${f2(cy + R * .5)}Q${f2(cx + R * .55)} ${f2(cy + R * .35)} ${f2(cx + R * .6)} ${f2(cy - R * .05)}M${f2(cx - R * .35)} ${f2(cy + R * .55)}Q${f2(cx - R * .05)} ${f2(cy + R * .7)} ${f2(cx + R * .2)} ${f2(cy + R * .62)}`, .6]);
   return ops;
 }
-const GENERATORS = { berg: genMountain, heuvels: genHills, naald: genPine, loof: genLeafy, ...FANTASY_GENERATORS, ...DETAIL_GENERATORS, ...OLD_GENERATORS };
+const GENERATORS = { berg: genMountain, heuvels: genHills, naald: genPine, loof: genLeafy, ...FANTASY_GENERATORS, ...DETAIL_GENERATORS, ...OLD_GENERATORS, ...OLD_FOLK_GENERATORS };
 // an op may carry its own colour (4th item): on a colour map that part keeps it, other parts take the symbol's colour
 const compileOps = ops => ops.map(o => o[0] === 't' ? { m: 't', t: o[1], x: o[2], y: o[3], fs: o[4] } : { m: o[0], p: new Path2D(o[1]), lw: o[2] || 1, col: o[3] || null });
 
@@ -1308,15 +1439,15 @@ const CATS = {
   local: [['door', 'Doorgangen'], ['meubel', 'Meubels'], ['kerker', 'Kerker'], ['buiten', 'Buiten'], ['eigen', 'Eigen']],
 };
 const ASSET_LIST = { world: [], local: [] };
-for (const [k, list] of [['world', [...WORLD_ASSETS, ...FANTASY_ASSETS, ...DETAIL_ASSETS, ...OLD_ASSETS]], ['local', LOCAL_ASSETS]]) {
+for (const [k, list] of [['world', [...WORLD_ASSETS, ...FANTASY_ASSETS, ...DETAIL_ASSETS, ...OLD_ASSETS, ...OLD_FOLK_ASSETS]], ['local', LOCAL_ASSETS]]) {
   for (const [key, name, cat, size, ops] of list) {
     ASSETS[key] = { key, name, cat, size, kind: k, c: compileOps(ops) };
     ASSET_LIST[k].push(key);
   }
 }
 for (const [key] of DETAIL_ASSETS) ASSETS[key].detail = true; // the detailed pack, shown instead of the classic symbols when chosen
-for (const [key] of OLD_ASSETS) ASSETS[key].old = true; // and the old-map pack
-Object.assign(PALETTES.kleur.fill, DETAIL_FILL, OLD_FILL); Object.assign(PALETTES.oud.fill, DETAIL_FILL, OLD_FILL);
+for (const [key] of [...OLD_ASSETS, ...OLD_FOLK_ASSETS]) ASSETS[key].old = true; // and the old-map pack
+Object.assign(PALETTES.kleur.fill, DETAIL_FILL, OLD_FILL, OLD_FOLK_FILL); Object.assign(PALETTES.oud.fill, DETAIL_FILL, OLD_FILL, OLD_FOLK_FILL);
 
 for (const key in GENERATORS) { const a = ASSETS[key]; a.vars = [a.c]; for (let i = 1; i < 10; i++) a.vars.push(compileOps(GENERATORS[key](i))); }
 const pickVar = key => ASSETS[key]?.vars ? Math.floor(Math.random() * ASSETS[key].vars.length) : 0;
@@ -1325,7 +1456,7 @@ const FLAT = new Set(['stip-hoofdstad', 'stip-stad', 'stip-dorp', 'kompas', 'sch
 for (const k in ASSETS) ASSETS[k].foot = ASSETS[k].kind === 'world' && !FLAT.has(k) ? .38 : 0;
 
 // symbols shaded on their right side; never mirrored, so the light always comes from the left
-const SHADED = new Set(['o-berg', 'o-heuvel', 'o-loof', 'o-den', 'o-bosje', 'o-toren', 'o-burcht', 'o-ruine', 'g-berg', 'g-vulkaan', 'g-grot', 'g-rotsen', 'g-bergpoort', 'g-mijn', 'berg', 'berg2', 'heuvels', 'vulkaan', 'rotsen', 'naald', 'spar', 'loof', 'elfstad', 'elfboom', 'elfwoud', 'elfpoort', 'elftoren', 'dwergpoort', 'dwergvesting', 'smidse', 'runensteen', 'schedelrots', 'magiertoren', 'schat']);
+const SHADED = new Set(['o-elfstad', 'o-elftoren', 'o-elfboom', 'o-elfwoud', 'o-maanpoort', 'o-bergpoort', 'o-dwergvesting', 'o-smidse', 'o-runensteen', 'o-dwergmijn', 'o-kristallen', 'o-duistertoren', 'o-orkkamp', 'o-dodeboom', 'o-schedelrots', 'o-kerkhof', 'o-duisterpoort', 'o-berg', 'o-heuvel', 'o-loof', 'o-den', 'o-bosje', 'o-toren', 'o-burcht', 'o-ruine', 'g-berg', 'g-vulkaan', 'g-grot', 'g-rotsen', 'g-bergpoort', 'g-mijn', 'berg', 'berg2', 'heuvels', 'vulkaan', 'rotsen', 'naald', 'spar', 'loof', 'elfstad', 'elfboom', 'elfwoud', 'elfpoort', 'elftoren', 'dwergpoort', 'dwergvesting', 'smidse', 'runensteen', 'schedelrots', 'magiertoren', 'schat']);
 function tinted(a, color) {
   let c = a.tints[color]; if (c) return c;
   c = document.createElement('canvas'); c.width = c.height = 200; const g = c.getContext('2d');
@@ -1660,7 +1791,7 @@ function drawLabel(g, L) {
 const footY = s => s.y + s.s * (ASSETS[s.a]?.foot || 0);
 function stampOrder(d) { return d.kind === 'world' ? d.stamps.slice().sort((a, b) => footY(a) - footY(b)) : d.stamps; }
 /* Minimum spacing as an ellipse (fraction of the average size): wide and shallow, so a range shows its back peaks above the front ones. */
-const SPACING = { 'o-berg': [.72, .42], 'o-heuvel': [.62, .36], 'o-loof': [.8, .55], 'o-den': [.7, .5], 'o-bosje': [.8, .55], 'g-elfwoud': [.42, .24], 'g-spookboom': [.5, .3], 'g-doornen': [.45, .3], 'g-kristallen': [.5, .32], 'g-loof': [.5, .28], 'g-eik': [.55, .3], 'g-den': [.42, .24], 'g-berk': [.42, .24], 'g-struik': [.55, .3], 'g-dood': [.45, .26], 'g-palm': [.48, .28], 'g-berg': [.56, .3], 'g-heuvel': [.52, .28], 'g-rotsen': [.5, .35], 'g-gras': [.45, .3], berg: [.56, .3], berg2: [.58, .3], heuvels: [.52, .28], vulkaan: [.5, .3], naald: [.42, .24], spar: [.4, .24], loof: [.46, .26], palm: [.48, .28], riet: [.45, .3], rotsen: [.5, .35], boom: [.62, .62], struik: [.62, .62] };
+const SPACING = { 'o-elfwoud': [.7, .5], 'o-dodeboom': [1.05, .75], 'o-doornen': [.9, .6], 'o-berg': [.72, .42], 'o-heuvel': [.62, .36], 'o-loof': [.8, .55], 'o-den': [.7, .5], 'o-bosje': [.8, .55], 'g-elfwoud': [.42, .24], 'g-spookboom': [.5, .3], 'g-doornen': [.45, .3], 'g-kristallen': [.5, .32], 'g-loof': [.5, .28], 'g-eik': [.55, .3], 'g-den': [.42, .24], 'g-berk': [.42, .24], 'g-struik': [.55, .3], 'g-dood': [.45, .26], 'g-palm': [.48, .28], 'g-berg': [.56, .3], 'g-heuvel': [.52, .28], 'g-rotsen': [.5, .35], 'g-gras': [.45, .3], berg: [.56, .3], berg2: [.58, .3], heuvels: [.52, .28], vulkaan: [.5, .3], naald: [.42, .24], spar: [.4, .24], loof: [.46, .26], palm: [.48, .28], riet: [.45, .3], rotsen: [.5, .35], boom: [.62, .62], struik: [.62, .62] };
 const spacing = k => SPACING[k] || (k.startsWith('c:') || k.startsWith('img:') ? [.5, .3] : [.8, .7]);
 function collides(key, x, y, size, list, dens) {
   const [ax, ay] = spacing(key);
@@ -2424,6 +2555,8 @@ const PRESETS = {
     { id: 'g-dennen', since: 3, name: 'Gedetailleerd dennenbos', items: [{ a: 'g-den', v: -1, n: 6 }, { a: 'g-berk', v: -1, n: 1 }] },
     { id: 'o-bos', since: 5, name: 'Oud bos', items: [{ a: 'o-loof', v: -1, n: 4 }, { a: 'o-den', v: -1, n: 2 }] },
     { id: 'o-gebergte', since: 5, name: 'Oud gebergte', grow: true, items: [{ a: 'o-berg', v: -1, n: 4 }, { a: 'o-heuvel', v: -1, zone: 'rand', n: 3, rel: .7 }] },
+    { id: 'o-elfenwoud', since: 6, name: 'Oud elfenwoud', items: [{ a: 'o-elfwoud', v: -1, n: 5 }, { a: 'o-elfboom', v: 0, n: 1 }] },
+    { id: 'o-dodenwoud', since: 6, name: 'Oud dodenwoud', items: [{ a: 'o-dodeboom', v: -1, n: 3 }, { a: 'o-doornen', v: 0, n: 1 }] },
     { id: 'g-elfenwoud', since: 4, name: 'Gedetailleerd elfenwoud', items: [{ a: 'g-elfwoud', v: -1, n: 6 }, { a: 'g-berk', v: -1, n: 1 }] },
     { id: 'g-duisterwoud', since: 4, name: 'Duister woud', items: [{ a: 'g-spookboom', v: -1, n: 6 }, { a: 'g-doornen', v: 0, n: 3 }, { a: 'g-dood', v: -1, n: 1 }] },
     { id: 'g-gebergte', since: 3, name: 'Gedetailleerd gebergte', grow: true, items: [{ a: 'g-berg', v: -1, n: 6 }, { a: 'g-heuvel', v: -1, zone: 'rand', n: 3, rel: .7 }] },
@@ -2440,7 +2573,7 @@ const normBrush = b => ({ id: String(b.id), name: String(b.name || 'Penseel').sl
   amount: +b.amount || 1.4, scale: +b.scale || 1, vary: b.vary ?? .25,
   items: (b.items || []).map(it => ({ a: String(it.a), v: Number.isInteger(it.v) ? it.v : 0, zone: ['overal', 'midden', 'rand'].includes(it.zone) ? it.zone : 'overal', n: snapN(+it.n || 3), rel: Math.max(.2, Math.min(3, +it.rel || 1)) })) });
 const presetBrushes = k => PRESETS[k].map(normBrush);
-const PRESET_LEVEL = 5; // raise together with `since` on brushes added later, so saved libraries get them once
+const PRESET_LEVEL = 6; // raise together with `since` on brushes added later, so saved libraries get them once
 const DEFAULT_TYPES = ['Bomen', 'Bergen', 'Heuvels', 'Gras en planten', 'Rotsen', 'Water', 'Gebouwen', 'Steden', 'Versiering', 'Overig'];
 const lib = { brushes: { world: presetBrushes('world'), local: presetBrushes('local') }, shapes: [], terrains: [], uploads: [], types: DEFAULT_TYPES.slice(), sel: { world: 'gebergte', local: 'bomen' }, presetsSeen: PRESET_LEVEL };
 const newId = () => Math.random().toString(36).slice(2, 9);
@@ -3946,7 +4079,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.18.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.19.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;

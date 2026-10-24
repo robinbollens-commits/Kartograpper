@@ -1,7 +1,7 @@
 // Kartograpper service worker: makes the app work offline and installable.
 // It only caches the app's own files. Maps, uploads and brushes are stored in IndexedDB,
 // which this worker never reads or deletes, so an update can't remove anyone's work.
-const VERSION = '1.18.0';
+const VERSION = '1.19.0';
 const CACHE = 'kartograaf-app-' + VERSION;
 const CDN_CACHE = 'kartograaf-cdn';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];

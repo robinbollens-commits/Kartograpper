@@ -1,5 +1,13 @@
 # Wijzigingen
 
+## 1.19.0
+
+- De symboolstijl **Oud** heeft nu ook getekende versies voor de volken:
+  - **Elfen:** Elfenstad, Elfentoren, Elfenboom, Elfenwoud-boom, Maanpoort en Elfenbron.
+  - **Dwergen:** Bergpoort, Dwergenvesting, Smidse, Runensteen, Dwergenmijn en Kristallen.
+  - **Duistere landen:** Duistere toren, Orkkamp, Dode boom, Schedelrots, Kerkhof, Duistere poort en Doornen.
+- Nieuwe penselen: *Oud elfenwoud* en *Oud dodenwoud*.
+
 ## 1.18.0
 
 - Nieuwe symboolstijl **Oud**, in de stijl van een oude, getekende kaart. Je kiest hem naast Klassiek en Gedetailleerd. De stijl bevat:
