@@ -33,7 +33,9 @@ autoUpdater.on('error', e => send({ type: 'error', message: String((e && e.messa
 ipcMain.handle('upd:download', async () => {
   if (!app.isPackaged) throw new Error('Bijwerken kan alleen in de geïnstalleerde app.');
   const r = await autoUpdater.checkForUpdates();
-  if (!r || !r.isUpdateAvailable) return false;
+  // electron-updater 6.3 has no isUpdateAvailable on the result; there, only a found update comes with a cancellationToken
+  const found = r && (r.isUpdateAvailable ?? !!r.cancellationToken);
+  if (!found) return false;
   await autoUpdater.downloadUpdate(); return true;
 });
 ipcMain.handle('upd:install', () => { setImmediate(() => autoUpdater.quitAndInstall(true, true)); return true; });

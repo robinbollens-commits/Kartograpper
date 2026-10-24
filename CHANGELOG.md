@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## 1.15.1
+
+- Herstel: *Nu bijwerken* in de Windows-app meldde altijd "GitHub gaf geen nieuwe versie", ook als er een was. Deze versie moet je nog één keer zelf installeren; daarna werkt bijwerken vanuit de app.
+
 ## 1.15.0
 
 - **Gekleurde uploads passen bij de kaartstijl:** op een Inkt-kaart verschijnt een gekleurde afbeelding in grijstinten van de inkt, op Perkament in bruine inkt op perkament, en op een kleurenkaart in haar eigen kleuren. Het origineel blijft bewaard.
