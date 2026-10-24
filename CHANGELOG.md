@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## 1.20.2
+
+- De vervaagde voet van de Oud-bergen en -heuvels dekt nu af wat erachter staat. De randen van een berg erachter schijnen er niet meer doorheen, alleen de ondergrond. Dat geldt ook bij het exporteren en afdrukken.
+
 ## 1.20.1
 
 - Bergen, heuvels en de dwergenmijn in de stijl **Oud** vervagen aan de open onderkant in de ondergrond, zodat ze natuurlijk in het landschap overlopen.

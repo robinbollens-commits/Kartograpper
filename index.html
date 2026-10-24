@@ -1495,6 +1495,7 @@ function drawAsset(g, key, x, y, s, rot, flip, v, col) {
     g.lineWidth = o.lw * 1.8 / k;
     if (o.m === 'w' || o.m === 'f') { g.fillStyle = (CUR.colorful && o.col) || fill; g.fill(o.p); }
     if (o.m === 'g') { // a fill that fades out towards the foot, from y = lw down, so the symbol melts into the ground
+      if (cutBehind) { g.save(); g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000'; g.fill(o.p); g.restore(); } // wipe the symbols behind, so only the ground shows through
       g.fillStyle = (CUR.colorful && o.col) || fill; const c = g.fillStyle, gr = g.createLinearGradient(0, o.lw, 0, 41);
       gr.addColorStop(0, c); gr.addColorStop(1, c[0] === '#' ? c + '00' : c.replace(/[\d.]+\)$/, '0)')); g.fillStyle = gr; g.fill(o.p); }
     if (o.m === 'k' || o.m === 'b') { g.fillStyle = INKC; g.fill(o.p); }
@@ -1814,10 +1815,19 @@ function collides(key, x, y, size, list, dens) {
   }
   return false;
 }
-function drawObjects(g, d, skipLabel, stamps = stampOrder(d)) {
+// true while symbols are drawn on a layer of their own: only then may a fading foot wipe what lies behind it
+let cutBehind = false;
+function drawObjects(g, d, skipLabel, stamps = stampOrder(d), own = false) {
+  if (!own) { // on a canvas that already holds the map, draw the symbols on their own layer first and lay that on top
+    const c = document.createElement('canvas'); c.width = g.canvas.width; c.height = g.canvas.height; const o = c.getContext('2d');
+    o.setTransform(g.getTransform()); o.beginPath(); o.rect(0, 0, d.w, d.h); o.clip(); drawObjects(o, d, skipLabel, stamps, true);
+    g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(c, 0, 0); g.restore(); return;
+  }
+  cutBehind = true;
   for (const l of d.lines) drawLine(g, l, d.kind);
   for (const s of stamps) drawAsset(g, s.a, s.x, s.y, s.s, s.r, s.f, s.v, s.c);
   for (const L of d.labels) if (L.id !== skipLabel) drawLabel(g, L);
+  cutBehind = false;
 }
 
 /* ---------- samples ---------- */
@@ -2470,13 +2480,13 @@ function syncObjLayer(v) {
       g.setTransform(...T); g.beginPath(); g.rect(0, 0, d.w, d.h); g.clip();
       const x0 = (dx0 - T[4]) / T[0], y0 = (dy0 - T[5]) / T[0], x1 = (dx1 - T[4]) / T[0], y1 = (dy1 - T[5]) / T[0];
       const near = d.stamps.filter(s => { const e = s.s * .8 + 4; return s.x + e > x0 && s.x - e < x1 && s.y + e > y0 && s.y - e < y1; });
-      drawObjects(g, d, skip, d.kind === 'world' ? near.sort((a, b) => footY(a) - footY(b)) : near);
+      drawObjects(g, d, skip, d.kind === 'world' ? near.sort((a, b) => footY(a) - footY(b)) : near, true);
       g.restore();
     }
   } else {
     g.save(); g.clearRect(0, 0, W, H);
     g.setTransform(...T); g.beginPath(); g.rect(0, 0, d.w, d.h); g.clip();
-    drawObjects(g, d, skip); g.restore();
+    drawObjects(g, d, skip, undefined, true); g.restore();
   }
   L.base = base; L.ox = v.ox; L.oy = v.oy; L.sig = sig;
 }
@@ -4332,7 +4342,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.20.1', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.20.2', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;
