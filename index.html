@@ -451,6 +451,22 @@ body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
     <div class="btns end"><button type="button" class="btn" id="beCancel">Annuleren</button><button type="submit" class="btn primary">Bewaar penseel</button></div>
   </form>
 </div>
+<div class="modal" id="icModal" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="icTitle" style="max-width:760px">
+    <h2 id="icTitle">Afbeelding inkleuren</h2>
+    <div class="padwrap">
+      <canvas id="icCv" width="600" height="600" aria-label="Afbeelding om in te kleuren" style="width:100%;aspect-ratio:1;border-radius:10px;border:1px solid var(--rule);touch-action:none;background:#fff"></canvas>
+      <div class="padside">
+        <div class="chips" id="icTools"></div>
+        <div class="colorrow"><span>Verf</span><input type="color" id="icColor" value="#6f9c4c" aria-label="Verfkleur"></div>
+        <label class="row"><span>Gevoelig</span><input type="range" id="icTol" min="10" max="160" value="70"><output id="icTolOut">70</output></label>
+        <div class="btns"><button type="button" class="btn" id="icUndo">Ongedaan maken</button><button type="button" class="btn" id="icClear">Alles wissen</button></div>
+        <p class="note">Tik met de Verfemmer op een deel, bv. eerst de kruin en dan de stam, elk in een eigen kleur. De emmer vult alles wat ongeveer dezelfde kleur heeft; met Gevoelig hoger vult hij meer. Zwarte lijnen blijven zwart. De kleuren zie je op een kleurenkaart.</p>
+      </div>
+    </div>
+    <div class="btns end"><button type="button" class="btn" id="icCancel">Annuleren</button><button type="button" class="btn primary" id="icSave">Bewaren</button></div>
+  </div>
+</div>
 <div class="modal" id="padModal" hidden>
   <form class="dialog wide" id="padForm" role="dialog" aria-modal="true" aria-labelledby="padTitle">
     <h2 id="padTitle">Vorm tekenen</h2>
@@ -1013,7 +1029,7 @@ function drawAsset(g, key, x, y, s, rot, flip, v, col) {
   const fill = (CUR.colorful && col) || fillFor(a), k = s / 100;
   g.save(); g.translate(x, y); if (rot) g.rotate(rot * Math.PI / 180); g.scale(flip ? -k : k, k);
   g.lineJoin = 'round'; g.lineCap = 'round'; g.strokeStyle = INKC;
-  if (a.image) { const m = Math.max(a.iw, a.ih), ic = CUR.colorful ? col || a.color : null; if (ic && imageMask(a)) g.drawImage(tinted(a, ic), -50, -50, 100, 100); g.drawImage(ic ? inked(a, ic) : a.image, -a.iw / m * 50, -a.ih / m * 50, a.iw / m * 100, a.ih / m * 100); g.restore(); return; }
+  if (a.image) { const m = Math.max(a.iw, a.ih), ic = CUR.colorful ? col || a.color : null; if (ic && !a.paintImg && imageMask(a)) g.drawImage(tinted(a, ic), -50, -50, 100, 100); g.drawImage(ic || (CUR.colorful && a.paintImg) ? composedUpload(a, ic) : a.image, -a.iw / m * 50, -a.ih / m * 50, a.iw / m * 100, a.ih / m * 100); g.restore(); return; }
   if (a.custom) {
     if (a.mask) g.drawImage(tinted(a, fill), -50, -50, 100, 100);
     if (a.paint && CUR.colorful && !col) g.drawImage(a.paint, -50, -50, 100, 100); // coloured in by hand in the drawing pad
@@ -1900,7 +1916,7 @@ function refreshSel() {
     }
     const A = ASSETS[o.a], own = [];
     if (A.custom) own.push(['Vorm bewerken…', () => openPad(lib.shapes.find(sh => 'c:' + sh.id === o.a), false)]);
-    if (A.image) own.push(['Afbeelding beheren…', () => openUploads(A.upType)]);
+    if (A.image) { const up = lib.uploads.find(u => 'img:' + u.id === o.a); if (up) own.push(['Inkleuren…', () => openColorer(up)]); own.push(['Afbeelding beheren…', () => openUploads(A.upType)]); }
     if (own.length) body.append(btnRow(own));
     body.append(btnRow([['Dupliceren', duplicateSel], ['Verwijderen', deleteSel, 'danger']]));
   } else if (sel.type === 'label') {
@@ -2391,21 +2407,29 @@ function computeFill(strokes, size) {
   for (const st of strokes) { g.lineWidth = Math.max(1, st.w * 100 / size); g.stroke(strokePath(st)); }
   return insideOf(c) > 0 ? c : null;
 }
-/* An uploaded picture in a colour: black lines stay black, everything else takes the colour, keeping its own light and
-   dark (the lightest part of the picture gets the colour itself, darker parts darker shades of it). */
-function inked(a, color) {
-  a.inks = a.inks || {}; let c = a.inks[color]; if (c) return c;
-  const k = Math.min(1, 400 / Math.max(a.iw, a.ih)); c = document.createElement('canvas'); c.width = Math.max(1, Math.round(a.iw * k)); c.height = Math.max(1, Math.round(a.ih * k));
-  const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(a.image, 0, 0, c.width, c.height);
-  const img = g.getImageData(0, 0, c.width, c.height), d = img.data, [cr, cg, cb] = hexRgb(color), LINE = .16;
+/* An uploaded picture in colour: black lines stay black, everything else takes a colour while keeping its own light and
+   dark (the lightest part gets the colour itself, darker parts darker shades of it). The colour of a pixel comes from what
+   was painted on it in "Afbeelding inkleuren", otherwise from `base`; without either the pixel keeps its own colour. */
+const UP_LINE = .16, lum = (d, i) => (d[i] * .299 + d[i + 1] * .587 + d[i + 2] * .114) / 255;
+function colourize(d, pd, base) {
   let lo = 1, hi = 0;
-  for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 40) { const L = (d[i] * .299 + d[i + 1] * .587 + d[i + 2] * .114) / 255; if (L >= LINE) { if (L < lo) lo = L; if (L > hi) hi = L; } }
+  for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 40) { const L = lum(d, i); if (L >= UP_LINE) { if (L < lo) lo = L; if (L > hi) hi = L; } }
   for (let i = 0; i < d.length; i += 4) {
-    if (!d[i + 3]) continue; const L = (d[i] * .299 + d[i + 1] * .587 + d[i + 2] * .114) / 255;
-    const t = L < LINE ? L / LINE * .35 : .45 + .55 * (hi > lo + .02 ? (L - lo) / (hi - lo) : 1); // lines dark, the rest a shade of the colour
+    const painted = pd && pd[i + 3] > 0, cr = painted ? pd[i] : base && base[0], cg = painted ? pd[i + 1] : base && base[1], cb = painted ? pd[i + 2] : base && base[2];
+    if (cr == null) continue;
+    if (!d[i + 3]) { if (painted) { d[i] = cr; d[i + 1] = cg; d[i + 2] = cb; d[i + 3] = 255; } continue; } // paint inside a see-through shape
+    const L = lum(d, i), t = L < UP_LINE ? L / UP_LINE * .35 : .45 + .55 * (hi > lo + .02 ? (L - lo) / (hi - lo) : 1);
     d[i] = cr * t; d[i + 1] = cg * t; d[i + 2] = cb * t;
   }
-  g.putImageData(img, 0, 0); return a.inks[color] = c;
+}
+const upScale = a => Math.min(1, 400 / Math.max(a.iw, a.ih));
+function composedUpload(a, base) {
+  a.comp = a.comp || {}; const key = base || '-'; if (a.comp[key]) return a.comp[key];
+  const k = upScale(a), c = document.createElement('canvas'); c.width = Math.max(1, Math.round(a.iw * k)); c.height = Math.max(1, Math.round(a.ih * k));
+  const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(a.image, 0, 0, c.width, c.height);
+  const img = g.getImageData(0, 0, c.width, c.height);
+  let pd = null; if (a.paintImg) { const q = document.createElement('canvas'); q.width = c.width; q.height = c.height; const qg = q.getContext('2d'); qg.drawImage(a.paintImg, 0, 0, c.width, c.height); pd = qg.getImageData(0, 0, c.width, c.height).data; }
+  colourize(img.data, pd, base ? hexRgb(base) : null); g.putImageData(img, 0, 0); return a.comp[key] = c;
 }
 /* Most pictures come with a white background. When their border is mostly white, the white that touches the border
    is made transparent, so the symbol sits on the map; white inside the drawing (a window, the middle of a mountain) stays. */
@@ -2791,6 +2815,7 @@ function registerUpload(u, bmp) {
     const im = u.keepWhite ? bmp : cutWhite(bmp);
     ASSETS['img:' + u.id] = { key: 'img:' + u.id, name: u.name, cat: 'up', upType: u.type, size: Math.max(6, Math.min(500, +u.size || 48)), kind: 'any', image: im, iw: im.width, ih: im.height, foot: .45 * im.height / Math.max(im.width, im.height),
       color: typeof u.color === 'string' && /^#[0-9a-f]{6}$/i.test(u.color) ? u.color : null };
+    if (typeof u.paint === 'string' && u.paint.startsWith('data:image/')) { const A = ASSETS['img:' + u.id], img = new Image(); img.onload = () => { if (ASSETS['img:' + u.id] === A) { A.paintImg = img; A.comp = {}; objEpoch++; req(); refreshThumbs(); } }; img.src = u.paint; }
   }
 }
 function catLabel(k, catId) { return catId.startsWith('up:') ? catId.slice(3) : catId === 'eigen' ? null : (CATS[k].find(c => c[0] === catId) || [])[1] || null; }
@@ -2914,7 +2939,8 @@ function buildUpList() {
     }));
     wide.append(info, del);
     const look = document.createElement('div'); look.className = 'wide'; look.hidden = u.kind !== 'symbool';
-    look.innerHTML = '<label class="check"><input type="checkbox"> Witte achtergrond weg</label><label class="check"><input type="checkbox"> Kleur <input type="color" style="width:34px;padding:0"></label>';
+    look.innerHTML = '<label class="check"><input type="checkbox"> Witte achtergrond weg</label><label class="check"><input type="checkbox"> Kleur <input type="color" style="width:34px;padding:0"></label><button type="button" class="btn">Inkleuren…</button>';
+    look.querySelector('button').addEventListener('click', () => openColorer(u));
     const [cutBox, colBox, colIn] = look.querySelectorAll('input'); cutBox.checked = !u.keepWhite; colBox.checked = !!u.color; colIn.value = u.color || '#8fba67';
     cutBox.addEventListener('change', () => { u.keepWhite = !cutBox.checked; commit(false); });
     colBox.addEventListener('change', () => { u.color = colBox.checked ? colIn.value : null; commit(false); });
@@ -2929,6 +2955,75 @@ function buildUpList() {
     card.append(upThumb(u), name, r1, r2, look, wide); box.append(card);
   }
 }
+/* ---------- colouring in an uploaded picture ---------- */
+let icS = null;
+const IC_TOOLS = [['emmer', 'Verfemmer'], ['potlood', 'Kleurpotlood'], ['kleurgum', 'Kleur wissen']];
+function openColorer(u) {
+  const a = ASSETS['img:' + u.id]; if (!a) return;
+  const k = upScale(a), W = Math.max(1, Math.round(a.iw * k)), H = Math.max(1, Math.round(a.ih * k));
+  const sc = document.createElement('canvas'); sc.width = W; sc.height = H; const sg = sc.getContext('2d', { willReadFrequently: true }); sg.drawImage(a.image, 0, 0, W, H);
+  const paint = document.createElement('canvas'); paint.width = W; paint.height = H;
+  icS = { u, W, H, src: sg.getImageData(0, 0, W, H).data, paint, hist: [], tool: 'emmer', last: null };
+  if (a.paintImg) paint.getContext('2d').drawImage(a.paintImg, 0, 0, W, H);
+  syncIcTools(); $('#icModal').hidden = false; drawIc();
+}
+function syncIcTools() {
+  const box = $('#icTools'); box.textContent = '';
+  for (const [k, n] of IC_TOOLS) { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = n; b.setAttribute('aria-pressed', icS.tool === k); b.addEventListener('click', () => { icS.tool = k; syncIcTools(); }); box.append(b); }
+}
+// where the picture sits on the 600 × 600 canvas
+const icFit = () => { const f = Math.min(560 / icS.W, 560 / icS.H); return { f, x: (600 - icS.W * f) / 2, y: (600 - icS.H * f) / 2 }; };
+function drawIc() {
+  if (!icS) return; const cv = $('#icCv'), g = cv.getContext('2d'), F = icFit();
+  g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = '#fff'; g.fillRect(0, 0, 600, 600);
+  g.fillStyle = '#eef0f3'; for (let y = 0; y < 600; y += 20) for (let x = (y / 20) % 2 * 20; x < 600; x += 40) g.fillRect(x, y, 20, 20); // a checkerboard shows see-through parts
+  const c = document.createElement('canvas'); c.width = icS.W; c.height = icS.H; const cg = c.getContext('2d'), img = cg.createImageData(icS.W, icS.H);
+  img.data.set(icS.src); colourize(img.data, icS.paint.getContext('2d').getImageData(0, 0, icS.W, icS.H).data, null); cg.putImageData(img, 0, 0);
+  g.imageSmoothingEnabled = true; g.drawImage(c, F.x, F.y, icS.W * F.f, icS.H * F.f);
+}
+function icPt(e) { const r = $('#icCv').getBoundingClientRect(), F = icFit(), x = (e.clientX - r.left) / r.width * 600, y = (e.clientY - r.top) / r.height * 600; return { x: (x - F.x) / F.f, y: (y - F.y) / F.f }; }
+function icBucket(p) {
+  const { W, H, src } = icS, x0 = Math.floor(p.x), y0 = Math.floor(p.y); if (x0 < 0 || y0 < 0 || x0 >= W || y0 >= H) return;
+  const s0 = (y0 * W + x0) * 4, tol = +$('#icTol').value, clear = src[s0 + 3] < 40;
+  if (!clear && lum(src, s0) < UP_LINE) { toast('Tik naast de zwarte lijn, in het vlak zelf.'); return; }
+  const like = j => { const i = j * 4; if (clear) return src[i + 3] < 40; if (src[i + 3] < 40 || lum(src, i) < UP_LINE) return false; return Math.abs(src[i] - src[s0]) + Math.abs(src[i + 1] - src[s0 + 1]) + Math.abs(src[i + 2] - src[s0 + 2]) <= tol * 1.6; };
+  const reg = new Uint8Array(W * H), stack = [y0 * W + x0]; reg[stack[0]] = 1; let edge = false;
+  while (stack.length) { const j = stack.pop(), x = j % W; if (x === 0 || x === W - 1 || j < W || j >= W * H - W) edge = true;
+    for (const n of [x > 0 ? j - 1 : -1, x < W - 1 ? j + 1 : -1, j - W, j + W]) if (n >= 0 && n < W * H && !reg[n] && like(n)) { reg[n] = 1; stack.push(n); } }
+  if (clear && edge) { toast('Dat doorzichtige vlak is niet gesloten.'); return; }
+  const g = icS.paint.getContext('2d'), img = g.getImageData(0, 0, W, H), [r, gg, b] = hexRgb($('#icColor').value);
+  for (let j = 0; j < W * H; j++) { let on = reg[j]; if (!on && !clear) { const x = j % W; on = (x > 0 && reg[j - 1]) || (x < W - 1 && reg[j + 1]) || (j >= W && reg[j - W]) || (j < W * H - W && reg[j + W]); } // and its soft edge
+    if (on) { img.data[j * 4] = r; img.data[j * 4 + 1] = gg; img.data[j * 4 + 2] = b; img.data[j * 4 + 3] = 255; } }
+  g.putImageData(img, 0, 0);
+}
+function icDab(a, b) {
+  const g = icS.paint.getContext('2d'); g.save(); g.lineCap = 'round'; g.lineWidth = Math.max(3, Math.max(icS.W, icS.H) / 40);
+  g.globalCompositeOperation = icS.tool === 'kleurgum' ? 'destination-out' : 'source-over'; g.strokeStyle = $('#icColor').value;
+  g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x + .01, b.y); g.stroke(); g.restore();
+}
+const icCv = $('#icCv');
+icCv.addEventListener('pointerdown', e => {
+  if (!icS) return; try { icCv.setPointerCapture(e.pointerId); } catch {} const p = icPt(e);
+  icS.hist.push(icS.paint.getContext('2d').getImageData(0, 0, icS.W, icS.H));
+  if (icS.tool === 'emmer') icBucket(p); else { icS.last = p; icDab(p, p); }
+  drawIc();
+});
+icCv.addEventListener('pointermove', e => { if (!icS || !icS.last) return; const p = icPt(e); icDab(icS.last, p); icS.last = p; drawIc(); });
+const icUp = () => { if (icS) icS.last = null; };
+icCv.addEventListener('pointerup', icUp); icCv.addEventListener('pointercancel', icUp);
+$('#icTol').addEventListener('input', e => { $('#icTolOut').textContent = e.target.value; });
+$('#icUndo').addEventListener('click', () => { if (icS && icS.hist.length) { icS.paint.getContext('2d').putImageData(icS.hist.pop(), 0, 0); drawIc(); } });
+$('#icClear').addEventListener('click', () => { if (!icS) return; icS.hist.push(icS.paint.getContext('2d').getImageData(0, 0, icS.W, icS.H)); icS.paint.getContext('2d').clearRect(0, 0, icS.W, icS.H); drawIc(); });
+const closeColorer = () => { $('#icModal').hidden = true; icS = null; };
+$('#icCancel').addEventListener('click', closeColorer);
+$('#icModal').addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); closeColorer(); } });
+$('#icSave').addEventListener('click', () => {
+  const { u, paint, W, H } = icS, pd = paint.getContext('2d').getImageData(0, 0, W, H).data; let any = false; for (let i = 3; i < pd.length; i += 4) if (pd[i]) { any = true; break; }
+  u.paint = any ? paint.toDataURL('image/png') : null; saveLib(); registerUpload(u, UPBMP.get(u.id));
+  const A = ASSETS['img:' + u.id]; if (A && any) { A.paintImg = paint; A.comp = {}; } // use it right away; the saved copy loads next time
+  closeColorer(); objEpoch++; afterUploadChange(false); refreshSel(); req();
+  toast(doc && doc.palette !== 'kleur' ? 'Bewaard. De kleuren zie je als de kaart op Kleur staat.' : 'Kleuren bewaard');
+});
 const drop = $('#upDrop');
 drop.addEventListener('click', () => $('#upFile').click());
 drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('#upFile').click(); } });
@@ -3430,7 +3525,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.13.1', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.14.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;

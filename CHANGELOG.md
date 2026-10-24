@@ -1,5 +1,12 @@
 # Wijzigingen
 
+## 1.14.0
+
+- **Afbeelding inkleuren:** kleur delen van een geüploade afbeelding apart in, bv. de kruin groen en de stam bruin.
+  - Openen kan via *Inkleuren…* bij een geselecteerd symbool, of bij de afbeelding in *Instellingen › Mijn assets*.
+  - Gereedschappen: *Verfemmer*, *Kleurpotlood* en *Kleur wissen*. De emmer vult alles met ongeveer dezelfde kleur. Met *Gevoelig* stel je in hoe ver hij gaat.
+  - Zwarte lijnen blijven zwart, licht en donker blijven behouden. Ingekleurde delen gaan voor op een kleur die je bij het symbool of penseel kiest; die kleurt alleen wat je niet zelf inkleurde.
+
 ## 1.13.1
 
 - **Geüploade afbeeldingen inkleuren werkt nu voor elk soort plaatje.** Zwarte lijnen blijven zwart, de rest krijgt de gekozen kleur, met behoud van licht en donker. Dat werkt voor lijntekeningen, silhouetten en gekleurde iconen.
