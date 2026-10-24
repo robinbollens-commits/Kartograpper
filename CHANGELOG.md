@@ -1,5 +1,13 @@
 # Wijzigingen
 
+## 1.21.1
+
+- De nederzettingen in de stijl **Oud** zijn opnieuw getekend, in fantasystijl:
+  - **Burcht:** een slottoren met een puntdak en een vlag, een kantelenmuur met poort en twee ronde torens, op een heuveltje.
+  - **Stad:** een ommuurde stad met een hoge torenspits, huisjes met steile daken en hoektorens. Deze vervangt de stad in bovenaanzicht.
+  - **Dorp:** huisjes met rode en bruine daken, een kapelletje met torentje en een boom.
+- *Kaart uit een verhaal* gebruikt de nieuwe stad en het nieuwe dorp.
+
 ## 1.21.0
 
 - Nieuwe ondergrond voor de wereldkaart: **Landschap**. Het is neutraal open land met fijne stippels en hier en daar een zacht streepje. Het is geen gras en ook niet dor. De kleur is aangepast aan elke kaartstijl.

@@ -1128,14 +1128,9 @@ const OLD_ASSETS = [
   ['o-loof', 'Loofboom', 'boom', 22, genOldLoof(0)],
   ['o-den', 'Den', 'boom', 24, genOldDen(0)],
   ['o-hut', 'Hut', 'nederzetting', 30, [['w', 'M-14 40L-14 8L14 8L14 40Z', 1.2, '#d9c8a0'], ['s', 'M10 10L10 38M6 12L6 38', .5], ['w', 'M-18 10L0 -30L18 10Q0 14 -18 10Z', 1.3, SEPIA], ['s', 'M0 -30L-10 10M0 -30L-4 11M0 -30L4 11M0 -30L9 10M0 -30L14 9', .5], ['w', 'M-4 40L-4 28Q0 24 4 28L4 40Z', .9, '#5a4632']]],
-  ['o-stad', 'Stad (bovenaanzicht)', 'nederzetting', 50, [['w', circ(0, 0, 40), 1.6, '#efe3c4'], ['s', circ(0, 0, 36), .6],
-    ...Array.from({ length: 34 }, (_, i) => { const r = rng(i * 31 + 4), a = r() * Math.PI * 2, d = 6 + Math.sqrt(r()) * 25, x = Math.cos(a) * d, y = Math.sin(a) * d, w = 3 + r() * 4, h = 3 + r() * 4; return ['w', `M${f2(x)} ${f2(y)}l${f2(w)} ${f2(r() - .5)}l${f2(r() - .5)} ${f2(h)}l${f2(-w)} ${f2(r() - .5)}Z`, .7, SEPIA]; }),
-    ['w', circ(0, 0, 5), 1, '#d9c8a0'], ['s', 'M-36 0L-5 0M5 0L36 0M0 -36L0 -5M0 5L0 36', .8], ['s', 'M-40 0L-47 0M40 0L47 0M0 -40L0 -47M0 40L0 47', 1.3]]],
   ['o-toren', 'Stenen toren', 'plek', 56, [['w', 'M-20 40L-14 -24L14 -24L20 40Z', 1.3, '#d8ccb2'], ['w', 'M-18 -24C-18 -34 18 -34 18 -24C18 -18 -18 -18 -18 -24Z', 1.2, '#e4dac4'], ...[-12, -4, 4, 12].flatMap(x => [['k', `M${x - 1.4} -24L${x - 1.4} -28Q${x} -30 ${x + 1.4} -28L${x + 1.4} -24Z`]]),
     ...[[-10, -12], [-3, -12], [4, -12], [11, -12], [-9, -2], [-2, -2], [5, -2], [11, -2]].map(([x, y]) => ['k', `M${x - 1.3} ${y + 4}L${x - 1.3} ${y}Q${x} ${y - 2} ${x + 1.3} ${y}L${x + 1.3} ${y + 4}Z`]),
     ['s', 'M-8 40L-6 8M0 40L0 8M8 40L6 8M14 40L12 8', .7], ['s', lines(L => { for (let y = -18; y < 38; y += 3) L(9 + (y + 24) * .1, y, 16 + (y + 24) * .1, y + 2); }), .45], ['s', 'M-28 42L28 42', .7]]],
-  ['o-burcht', 'Burcht', 'nederzetting', 54, [['w', 'M-26 40L-26 -6L18 -6L18 40Z', 1.4, '#ddd2bb'], ['w', 'M18 -6L30 -14L30 32L18 40Z', 1.3, '#bfb197'], ['w', 'M-26 -6L-14 -14L30 -14L18 -6Z', 1.3, '#e9e0cc'], ['s', lines(L => { for (let y = -10; y < 36; y += 3) L(19, y + 2, 29, y - 4); }), .45],
-    ['s', 'M-26 6L18 6M-26 18L18 18M-26 30L18 30M-14 -6L-14 40M2 -6L2 40', .45], ['w', 'M-8 40L-8 28Q-4 24 0 28L0 40Z', .9, '#5a4632'], ['k', rect(-20, -1, 4, 5)], ['k', rect(8, -1, 4, 5)]]],
 ];
 function oldTrees(seed, n, w, h) { // a small clump of round trees, the way old maps draw woods
   const r = rng(seed), T = []; for (let i = 0; i < n; i++) T.push([(r() - .5) * w, (r() - .5) * h, 7 + r() * 3]);
@@ -1146,7 +1141,6 @@ function oldTrees(seed, n, w, h) { // a small clump of round trees, the way old 
 }
 OLD_ASSETS.push(
   ['o-bosje', 'Bosje', 'boom', 44, oldTrees(7, 9, 44, 24)],
-  ['o-dorp', 'Dorp', 'nederzetting', 44, [[-18, 10, .8], [10, 2, .75], [22, 22, .9], [-4, 26, 1]].sort((a, b) => a[1] - b[1]).flatMap(([x, y, k]) => [['w', `M${f2(x - 9 * k)} ${f2(y + 14 * k)}L${f2(x - 9 * k)} ${f2(y)}L${f2(x + 9 * k)} ${f2(y)}L${f2(x + 9 * k)} ${f2(y + 14 * k)}Z`, 1, '#d9c8a0'], ['w', `M${f2(x - 12 * k)} ${f2(y + 1)}L${x} ${f2(y - 16 * k)}L${f2(x + 12 * k)} ${f2(y + 1)}Z`, 1.1, SEPIA], ['s', `M${x} ${f2(y - 16 * k)}L${f2(x + 5 * k)} ${f2(y + 1)}M${x} ${f2(y - 16 * k)}L${f2(x + 9 * k)} ${f2(y)}`, .45], ['k', rect(x - 1.5 * k, y + 7 * k, 3 * k, 7 * k)]])],
   ['o-ruine', 'Ruïne', 'plek', 46, [['w', 'M-36 38L36 38L36 42L-36 42Z', 1, '#cbbd9c'], ['w', 'M-28 38L-28 -4L-24 -8L-21 -2L-18 -6L-18 38Z', 1.1, '#ddd2bb'], ['w', 'M-8 38L-8 -24L-2 -28L2 -22L4 38Z', 1.1, '#ddd2bb'], ['w', 'M14 38L14 -10L18 -16L24 -12L24 38Z', 1.1, '#ddd2bb'], ['w', 'M-14 -30L20 -28L19 -21L-15 -23Z', 1.1, '#cbbd9c'],
     ['s', lines(L => { for (const [x0, x1] of [[-22, -18], [-1, 4], [20, 24]]) for (let y = -14; y < 36; y += 3) L(x0, y, x1, y + 2); }), .45], ['s', 'M-36 44Q-30 41 -24 44M24 44Q30 41 36 44', .6]]],
   ['o-schip', 'Schip', 'zee', 56, [['w', 'M-40 10C-28 14 28 14 40 10L30 26C10 30 -10 30 -30 26Z', 1.2, SEPIA], ['s', lines(L => { for (let x = -26; x < 28; x += 3) L(x, 16, x + 2, 25); }), .4], ['s', 'M-6 12L-6 -40M14 12L14 -28', 1], ['w', 'M-22 -34Q-6 -30 8 -34Q12 -22 8 -8Q-6 -12 -22 -8Q-18 -22 -22 -34Z', 1, '#efe3c4'], ['w', 'M6 -24Q16 -20 26 -24Q29 -16 26 -8Q16 -11 6 -8Q8 -16 6 -24Z', 1, '#efe3c4'], ['s', 'M-14 -30Q-12 -20 -14 -10M16 -22Q18 -16 16 -10', .45], ['s', 'M-44 32Q-38 29 -32 32M18 32Q24 29 30 32Q36 35 42 32', .7]]],
@@ -1169,8 +1163,8 @@ function hatchPoly(P, gap, slant = 0) {
 const hatchRect = (x0, y0, x1, y1, gap, slant) => hatchPoly([[x0, y0], [x1, y0], [x1, y1], [x0, y1]], gap, slant);
 const archWin = (x, y, w, h) => ['k', `M${f2(x - w / 2)} ${f2(y + h)}L${f2(x - w / 2)} ${f2(y + w / 2)}Q${f2(x)} ${f2(y - w / 2)} ${f2(x + w / 2)} ${f2(y + w / 2)}L${f2(x + w / 2)} ${f2(y + h)}Z`];
 // a slender tower with a tall pointed roof, its right side hatched
-function oTower(x, base, h, w, roof = SEPIA, stone = OSTONE) {
-  const top = base - h, rh = w * 2.6;
+function oTower(x, base, h, w, roof = SEPIA, stone = OSTONE, rh = w * 2.6) {
+  const top = base - h;
   return [['w', pl([[x - w / 2, base], [x - w * .42, top], [x + w * .42, top], [x + w / 2, base]]) + 'Z', 1.1, stone],
     ['s', hatchPoly([[x + w * .1, base], [x + w * .1, top], [x + w * .42, top], [x + w / 2, base]], 1.5), .4],
     ['w', `M${f2(x - w * .64)} ${f2(top)}Q${f2(x - w * .22)} ${f2(top - rh * .45)} ${f2(x)} ${f2(top - rh)}Q${f2(x + w * .22)} ${f2(top - rh * .45)} ${f2(x + w * .64)} ${f2(top)}Z`, 1.1, roof],
@@ -1284,6 +1278,39 @@ const OLD_DARK = [
 OLD_FOLK_ASSETS.push(...OLD_DWARF, ...OLD_DARK);
 const OLD_FOLK_GENERATORS = { 'o-elfwoud': genOldElfwoud, 'o-dodeboom': genOldDood };
 const OLD_FOLK_FILL = { 'o-elfwoud': '#8f9c62', 'o-elfboom': '#9aa56a', 'o-elfstad': '#e4e2c8', 'o-dodeboom': '#9a8a74' };
+
+/* old-map settlements, fantasy style: pointed roofs, round towers, walls on a small mound */
+const OROOF = '#a8714c', OWALL = '#e6dbc0';
+// a house front: walls with the shady right side hatched, a steep roof
+function oHouse(x, base, w, h, rh, roof = SEPIA, wall = OWALL) {
+  const top = base - h, ops = [['w', rect(x - w / 2, top, w, h), 1, wall], ['s', hatchRect(x + w * .18, top + .6, x + w / 2 - .4, base - .5, 1.3, 0), .35],
+    ['w', pl([[x - w / 2 - 2, top + .5], [x, top - rh], [x + w / 2 + 2, top + .5]]) + 'Z', 1.1, roof],
+    ['s', lines(L => { for (let k = 1; k < 4; k++) L(x + .3, top - rh + 2, x + k * w * .17, top); }), .4]];
+  if (h >= 10) ops.push(['k', rect(x - w * .22 - 1.5, base - 6, 3, 6)]);
+  if (h >= 12) ops.push(['k', rect(x + w * .08, top + 3, 2.4, 2.6)]);
+  return ops;
+}
+// a crenellated wall, open at the foot
+function oWall(x0, x1, top, base, col = OSTONE) {
+  const ops = [['w', `M${x0} ${base}L${x0} ${top}L${x1} ${top}L${x1} ${base}`, 1.1, col]];
+  for (let x = x0 + 1; x < x1 - 3; x += 6) ops.push(['w', rect(x, top - 4, 3.6, 4), .9, col]);
+  ops.push(['s', lines(L => { for (let y = top + 5, i = 0; y < base - 2; y += 5, i++) for (let x = x0 + (i % 2) * 4 + 3; x < x1 - 4; x += 9) L(x, y, x + 4, y); }), .35]);
+  return ops;
+}
+const oMound = (w, top, col = '#d8cda8') => [['g', `M${-w} 44C${-w * .72} ${top} ${w * .72} ${top} ${w} 44Z`, top + 4, col], ['s', `M${-w} 44C${-w * .72} ${top} ${w * .72} ${top} ${w} 44`, 1]];
+const oGate = (x, base, w, h) => [['w', `M${x - w / 2 - 2.5} ${base}L${x - w / 2 - 2.5} ${base - h + w / 2}Q${x} ${base - h - w * .45} ${x + w / 2 + 2.5} ${base - h + w / 2}L${x + w / 2 + 2.5} ${base}`, .9, OSTONE2],
+  ['k', `M${x - w / 2} ${base}L${x - w / 2} ${base - h + w / 2}Q${x} ${base - h - w * .2} ${x + w / 2} ${base - h + w / 2}L${x + w / 2} ${base}Z`]];
+const oFlag = (x, y, col = '#9a4a3a') => [['s', `M${x} ${y}L${x} ${y - 9}`, .8], ['w', `M${x} ${y - 9}L${x + 8} ${y - 7.5}L${x + 4} ${y - 6}L${x + 8} ${y - 4.5}L${x} ${y - 4}Z`, .7, col]];
+OLD_ASSETS.push(
+  ['o-burcht', 'Burcht', 'nederzetting', 56, [...oMound(48, 30), ...oTower(0, 14, 34, 22, SEPIA, OSTONE, 20), ...oFlag(0, -40),
+    ...oWall(-26, 26, 12, 38), ...oGate(0, 38, 9, 16), ...oTower(-29, 39, 36, 13, SEPIA, OSTONE, 15), ...oTower(29, 39, 36, 13, SEPIA, OSTONE, 15)]],
+  ['o-stad', 'Stad', 'nederzetting', 58, [...oMound(50, 28), ...oHouse(-24, 20, 10, 12, 10, OROOF), ...oHouse(20, 19, 10, 13, 10, OROOF), ...oHouse(30, 21, 8, 10, 8),
+    ...oTower(4, 16, 32, 10, SEPIA, OSTONE, 22), ...oFlag(4, -38), ...oHouse(-12, 18, 10, 14, 11), ...oTower(-30, 20, 24, 9, OROOF, OSTONE, 14), ...oHouse(14, 21, 9, 10, 9, OROOF),
+    ...oWall(-38, 38, 22, 40), ...oGate(0, 40, 8, 14), ...oTower(-40, 41, 28, 10, SEPIA, OSTONE, 13), ...oTower(40, 41, 28, 10, SEPIA, OSTONE, 13)]],
+  ['o-dorp', 'Dorp', 'nederzetting', 50, [['s', 'M-3 14L-3 24', 1.2], ['w', bumps(-3, 2, 12, 11, 8, 21, 1.22, .16), 1, OLIVE], ['s', 'M4 0L7 3M2 6L5 9', .45],
+    ...oHouse(20, 18, 16, 17, 13), ...oTower(32, 18, 22, 8, SEPIA, OSTONE, 16), ...oHouse(-25, 22, 17, 14, 14, OROOF),
+    ...oHouse(-7, 38, 17, 14, 14), ...oHouse(16, 40, 15, 13, 13, OROOF), ['s', 'M-40 40Q-34 38 -28 40M30 42Q36 40 42 42', .6]]],
+);
 
 
 const WORLD_ASSETS = [
@@ -2060,7 +2087,7 @@ function bookSummary(L) {
 }
 const BOOK_KEYS = {
   berg: ['berg', 'g-berg', 'o-berg'], heuvel: ['heuvels', 'g-heuvel', 'o-heuvel'], loof: ['loof', 'g-loof', 'o-loof'], den: ['naald', 'g-den', 'o-den'], spar: ['spar', 'g-den', 'o-den'], palm: ['palm', 'g-palm', 'palm'], riet: ['riet', 'riet', 'riet'],
-  hoofd: ['kasteel', 'g-kasteel', 'o-burcht'], stad: ['stad', 'g-stad', 'o-dorp'], dorp: ['dorp', 'g-dorp', 'o-hut'],
+  hoofd: ['kasteel', 'g-kasteel', 'o-burcht'], stad: ['stad', 'g-stad', 'o-stad'], dorp: ['dorp', 'g-dorp', 'o-dorp'],
   'elf-hoofd': ['elfstad', 'g-elfstad', 'o-elfstad'], 'elf-stad': ['elftoren', 'g-elftoren', 'o-elftoren'], 'elf-boom': ['elfwoud', 'g-elfwoud', 'o-elfwoud'],
   'dwerg-hoofd': ['dwergvesting', 'g-dwergvesting', 'o-dwergvesting'], 'dwerg-stad': ['dwergpoort', 'g-bergpoort', 'o-bergpoort'], 'dwerg-dorp': ['smidse', 'g-smidse', 'o-smidse'],
   'duister-hoofd': ['duistertoren', 'g-duistertoren', 'o-duistertoren'], 'duister-stad': ['orkkamp', 'g-orkkamp', 'o-orkkamp'], 'duister-boom': ['dodeboom', 'g-spookboom', 'o-dodeboom'],
@@ -4349,7 +4376,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.21.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.21.1', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;
