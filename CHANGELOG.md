@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## 1.15.0
+
+- **Gekleurde uploads passen bij de kaartstijl:** op een Inkt-kaart verschijnt een gekleurde afbeelding in grijstinten van de inkt, op Perkament in bruine inkt op perkament, en op een kleurenkaart in haar eigen kleuren. Het origineel blijft bewaard.
+
 ## 1.14.3
 
 - **Witte achtergrond doorzichtig maken** bij het uploaden haalt nu alleen het wit rond de tekening weg, niet meer elk wit pixel. Wit binnen in de tekening blijft, zodat het ingekleurd kan worden en de kaart er niet door schijnt. Afbeeldingen die je eerder uploadde, werden al zonder dat wit bewaard: upload ze opnieuw om ze goed in te kleuren.

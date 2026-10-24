@@ -1033,7 +1033,7 @@ function drawAsset(g, key, x, y, s, rot, flip, v, col) {
   const fill = (CUR.colorful && col) || fillFor(a), k = s / 100;
   g.save(); g.translate(x, y); if (rot) g.rotate(rot * Math.PI / 180); g.scale(flip ? -k : k, k);
   g.lineJoin = 'round'; g.lineCap = 'round'; g.strokeStyle = INKC;
-  if (a.image) { const m = Math.max(a.iw, a.ih), ic = CUR.colorful ? col || a.color : null; if (ic && !a.paintImg && imageMask(a)) g.drawImage(tinted(a, ic), -50, -50, 100, 100); g.drawImage(ic || (CUR.colorful && a.paintImg) ? composedUpload(a, ic) : a.image, -a.iw / m * 50, -a.ih / m * 50, a.iw / m * 100, a.ih / m * 100); g.restore(); return; }
+  if (a.image) { const m = Math.max(a.iw, a.ih), ic = CUR.colorful ? col || a.color : null; if (ic && !a.paintImg && imageMask(a)) g.drawImage(tinted(a, ic), -50, -50, 100, 100); g.drawImage(ic || (CUR.colorful && a.paintImg) ? composedUpload(a, ic) : CUR.colorful ? a.image : monoUpload(a), -a.iw / m * 50, -a.ih / m * 50, a.iw / m * 100, a.ih / m * 100); g.restore(); return; }
   if (a.custom) {
     if (a.mask) g.drawImage(tinted(a, fill), -50, -50, 100, 100);
     if (a.paint && CUR.colorful && !col) g.drawImage(a.paint, -50, -50, 100, 100); // coloured in by hand in the drawing pad
@@ -2442,6 +2442,15 @@ function inkOnly(im) {
   for (let i = 0; i < d.length; i += 4) { const v = lum(d, i) < .5 ? 20 : 255; d[i] = d[i + 1] = d[i + 2] = v; }
   g.putImageData(img, 0, 0); return c;
 }
+// on an ink or parchment map a picture in colour is shown in the map's own ink: dark parts in ink, light parts in paper
+function monoUpload(a) {
+  a.mono = a.mono || {}; const key = CUR.name; if (a.mono[key]) return a.mono[key];
+  const k = Math.min(1, 1024 / Math.max(a.iw, a.ih)), c = document.createElement('canvas'); c.width = Math.max(1, Math.round(a.iw * k)); c.height = Math.max(1, Math.round(a.ih * k));
+  const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(a.image, 0, 0, c.width, c.height);
+  const img = g.getImageData(0, 0, c.width, c.height), d = img.data, I = CUR.ink, P = CUR.paper;
+  for (let i = 0; i < d.length; i += 4) { if (!d[i + 3]) continue; const t = Math.pow(lum(d, i), .6); d[i] = I[0] + (P[0] - I[0]) * t; d[i + 1] = I[1] + (P[1] - I[1]) * t; d[i + 2] = I[2] + (P[2] - I[2]) * t; }
+  g.putImageData(img, 0, 0); return a.mono[key] = c;
+}
 const upScale = a => Math.min(1, 800 / Math.max(a.iw, a.ih)); // working size for colouring in
 function composedUpload(a, base) {
   a.comp = a.comp || {}; const key = base || '-'; if (a.comp[key]) return a.comp[key];
@@ -3606,7 +3615,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.14.3', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.15.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;
