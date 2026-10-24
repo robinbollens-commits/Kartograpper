@@ -1,5 +1,12 @@
 # Wijzigingen
 
+## 1.14.3
+
+- **Witte achtergrond doorzichtig maken** bij het uploaden haalt nu alleen het wit rond de tekening weg, niet meer elk wit pixel. Wit binnen in de tekening blijft, zodat het ingekleurd kan worden en de kaart er niet door schijnt. Afbeeldingen die je eerder uploadde, werden al zonder dat wit bewaard: upload ze opnieuw om ze goed in te kleuren.
+- Kleine openingen in de lijnen laten de achtergrond en de verfemmer niet meer naar binnen lopen.
+- Een kleine zwart-witte tekening wordt eerst vloeiend vergroot en dan pas zwart-wit gemaakt: gladde lijnen in plaats van trapjes, en lichtgrijze schaduwen verdwijnen.
+- Herstel: niet-vierkante afbeeldingen werden onderaan niet goed behandeld.
+
 ## 1.14.2
 
 - **Egaal inkleuren:** ingekleurde delen van een afbeelding krijgen precies de gekozen kleur, zonder grijstinten of schaduw. Donkere lijnen worden puur zwart.

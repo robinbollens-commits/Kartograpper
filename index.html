@@ -2390,9 +2390,10 @@ const f1 = v => Math.round(v * 10) / 10;
 const padBrushW = () => +$('#padBrush').value / 4;
 const icBrushW = () => Math.max(1, +$('#icSize').value / 100 * Math.max(icS.W, icS.H) / 4);
 const brushKeys = (e, input, redraw) => { if (e.key !== '[' && e.key !== ']') return false; const el = $(input); el.value = Math.max(1, Math.min(100, +el.value + (e.key === ']' ? 4 : -4))); el.dispatchEvent(new Event('input')); redraw(); return true; };
+// widen a mask by r pixels; N is the width (the height follows from the length, so it need not be square)
 function grow(a, N, r) {
-  let cur = a;
-  for (let k = 0; k < r; k++) { const nx = cur.slice(); for (let i = 0; i < N * N; i++) if (cur[i]) { const x = i % N; if (x > 0) nx[i - 1] = 1; if (x < N - 1) nx[i + 1] = 1; if (i >= N) nx[i - N] = 1; if (i < N * N - N) nx[i + N] = 1; } cur = nx; }
+  let cur = a; const T = a.length;
+  for (let k = 0; k < r; k++) { const nx = cur.slice(); for (let i = 0; i < T; i++) if (cur[i]) { const x = i % N; if (x > 0) nx[i - 1] = 1; if (x < N - 1) nx[i + 1] = 1; if (i >= N) nx[i - N] = 1; if (i < T - N) nx[i + N] = 1; } cur = nx; }
   return cur;
 }
 /* The inside of a drawing on a square canvas: everything the outside cannot reach. The ink is thickened by `gap`
@@ -2430,10 +2431,14 @@ function colourize(d, pd, base) {
 /* A black-and-white or grey drawing becomes pure black and white, like the rest of the map; a picture in full colour stays
    as it is. Returns the canvas it changed, or the picture itself. */
 function inkOnly(im) {
-  const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(im, 0, 0);
-  const img = g.getImageData(0, 0, c.width, c.height), d = img.data; let n = 0, grey = 0;
-  for (let i = 0; i < d.length; i += 16) if (d[i + 3] > 40) { n++; if (Math.max(d[i], d[i + 1], d[i + 2]) - Math.min(d[i], d[i + 1], d[i + 2]) < 30) grey++; }
+  const t = document.createElement('canvas'); t.width = im.width; t.height = im.height; const tg = t.getContext('2d', { willReadFrequently: true }); tg.drawImage(im, 0, 0);
+  const td = tg.getImageData(0, 0, t.width, t.height).data; let n = 0, grey = 0;
+  for (let i = 0; i < td.length; i += 16) if (td[i + 3] > 40) { n++; if (Math.max(td[i], td[i + 1], td[i + 2]) - Math.min(td[i], td[i + 1], td[i + 2]) < 30) grey++; }
   if (!n || grey < n * .95) return im;
+  // a small drawing is enlarged smoothly first, so its edges stay round instead of turning into steps
+  const k = Math.max(1, Math.min(4, 800 / Math.max(im.width, im.height))), c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+  const g = c.getContext('2d', { willReadFrequently: true }); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(im, 0, 0, c.width, c.height);
+  const img = g.getImageData(0, 0, c.width, c.height), d = img.data;
   for (let i = 0; i < d.length; i += 4) { const v = lum(d, i) < .5 ? 20 : 255; d[i] = d[i + 1] = d[i + 2] = v; }
   g.putImageData(img, 0, 0); return c;
 }
@@ -2454,10 +2459,14 @@ function cutWhite(bmp) {
   const img = g.getImageData(0, 0, W, H), d = img.data, light = i => d[i * 4 + 3] > 200 && d[i * 4] > 228 && d[i * 4 + 1] > 228 && d[i * 4 + 2] > 228;
   const border = []; for (let x = 0; x < W; x++) border.push(x, (H - 1) * W + x); for (let y = 1; y < H - 1; y++) border.push(y * W, y * W + W - 1);
   if (border.filter(light).length < border.length * .6) return bmp;
-  const seen = new Uint8Array(W * H), stack = [];
-  for (const i of border) if (!seen[i] && light(i)) { seen[i] = 1; stack.push(i); }
-  while (stack.length) { const i = stack.pop(), x = i % W; d[i * 4 + 3] = 0;
-    for (const j of [x > 0 ? i - 1 : -1, x < W - 1 ? i + 1 : -1, i - W, i + W]) if (j >= 0 && j < W * H && !seen[j] && light(j)) { seen[j] = 1; stack.push(j); } }
+  // the lines are thickened a little first, so a tiny opening in an outline does not let the background flow inside
+  const gap = Math.max(2, Math.round(Math.max(W, H) / 60)), dark = new Uint8Array(W * H); for (let i = 0; i < W * H; i++) dark[i] = light(i) ? 0 : 1;
+  const wall = grow(dark, W, gap), seen = new Uint8Array(W * H), stack = [];
+  for (const i of border) if (!seen[i] && light(i) && !wall[i]) { seen[i] = 1; stack.push(i); }
+  while (stack.length) { const i = stack.pop(), x = i % W;
+    for (const j of [x > 0 ? i - 1 : -1, x < W - 1 ? i + 1 : -1, i - W, i + W]) if (j >= 0 && j < W * H && !seen[j] && light(j) && !wall[j]) { seen[j] = 1; stack.push(j); } }
+  const away = grow(seen, W, gap); // and the white right next to the lines goes too
+  for (let i = 0; i < W * H; i++) if (away[i] && light(i)) d[i * 4 + 3] = 0;
   g.putImageData(img, 0, 0); return c;
 }
 // uploaded line art can be coloured too: its inside is found once, from the transparent outside of the picture
@@ -2832,7 +2841,7 @@ function registerUpload(u, bmp) {
     const tile = { c, C: g.getImageData(0, 0, W, H).data, W, H, S: W };
     for (const k of ['world', 'local']) if (usableIn(u, k)) TERRAINS[k].push({ id: 'x:' + u.id, name: u.name, tile, upload: u, color: null });
   } else {
-    const im = inkOnly(u.keepWhite ? bmp : cutWhite(bmp));
+    const ink = inkOnly(bmp), im = u.keepWhite ? ink : cutWhite(ink);
     ASSETS['img:' + u.id] = { key: 'img:' + u.id, name: u.name, cat: 'up', upType: u.type, size: Math.max(6, Math.min(500, +u.size || 48)), kind: 'any', image: im, iw: im.width, ih: im.height, foot: .45 * im.height / Math.max(im.width, im.height),
       color: typeof u.color === 'string' && /^#[0-9a-f]{6}$/i.test(u.color) ? u.color : null };
     if (typeof u.paint === 'string' && u.paint.startsWith('data:image/')) { const A = ASSETS['img:' + u.id], img = new Image(); img.onload = () => { if (ASSETS['img:' + u.id] === A) { A.paintImg = img; A.comp = {}; objEpoch++; req(); refreshThumbs(); } }; img.src = u.paint; }
@@ -2877,10 +2886,11 @@ async function makeUpload(file, name, o) {
   const img = await loadImage(file);
   let w = img.naturalWidth || 256, h = img.naturalHeight || 256; const sc = Math.min(1, 512 / Math.max(w, h)); w = Math.max(1, Math.round(w * sc)); h = Math.max(1, Math.round(h * sc));
   let c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(img, 0, 0, w, h);
-  if (o.white) { const d = g.getImageData(0, 0, w, h); for (let i = 0; i < d.data.length; i += 4) { const m = Math.min(d.data[i], d.data[i + 1], d.data[i + 2]); if (m > 235) d.data[i + 3] = 0; else if (m > 200) d.data[i + 3] = Math.round(d.data[i + 3] * (235 - m) / 35); } g.putImageData(d, 0, 0); }
+  // the picture is stored as it is; a white background is taken away when it is shown (cutWhite), so white inside the drawing stays
   if (o.kind === 'symbool') c = trimCanvas(c);
   const blob = await new Promise(res => c.toBlob(res, 'image/png'));
   const u = { id: newId(), name: String(name || 'Afbeelding').slice(0, 40), type: o.type, kind: o.kind, use: o.use, size: o.kind === 'textuur' ? Math.min(256, c.width) : (TYPE_SIZE[o.type] || 48) };
+  if (!o.white) u.keepWhite = true;
   if (!lib.types.includes(u.type)) lib.types.push(u.type);
   lib.uploads.push(u); UPBLOB.set(u.id, blob); store.put('img:' + u.id, blob); registerUpload(u, await createImageBitmap(blob));
   return u;
@@ -3021,13 +3031,17 @@ function icBucket(p) {
   const s0 = (y0 * W + x0) * 4, tol = +$('#icTol').value, clear = src[s0 + 3] < 40;
   if (!clear && lum(src, s0) < UP_LINE) { toast('Tik naast de zwarte lijn, in het vlak zelf.'); return; }
   const like = j => { const i = j * 4; if (clear) return src[i + 3] < 40; if (src[i + 3] < 40 || lum(src, i) < UP_LINE) return false; return Math.max(Math.abs(src[i] - src[s0]), Math.abs(src[i + 1] - src[s0 + 1]), Math.abs(src[i + 2] - src[s0 + 2])) <= tol * .6; }; // biggest difference in one colour channel: keeps green and brown apart
-  const reg = new Uint8Array(W * H), stack = [y0 * W + x0]; reg[stack[0]] = 1; let edge = false;
+  // lines count a little thicker while filling, so the colour does not leak through a tiny gap; afterwards it is spread
+  // back up to the lines (they stay black anyway)
+  const gap = Math.max(1, Math.round(Math.max(W, H) / 800)), lines = new Uint8Array(W * H);
+  for (let j = 0; j < W * H; j++) lines[j] = src[j * 4 + 3] >= 40 && lum(src, j * 4) < UP_LINE ? 1 : 0;
+  const wall = grow(lines, W, gap), seed = y0 * W + x0, useWall = !wall[seed];
+  const reg = new Uint8Array(W * H), stack = [seed]; reg[seed] = 1; let edge = false;
   while (stack.length) { const j = stack.pop(), x = j % W; if (x === 0 || x === W - 1 || j < W || j >= W * H - W) edge = true;
-    for (const n of [x > 0 ? j - 1 : -1, x < W - 1 ? j + 1 : -1, j - W, j + W]) if (n >= 0 && n < W * H && !reg[n] && like(n)) { reg[n] = 1; stack.push(n); } }
+    for (const n of [x > 0 ? j - 1 : -1, x < W - 1 ? j + 1 : -1, j - W, j + W]) if (n >= 0 && n < W * H && !reg[n] && (!useWall || !wall[n]) && like(n)) { reg[n] = 1; stack.push(n); } }
   if (clear && edge) { toast('Dat doorzichtige vlak is niet gesloten.'); return; }
-  const g = icS.paint.getContext('2d'), img = g.getImageData(0, 0, W, H), [r, gg, b] = hexRgb($('#icColor').value);
-  for (let j = 0; j < W * H; j++) { let on = reg[j]; if (!on && !clear) { const x = j % W; on = (x > 0 && reg[j - 1]) || (x < W - 1 && reg[j + 1]) || (j >= W && reg[j - W]) || (j < W * H - W && reg[j + W]); } // and its soft edge
-    if (on) { img.data[j * 4] = r; img.data[j * 4 + 1] = gg; img.data[j * 4 + 2] = b; img.data[j * 4 + 3] = 255; } }
+  const full = grow(reg, W, gap + 1), g = icS.paint.getContext('2d'), img = g.getImageData(0, 0, W, H), [r, gg, b] = hexRgb($('#icColor').value);
+  for (let j = 0; j < W * H; j++) if (full[j] && !icS.outside[j] && (reg[j] || lines[j] || like(j))) { img.data[j * 4] = r; img.data[j * 4 + 1] = gg; img.data[j * 4 + 2] = b; img.data[j * 4 + 3] = 255; }
   g.putImageData(img, 0, 0);
 }
 /* Fill the small bits that are still uncoloured (white specks between the lines, light edges along them) with the colour of
@@ -3592,7 +3606,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.14.2', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.14.3', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;
