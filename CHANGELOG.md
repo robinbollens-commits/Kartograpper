@@ -1,5 +1,18 @@
 # Wijzigingen
 
+## 1.20.0
+
+- **Kaart uit een verhaal:** je schrijft de landen uit je boek op, één per regel, en Kartograpper tekent er meteen een wereldkaart van. Per land kun je opgeven:
+  - de ligging (noord, zuidwest, midden, eiland…);
+  - de grootte;
+  - het landschap (bergen, bossen, heuvels, woestijn, moeras, sneeuw, akkers);
+  - het volk (elfen, dwergen, duister);
+  - de steden: de eerste is de hoofdstad.
+- Op de kaart komen grenzen tussen de landen, bodem en symbolen die bij elk land passen, rivieren, wegen tussen de steden, de namen van de landen en zeeën, en een titel.
+- Onder het tekstvak zie je meteen hoe elke regel begrepen wordt.
+- Je kiest de symbolen: Klassiek, Gedetailleerd of Oud.
+- Start via *Kaart uit een verhaal…* onder de kaart, of via Nieuwe kaart. Je tekst wordt onthouden, dus je kunt hem aanpassen en opnieuw genereren.
+
 ## 1.19.1
 
 - Bergen, heuvels en de dwergenmijn in de stijl **Oud** hebben geen lijn meer langs de voet. Zo lijken ze meer met de hand getekend.

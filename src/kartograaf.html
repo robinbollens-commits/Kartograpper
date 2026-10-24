@@ -375,7 +375,7 @@ body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
         <button type="button" class="chip" data-pal="kleur" aria-pressed="false">Kleur</button>
         <button type="button" class="chip" data-pal="oud" aria-pressed="false">Oude kaart</button>
       </div>
-      <div class="btns" id="genRow"><button type="button" class="btn" id="genBtn">Willekeurig werelddeel maken…</button></div>
+      <div class="btns" id="genRow"><button type="button" class="btn" id="genBtn">Willekeurig werelddeel maken…</button><button type="button" class="btn" id="genBookBtn">Kaart uit een verhaal…</button></div>
       <div id="mapLocal" style="display:grid;gap:10px">
         <div class="chips" id="styleChips">
           <button type="button" class="chip" data-style="dungeon" aria-pressed="true">Dungeon</button>
@@ -401,6 +401,16 @@ body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
       <label class="opt"><input type="radio" name="content" id="ncEmpty" value="leeg" checked> Lege kaart</label>
       <label class="opt"><input type="radio" name="content" id="ncSample" value="voorbeeld"> Voorbeeld om mee te beginnen</label>
       <label class="opt" id="ncGenRow"><input type="radio" name="content" id="ncGen" value="genereer"> Willekeurig werelddeel</label>
+      <label class="opt" id="ncBookRow"><input type="radio" name="content" id="ncBook" value="verhaal"> Uit een verhaal: jij noemt de landen, ik teken de kaart</label>
+    </fieldset>
+    <fieldset id="fsBook" hidden>
+      <legend>Landen uit je verhaal</legend>
+      <label class="field"><span>Naam van de kaart (mag leeg blijven)</span><input type="text" id="boTitle" maxlength="60"></label>
+      <label class="field"><span>Eén land per regel: eerst de naam, dan wat je erover weet</span><textarea id="boText" rows="8" spellcheck="false" placeholder="Valdoria: midden, groot, heuvels, Koningsstad, Molenrijk"></textarea></label>
+      <p class="note">Ligging: noord, zuidwest, midden, eiland… · Grootte: klein, groot, enorm · Landschap: bergen, bossen, heuvels, woestijn, moeras, sneeuw, akkers · Volk: elfen, dwergen, duister. Andere woorden worden steden, de eerste is de hoofdstad. Met een regel <b>Zee: …</b> geef je de zeeën een naam.</p>
+      <ul class="note" id="boSeen" style="margin:0;padding-left:18px;display:grid;gap:2px"></ul>
+      <div class="btns"><button type="button" class="btn" id="boExample">Voorbeeld invullen</button></div>
+      <label class="field"><span>Symbolen</span><select id="boStyle"><option value="klassiek">Klassiek</option><option value="detail">Gedetailleerd</option><option value="oud">Oud, met de kleuren van een oude kaart</option></select></label>
     </fieldset>
     <fieldset id="fsGen" hidden>
       <legend>Werelddeel</legend>
@@ -1961,6 +1971,230 @@ function genLand(d, R, o = {}) {
 function sampleWorld(W = 1800, H = 1200, o = {}) {
   const d = newDoc('world', W, H); d.sample = true;
   genLand(d, { x: 0, y: 0, w: W, h: H }, { ...o, full: true });
+  syncShadows(d); return d;
+}
+/* ---------- a map from a story: you list the lands, the generator lays them out ---------- */
+const BOOK_DIRS = { noord: [0, -1], noorden: [0, -1], zuid: [0, 1], zuiden: [0, 1], oost: [1, 0], oosten: [1, 0], west: [-1, 0], westen: [-1, 0],
+  noordoost: [.8, -.8], noordoosten: [.8, -.8], noordwest: [-.8, -.8], noordwesten: [-.8, -.8], zuidoost: [.8, .8], zuidoosten: [.8, .8], zuidwest: [-.8, .8], zuidwesten: [-.8, .8], midden: [0, 0], centrum: [0, 0] };
+const BOOK_TERR = { bergen: 'bergen', berg: 'bergen', gebergte: 'bergen', bergachtig: 'bergen', bos: 'bos', bossen: 'bos', woud: 'bos', wouden: 'bos', bebost: 'bos', oerwoud: 'bos', jungle: 'bos',
+  heuvels: 'heuvels', heuvel: 'heuvels', heuvelachtig: 'heuvels', woestijn: 'woestijn', zand: 'woestijn', duinen: 'woestijn', droog: 'woestijn', moeras: 'moeras', moerassen: 'moeras', drassig: 'moeras', veen: 'moeras',
+  sneeuw: 'sneeuw', ijs: 'sneeuw', bevroren: 'sneeuw', koud: 'sneeuw', toendra: 'sneeuw', akkers: 'akkers', velden: 'akkers', landbouw: 'akkers', vlakte: 'akkers', vlaktes: 'akkers', weiden: 'akkers', graan: 'akkers',
+  steppe: 'dor', dor: 'dor', kaal: 'dor', woest: 'dor' };
+const BOOK_FOLK = { elfen: 'elf', elf: 'elf', dwergen: 'dwerg', dwerg: 'dwerg', orks: 'duister', ork: 'duister', orken: 'duister', duister: 'duister', duistere: 'duister', kwaad: 'duister', donker: 'duister', schaduw: 'duister', trollen: 'duister', mensen: 'mens', mens: 'mens' };
+const BOOK_SIZE = { piepklein: .35, klein: .55, kleine: .55, middel: 1, gewoon: 1, groot: 1.6, grote: 1.6, enorm: 2.3, heelgroot: 2.3, reusachtig: 2.3 };
+const BOOK_FILL = new Set(['en', 'met', 'veel', 'vol', 'het', 'de', 'in', 'van', 'bij', 'aan', 'heel']);
+const BOOK_EXAMPLE = `Valdoria: midden, groot, heuvels, Koningsstad, Molenrijk, Brugwater
+Eldarin: noordwest, bossen, elfen, Lithelle, Zilverloof
+Khazrak: noordoost, bergen, dwergen, Diepvesting, Smeltpoort
+Morgrath: zuidoost, duister, Zwartklauw, Asgrom
+Zandrijk: zuid, woestijn, klein, Oaze
+Meeuweneiland: west, eiland, klein, Meeuwenhaven
+Zee: Zee van Stilte, Westerwater`;
+// one land per line: "Name: words, words, City, City". Words it knows set the place, size, landscape or people; everything else is a town, the first one the capital.
+function parseBook(text) {
+  const lands = [], seas = [];
+  for (const raw of String(text || '').split('\n')) {
+    const line = raw.trim(); if (!line) continue;
+    const m = line.match(/^([^:,]+)[:,](.*)$/), name = (m ? m[1] : line).trim(), parts = (m ? m[2] : '').split(/[,;]/).map(s => s.trim()).filter(Boolean);
+    if (/^(zee|zeeën|zeeen|zeeën|oceaan|oceanen|water)$/i.test(name)) { seas.push(...parts); continue; }
+    const L = { name, dir: null, island: false, size: 1, terr: [], folk: 'mens', cities: [] };
+    // a known word sets something on the land; with apply false it only says whether it knows the word
+    const word = (w, apply = true) => { const k = w.toLowerCase().replace(/[-\s.]/g, ''), ok = k in BOOK_DIRS || /^eiland(en)?$/.test(k) || k in BOOK_SIZE || k in BOOK_TERR || k in BOOK_FOLK;
+      if (!ok || !apply) return ok;
+      if (k in BOOK_DIRS) L.dir = BOOK_DIRS[k]; else if (k in BOOK_SIZE) L.size = BOOK_SIZE[k]; else if (k in BOOK_TERR) { if (!L.terr.includes(BOOK_TERR[k])) L.terr.push(BOOK_TERR[k]); } else if (k in BOOK_FOLK) L.folk = BOOK_FOLK[k]; else L.island = true;
+      return true; };
+    for (const p of parts) {
+      if (word(p)) continue;
+      const ws = p.split(/\s+/).filter(w => !BOOK_FILL.has(w.toLowerCase())); // "bergen en bossen", "in het noorden"
+      if (ws.length && ws.every(w => word(w, false))) ws.forEach(w => word(w)); else L.cities.push(p);
+    }
+    lands.push(L);
+  }
+  return { lands, seas };
+}
+function bookSummary(L) {
+  const dir = L.dir ? Object.keys(BOOK_DIRS).find(k => BOOK_DIRS[k] === L.dir) : 'vrij';
+  const bits = [L.island ? `eiland, ${dir}` : dir, L.size < .9 ? 'klein' : L.size > 1.2 ? 'groot' : null, ...L.terr, { elf: 'elfen', dwerg: 'dwergen', duister: 'duister', mens: null }[L.folk]].filter(Boolean);
+  return `${L.name}: ${bits.join(', ')}` + (L.cities.length ? ` · hoofdstad ${L.cities[0]}` + (L.cities.length > 1 ? ` · ook ${L.cities.slice(1).join(', ')}` : '') : ' · geen steden');
+}
+const BOOK_KEYS = {
+  berg: ['berg', 'g-berg', 'o-berg'], heuvel: ['heuvels', 'g-heuvel', 'o-heuvel'], loof: ['loof', 'g-loof', 'o-loof'], den: ['naald', 'g-den', 'o-den'], spar: ['spar', 'g-den', 'o-den'], palm: ['palm', 'g-palm', 'palm'], riet: ['riet', 'riet', 'riet'],
+  hoofd: ['kasteel', 'g-kasteel', 'o-burcht'], stad: ['stad', 'g-stad', 'o-dorp'], dorp: ['dorp', 'g-dorp', 'o-hut'],
+  'elf-hoofd': ['elfstad', 'g-elfstad', 'o-elfstad'], 'elf-stad': ['elftoren', 'g-elftoren', 'o-elftoren'], 'elf-boom': ['elfwoud', 'g-elfwoud', 'o-elfwoud'],
+  'dwerg-hoofd': ['dwergvesting', 'g-dwergvesting', 'o-dwergvesting'], 'dwerg-stad': ['dwergpoort', 'g-bergpoort', 'o-bergpoort'], 'dwerg-dorp': ['smidse', 'g-smidse', 'o-smidse'],
+  'duister-hoofd': ['duistertoren', 'g-duistertoren', 'o-duistertoren'], 'duister-stad': ['orkkamp', 'g-orkkamp', 'o-orkkamp'], 'duister-boom': ['dodeboom', 'g-spookboom', 'o-dodeboom'],
+  schip: ['schip', 'schip', 'o-schip'],
+};
+const BOOK_TOWNS = { mens: ['hoofd', 'stad', 'dorp'], elf: ['elf-hoofd', 'elf-stad', 'elf-stad'], dwerg: ['dwerg-hoofd', 'dwerg-stad', 'dwerg-dorp'], duister: ['duister-hoofd', 'duister-stad', 'duister-stad'] };
+function genBook(W, H, spec, o = {}) {
+  const S = o.seed ?? 1, r = rng(S), namer = makeNamer(S + 7), si = o.style === 'detail' ? 1 : o.style === 'oud' ? 2 : 0;
+  const key = role => { const v = BOOK_KEYS[role], k = v[si]; return ASSETS[k] ? k : v[0]; };
+  const d = newDoc('world', W, H), lands = spec.lands.map(L => ({ ...L }));
+  if (!lands.length) return sampleWorld(W, H, { seed: S });
+  // 1. where each land goes: pulled to its compass point, pushed off its neighbours until they just touch
+  const sumW = lands.reduce((a, L) => a + L.size, 0), area = W * H * Math.min(.46, .34 + lands.length * .012);
+  for (const L of lands) {
+    L.r = Math.sqrt(area * L.size / sumW / Math.PI) * (L.island ? .75 : 1);
+    if (L.island && !L.dir) { const a = r() * Math.PI * 2; L.ax = W / 2 + Math.cos(a) * W * .36; L.ay = H / 2 + Math.sin(a) * H * .34; }
+    else { const [dx, dy] = L.dir || [(r() - .5) * .5, (r() - .5) * .5], k = L.island ? 1.3 : 1; L.ax = W / 2 + dx * W * .3 * k; L.ay = H / 2 + dy * H * .3 * k; }
+    L.x = L.ax + (r() - .5) * 30; L.y = L.ay + (r() - .5) * 30;
+  }
+  for (let it = 0; it < 400; it++) {
+    const main = lands.filter(L => !L.island), mx = main.reduce((a, L) => a + L.x, 0) / (main.length || 1), my = main.reduce((a, L) => a + L.y, 0) / (main.length || 1);
+    for (const L of lands) { L.x += (L.ax - L.x) * .03; L.y += (L.ay - L.y) * .03; if (!L.island) { L.x += (mx - L.x) * .012; L.y += (my - L.y) * .012; } }
+    for (let i = 0; i < lands.length; i++) for (let j = i + 1; j < lands.length; j++) {
+      const A = lands[i], B = lands[j], want = (A.r + B.r) * (A.island || B.island ? 1.3 : .92);
+      let dx = B.x - A.x, dy = B.y - A.y, dd = Math.hypot(dx, dy); if (dd < .01) { dx = r() - .5; dy = r() - .5; dd = Math.hypot(dx, dy); }
+      if (dd < want) { const push = (want - dd) * .25, ux = dx / dd, uy = dy / dd, wa = B.r / (A.r + B.r), wb = 1 - wa; A.x -= ux * push * 2 * wa; A.y -= uy * push * 2 * wa; B.x += ux * push * 2 * wb; B.y += uy * push * 2 * wb; }
+    }
+    for (const L of lands) { const m = 60 + L.r * .55; L.x = Math.max(m, Math.min(W - m, L.x)); L.y = Math.max(m, Math.min(H - m, L.y)); }
+  }
+  // 2. the land itself: noise around the lands' circles, sea along the edge of the map
+  const n1 = makeNoise(S), n2 = makeNoise(S + 11), n3 = makeNoise(S + 22), n4 = makeNoise(S + 33), n5 = makeNoise(S + 44);
+  const LS = 6, gw = Math.ceil(W / LS) + 2, gh = Math.ceil(H / LS) + 2, hv = new Float32Array(gw * gh), own = new Int8Array(gw * gh).fill(-1);
+  for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) {
+    const x = gx * LS, y = gy * LS; let e = 9;
+    for (const L of lands) e = Math.min(e, Math.hypot(x - L.x, y - L.y) / (L.r * 1.75));
+    let v = fbm(n1, x / 300, y / 300, 6) + .47 - e * .8; const bd = Math.min(x, y, W - x, H - y) / 70; if (bd < 1) v -= (1 - Math.max(0, bd)) * .6;
+    hv[gy * gw + gx] = v;
+  }
+  const height = (x, y) => { const fx = Math.max(0, x / LS), fy = Math.max(0, y / LS), ix = Math.min(gw - 2, fx | 0), iy = Math.min(gh - 2, fy | 0), tx = Math.min(1, fx - ix), ty = Math.min(1, fy - iy), i = iy * gw + ix;
+    return hv[i] * (1 - tx) * (1 - ty) + hv[i + 1] * tx * (1 - ty) + hv[i + gw] * (1 - tx) * ty + hv[i + gw + 1] * tx * ty; };
+  const base = d.layers.base, img = base.ctx.createImageData(W, H), id = img.data;
+  for (let y = 0, p = 0; y < H; y++) for (let x = 0; x < W; x++, p++) { let a = 128 + (height(x, y) - .5) * 50000; a = a < 0 ? 0 : a > 255 ? 255 : a; id[p * 4] = id[p * 4 + 1] = id[p * 4 + 2] = 255; id[p * 4 + 3] = a; }
+  base.ctx.putImageData(img, 0, 0);
+  // 3. who owns which bit of land: the nearest land, measured through a bit of noise so borders wander
+  for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) {
+    const i = gy * gw + gx; if (hv[i] < .5) continue;
+    const x = gx * LS, y = gy * LS, wx = x + (fbm(n2, x / 230, y / 230, 3) - .5) * 190, wy = y + (fbm(n3, x / 230 + 9, y / 230, 3) - .5) * 190;
+    let best = -1, bv = 1e9; lands.forEach((L, k) => { const v = Math.hypot(wx - L.x, wy - L.y) / L.r; if (v < bv) { bv = v; best = k; } }); own[i] = best;
+  }
+  const owner = (x, y) => { const gx = Math.round(x / LS), gy = Math.round(y / LS); return gx < 0 || gy < 0 || gx >= gw || gy >= gh ? -1 : own[gy * gw + gx]; };
+  // 4. borders: the edges between cells of different lands, chained into lines and smoothed
+  const nb = new Map(), link = (a, b) => { for (const [p, q] of [[a, b], [b, a]]) { let l = nb.get(p); if (!l) nb.set(p, l = []); l.push(q); } };
+  for (let gy = 0; gy < gh - 1; gy++) for (let gx = 0; gx < gw - 1; gx++) {
+    const i = gy * gw + gx, o0 = own[i]; if (o0 < 0 || hv[i] < .515) continue;
+    const oR = own[i + 1], oD = own[i + gw];
+    if (oR >= 0 && oR !== o0 && hv[i + 1] >= .515) link(`${2 * gx + 1},${2 * gy - 1}`, `${2 * gx + 1},${2 * gy + 1}`);
+    if (oD >= 0 && oD !== o0 && hv[i + gw] >= .515) link(`${2 * gx - 1},${2 * gy + 1}`, `${2 * gx + 1},${2 * gy + 1}`);
+  }
+  const used = new Set(), ek = (a, b) => a < b ? a + '|' + b : b + '|' + a, chains = [];
+  const walk = (a, b) => { const P = [a, b]; used.add(ek(a, b)); let prev = a, cur = b;
+    while (nb.get(cur).length === 2) { const nx = nb.get(cur).find(q => q !== prev && !used.has(ek(cur, q))); if (!nx) break; used.add(ek(cur, nx)); P.push(nx); prev = cur; cur = nx; } return P; };
+  for (const [a, l] of nb) if (l.length !== 2) for (const b of l) if (!used.has(ek(a, b))) chains.push(walk(a, b));
+  for (const [a, l] of nb) for (const b of l) if (!used.has(ek(a, b))) chains.push(walk(a, b));
+  const borders = [];
+  for (const c of chains) {
+    let P = c.map(k => k.split(',').map(v => +v * LS / 2));
+    for (let s = 0; s < 3; s++) { const Q = [P[0]]; for (let i = 0; i < P.length - 1; i++) { const [a, b] = [P[i], P[i + 1]]; Q.push([a[0] * .75 + b[0] * .25, a[1] * .75 + b[1] * .25], [a[0] * .25 + b[0] * .75, a[1] * .25 + b[1] * .75]); } Q.push(P[P.length - 1]); P = Q; }
+    let len = 0; const pts = [f2(P[0][0]), f2(P[0][1])]; let lx = P[0][0], ly = P[0][1];
+    for (const [x, y] of P) { const dd = Math.hypot(x - lx, y - ly); if (dd >= 8) { pts.push(f2(x), f2(y)); len += dd; lx = x; ly = y; } }
+    if (len > 40) { d.lines.push({ id: d.nid++, type: 'grens', pts }); borders.push(pts); }
+  }
+  // 5. ground, per land
+  const ground = (L, x, y) => { const t = fbm(n3, x / 200, y / 200, 3), q = fbm(n4, x / 140, y / 140, 3), T = L.terr;
+    if (T.includes('sneeuw')) return 'sneeuw';
+    if (T.includes('woestijn')) return q > .62 ? 'dor' : 'woestijn';
+    if (L.folk === 'duister' || T.includes('dor')) return q > .58 ? 'rotsgrond' : 'dor';
+    if (T.includes('moeras') && q > .42) return 'moeras';
+    if (T.includes('akkers') && t > .42) return 'akkers';
+    if (L.folk === 'elf' && q > .6) return 'bloemen';
+    if (L.folk === 'dwerg' && q > .56) return 'rotsgrond';
+    return q > .45 ? 'gras' : t < .36 ? 'akkers' : null; };
+  for (const T of TERRAINS.world) if (!T.custom) getLayer(d, 't:' + T.id);
+  const tw = Math.ceil(W / 2), th = Math.ceil(H / 2), timg = {};
+  for (const k in d.layers) if (k.startsWith('t:')) timg[k] = d.layers[k].ctx.createImageData(tw, th);
+  for (let ty = 0; ty < th; ty++) for (let tx = 0; tx < tw; tx++) {
+    const x = tx * 2, y = ty * 2; if (height(x, y) < .5) continue; const o = owner(x, y); if (o < 0) continue;
+    const g = ground(lands[o], x, y); if (!g || !timg['t:' + g]) continue; const i = (ty * tw + tx) * 4, dd = timg['t:' + g].data; dd[i] = dd[i + 1] = dd[i + 2] = dd[i + 3] = 255;
+  }
+  for (const k in timg) d.layers[k].ctx.putImageData(timg[k], 0, 0);
+
+  const occ = [], free = (x, y, rad) => { for (const q of occ) { const dx = q[0] - x, dy = q[1] - y, m = q[2] + rad; if (dx * dx + dy * dy < m * m) return false; } return true; };
+  const take = (x, y, rad) => occ.push([x, y, rad]), put = (...a) => addStampTo(d, ...a), rv = k => ASSETS[k].vars ? Math.floor(r() * ASSETS[k].vars.length) : 0;
+  const inLand = (o, x, y) => height(x, y) >= .51 && owner(x, y) === o;
+  const fits = (o, x, y, s) => inLand(o, x, y) && inLand(o, x, y + s * .34) && inLand(o, x - s * .36, y + s * .34) && inLand(o, x + s * .36, y + s * .34);
+  // 6. towns: the capital near the heart of the land, the others spread out
+  const towns = [];
+  lands.forEach((L, o) => {
+    let cx = 0, cy = 0, n = 0; for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) if (own[gy * gw + gx] === o) { cx += gx * LS; cy += gy * LS; n++; }
+    L.cells = n; if (!n) return; cx /= n; cy /= n; L.cx = cx; L.cy = cy;
+    if (!L.cities.length) return;
+    let cands = [];
+    for (const inset of [40, 24, 10]) { cands = []; for (let y = 30; y < H - 30; y += 20) for (let x = 30; x < W - 30; x += 20) if ([[0, 0], [inset, 0], [-inset, 0], [0, inset], [0, -inset]].every(([dx, dy]) => inLand(o, x + dx, y + dy))) cands.push([x, y]); if (cands.length >= L.cities.length * 3) break; }
+    if (!cands.length) return;
+    const picks = []; let best = cands[0], bd = 1e18; for (const p of cands) { const q = (p[0] - cx) ** 2 + (p[1] - cy) ** 2; if (q < bd) { bd = q; best = p; } } picks.push(best);
+    while (picks.length < L.cities.length) { let bp = null, bdist = -1; for (const p of cands) { let m = 1e18; for (const q of picks) m = Math.min(m, (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2); if (m > bdist) { bdist = m; bp = p; } } if (!bp || bdist < 60 * 60) break; picks.push(bp); }
+    const roles = BOOK_TOWNS[L.folk] || BOOK_TOWNS.mens;
+    picks.forEach((p, i) => { const k = key(roles[i === 0 ? 0 : i % 2 ? 1 : 2]), s = ASSETS[k].size * (i === 0 ? 1.1 : 1);
+      put(k, p[0], p[1], s); take(p[0], p[1], s * .7); towns.push({ x: p[0], y: p[1], s, name: L.cities[i], cap: i === 0, o }); });
+  });
+  // 7. mountains, where the land is mountainous; a few elsewhere
+  const mountains = [], ridgeAt = (x, y) => 1 - Math.abs(fbm(n2, x / 170, y / 170, 3) * 2 - 1);
+  const thr = L => L.terr.includes('bergen') ? .7 : L.folk === 'dwerg' ? .74 : ['heuvels', 'akkers', 'moeras', 'woestijn', 'bos'].some(t => L.terr.includes(t)) || L.folk === 'elf' ? 2 : .93; // gentle lands get no mountains
+  const peaks = []; jitter(W, H, 22, r, (x, y) => { const o = owner(x, y); if (o < 0 || height(x, y) < .53) return; const ri = ridgeAt(x, y), t = thr(lands[o]); if (ri >= t) peaks.push([x, y, ri - t, o]); });
+  peaks.sort((a, b) => b[2] - a[2]);
+  for (const [x, y, ex, o] of peaks) { const k = key('berg'), s = ASSETS[k].size * (.78 + ex * 2.2 + r() * .15); if (!free(x, y, s * .26) || !fits(o, x, y, s) || collides(k, x, y, s, d.stamps, 1)) continue; mountains.push({ x, y, ex }); put(k, x, y, s, 0, false, rv(k)); take(x, y, s * .26); }
+  // rivers from the high mountains down to the sea
+  let rivers = 0;
+  mountains.slice().sort((a, b) => b.ex - a.ex).slice(0, 8).forEach((m, idx) => {
+    if (rivers >= Math.min(4, 1 + lands.length / 2)) return;
+    let x = m.x + 8, y = m.y + 22; const pts = [x, y]; let ok = false, best = height(x, y), stall = 0;
+    for (let s = 0; s < 700; s++) {
+      const v = height(x, y); if (v < .5) { ok = true; break; }
+      if (v < best - .001) { best = v; stall = 0; } else if (++stall > 80) break;
+      const gx = height(x + 5, y) - height(x - 5, y), gy = height(x, y + 5) - height(x, y - 5), gl = Math.hypot(gx, gy) || 1;
+      const ang = Math.atan2(-gy / gl, -gx / gl) + (n3(x / 60 + idx * 10, y / 60) - .5) * 1.6;
+      x += Math.cos(ang) * 6; y += Math.sin(ang) * 6; pts.push(f2(x), f2(y)); if (x < 2 || y < 2 || x > W - 2 || y > H - 2) break;
+    }
+    if (ok && pts.length > 30) { d.lines.push({ id: d.nid++, type: 'rivier', pts }); for (let i = 0; i < pts.length; i += 6) take(pts[i], pts[i + 1], 7); rivers++; }
+  });
+  // roads: a tree of short roads between all towns, never through water
+  if (towns.length > 1) {
+    const done = [towns[0]], rest = towns.slice(1);
+    while (rest.length) {
+      let bi = 0, bj = 0, bd = 1e18; done.forEach((a, i) => rest.forEach((b, j) => { const q = (a.x - b.x) ** 2 + (a.y - b.y) ** 2; if (q < bd) { bd = q; bi = i; bj = j; } }));
+      const a = done[bi], b = rest.splice(bj, 1)[0]; done.push(b);
+      const L = Math.sqrt(bd), nx = -(b.y - a.y) / L, ny = (b.x - a.x) / L, steps = Math.ceil(L / 16), pts = []; let wet = false;
+      for (let k = 0; k <= steps; k++) { const t = k / steps, dist = t * L; if (dist < a.s * .55 || L - dist < b.s * .55) continue;
+        const bx = a.x + (b.x - a.x) * t, by = a.y + (b.y - a.y) * t, off = (fbm(n3, bx / 90, by / 90, 2) - .5) * 70 * Math.sin(Math.PI * t), x = bx + nx * off, y = by + ny * off;
+        if (height(x, y) < .52) wet = true; pts.push(f2(x), f2(y)); }
+      if (!wet && pts.length >= 4) { d.lines.push({ id: d.nid++, type: 'weg', pts }); for (let i = 0; i < pts.length; i += 2) take(pts[i], pts[i + 1], 6); }
+    }
+  }
+  // hills, then woods, palms and reeds
+  jitter(W, H, 34, r, (x, y) => { const o = owner(x, y); if (o < 0 || height(x, y) < .54) return; const L = lands[o], ri = ridgeAt(x, y), t = thr(L), hilly = L.terr.includes('heuvels');
+    if (ri >= t || ri < (hilly ? .5 : t - .12) || r() > (hilly ? .7 : .35)) return; const k = key('heuvel'), s = ASSETS[k].size * (.85 + r() * .25);
+    if (!free(x, y, s * .38) || !fits(o, x, y, s) || collides(k, x, y, s, d.stamps, 1)) return; put(k, x, y, s, 0, false, rv(k)); take(x, y, s * .38); });
+  const treeOf = (L, y) => L.folk === 'elf' ? (r() < .6 ? 'elf-boom' : 'loof') : L.folk === 'duister' ? 'duister-boom' : L.folk === 'dwerg' || L.terr.includes('sneeuw') || y < H * .35 ? (r() < .5 ? 'den' : 'spar') : (r() < .7 ? 'loof' : 'den');
+  const tsz = ASSETS[key('loof')].size / ASSETS.loof.size;
+  jitter(W, H, 15 * Math.max(1, tsz * .8), r, (x, y) => {
+    const o = owner(x, y); if (o < 0 || height(x, y) < .54) return; const L = lands[o], T = L.terr;
+    if (T.includes('woestijn')) { if (r() < .03 && free(x, y, 12)) { const k = key('palm'), s = ASSETS[k].size * (.85 + r() * .3); if (fits(o, x, y, s)) { put(k, x, y, s, 0, r() < .5); take(x, y, 12); } } return; }
+    if (T.includes('moeras') && fbm(n4, x / 140, y / 140, 3) > .45) { if (r() < .12 && free(x, y, 10)) { put('riet', x, y, 22 + r() * 8, 0, r() < .5); take(x, y, 10); } return; }
+    const f = fbm(n5, x / 190, y / 190, 3), lim = T.includes('bos') || L.folk === 'elf' ? .45 : L.folk === 'duister' ? .52 : T.includes('sneeuw') ? .62 : .58;
+    if (f < lim || (L.folk === 'duister' && r() < .45)) return;
+    const k = key(treeOf(L, y)), s = ASSETS[k].size * (.85 + r() * .35);
+    if (!free(x, y, 7 * Math.max(1, tsz * .8)) || !fits(o, x, y, s) || collides(k, x, y, s, d.stamps, 1)) return; put(k, x, y, s, 0, false, rv(k));
+  });
+  // 8. names: towns, the lands, the seas and the title
+  for (const t of towns) addLabelTo(d, t.name, t.x, t.y + t.s * .5 + 13, t.cap ? 18 : 15, 'gewoon');
+  lands.forEach((L, o) => { if (!L.cells) return; let x = L.cx, y = L.cy;
+    if (owner(x, y) !== o) { let bd = 1e18; for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) if (own[gy * gw + gx] === o) { const q = (gx * LS - x) ** 2 + (gy * LS - y) ** 2; if (q < bd) { bd = q; L.lx = gx * LS; L.ly = gy * LS; } } x = L.lx; y = L.ly; }
+    const cap = towns.find(t => t.o === o && t.cap); if (cap && Math.hypot(cap.x - x, cap.y - y) < 70) y = cap.y - cap.s * .6 - 34;
+    addLabelTo(d, L.name, x, y, Math.round(Math.max(18, Math.min(36, Math.sqrt(L.cells) * LS / 13))), 'regio'); });
+  const sea = (x, y) => height(x, y) < .3;
+  const spot = (test, rad) => { for (let t = 0; t < 800; t++) { const x = 80 + r() * (W - 160), y = 80 + r() * (H - 160); if (test(x, y) && free(x, y, rad)) return [x, y]; } return null; };
+  for (const a of ['schip', 'schip']) { const p = spot(sea, 50); if (p) { const k = key(a); put(k, p[0], p[1], undefined, 0, r() < .5); take(p[0], p[1], 50); } }
+  const corners = [[W - 130, 130], [130, 130], [130, H - 130], [W - 130, H - 130]];
+  const wet = ([x, y]) => [[0, 0], [70, 0], [-70, 0], [0, 70], [0, -70]].reduce((a, [dx, dy]) => a + Math.max(.3, height(x + dx, y + dy)), 0) + (free(x, y, 70) ? 0 : 9);
+  const cc = corners.slice().sort((a, b) => wet(a) - wet(b))[0]; // the corner with the most open sea
+  put('kompas', cc[0], cc[1]); take(cc[0], cc[1], 90);
+  const sb = cc[0] > W / 2 && cc[1] > H / 2 ? [150, H - 46] : [W - 150, H - 46]; put('schaal', sb[0], sb[1]); take(sb[0], sb[1], 60);
+  const deep = (x0, x1, y0, y1) => { let best = null, bv = 9; for (let y = y0; y < y1; y += 20) for (let x = x0; x < x1; x += 20) { const v = height(x, y); if (v < bv && free(x, y, 70)) { bv = v; best = [x, y]; } } return bv < .35 ? best : null; };
+  if (o.title) { const p = deep(W * .2, W * .8, 50, H * .2) || deep(W * .2, W * .8, H * .8, H - 50); if (p) { addLabelTo(d, o.title, p[0], p[1], 40, 'regio'); take(p[0], p[1], 160); } }
+  const seaNames = spec.seas.length ? spec.seas.slice(0, 4) : [namer.sea(), namer.sea()];
+  seaNames.forEach((n, i) => { const p = deep(i % 2 ? W / 2 : 140, i % 2 ? W - 140 : W / 2, 120, H - 120); if (p) { addLabelTo(d, n, p[0], p[1], i < 2 ? 24 : 20, 'cursief'); take(p[0], p[1], 110); } });
   syncShadows(d); return d;
 }
 function jitter(W, H, sp, r, fn) { for (let y = sp / 2; y < H; y += sp) for (let x = sp / 2; x < W; x += sp) fn(x + (r() - .5) * sp * .8, y + (r() - .5) * sp * .8); }
@@ -4033,24 +4267,40 @@ const SIZES = { world: [['Klein', 1200, 800], ['Normaal', 1800, 1200], ['Groot',
 function openNew(gen) {
   menu.open = false;
   $('#ncGenRow').hidden = kind !== 'world';
-  if (gen === true && kind === 'world') $('#ncGen').checked = true; else if (kind !== 'world' && $('#ncGen').checked) $('#ncEmpty').checked = true;
+  $('#ncBookRow').hidden = kind !== 'world';
+  if (gen === true && kind === 'world') $('#ncGen').checked = true; else if (gen === 'book' && kind === 'world') $('#ncBook').checked = true; else if (kind !== 'world' && ($('#ncGen').checked || $('#ncBook').checked)) $('#ncEmpty').checked = true;
+  if (!$('#boText').value) { try { $('#boText').value = localStorage.getItem('kartograaf.book') || ''; $('#boTitle').value = localStorage.getItem('kartograaf.bookTitle') || ''; } catch {} }
+  $('#boStyle').value = U().pack || 'klassiek'; showBook();
   $('#newTitle').textContent = kind === 'world' ? 'Nieuwe wereldkaart' : 'Nieuwe plattegrond';
   $('#fsStyle').hidden = kind !== 'local';
   const fs = $('#fsSize'); fs.innerHTML = '<legend>Formaat</legend>';
   SIZES[kind].forEach(([n, w, h], i) => { const l = document.createElement('label'); l.className = 'opt'; l.innerHTML = `<input type="radio" name="size" id="nz${i}" value="${i}" ${i === 1 ? 'checked' : ''}> ${n} · ${kind === 'world' ? `${w} × ${h} pixels` : `${w} × ${h} vakken`}`; fs.append(l); });
   syncNew(); $('#newModal').hidden = false; $('#ncEmpty').focus();
 }
-function syncNew() { const sample = $('#ncSample').checked; for (const i of $('#fsSize').querySelectorAll('input')) i.disabled = sample; $('#fsGen').hidden = kind !== 'world' || !$('#ncGen').checked; }
+function syncNew() { const sample = $('#ncSample').checked; for (const i of $('#fsSize').querySelectorAll('input')) i.disabled = sample; $('#fsGen').hidden = kind !== 'world' || !$('#ncGen').checked;
+  const book = kind === 'world' && $('#ncBook').checked; $('#fsBook').hidden = !book; $('#newForm').classList.toggle('wide', book); }
+// what the generator understood, line by line, so you can see it before you make the map
+function showBook() { const ul = $('#boSeen'); ul.textContent = ''; const sp = parseBook($('#boText').value);
+  for (const L of sp.lands) { const li = document.createElement('li'); li.textContent = bookSummary(L); ul.append(li); }
+  if (sp.seas.length) { const li = document.createElement('li'); li.textContent = 'Zeeën: ' + sp.seas.join(', '); ul.append(li); } }
+$('#boText').addEventListener('input', showBook);
+$('#boExample').addEventListener('click', () => { $('#boText').value = BOOK_EXAMPLE; if (!$('#boTitle').value) $('#boTitle').value = 'De Vijf Rijken'; showBook(); });
+$('#genBookBtn').addEventListener('click', () => openNew('book'));
 $('#newForm').addEventListener('change', syncNew);
 $('#mNew').addEventListener('click', () => openNew(false));
 $('#newCancel').addEventListener('click', () => { $('#newModal').hidden = true; });
 $('#newModal').addEventListener('keydown', e => { if (e.key === 'Escape') $('#newModal').hidden = true; });
 $('#newForm').addEventListener('submit', async e => {
-  e.preventDefault(); const keepPal = doc?.palette || 'inkt'; const f = e.target, style = f.style.value, sample = f.content.value === 'voorbeeld', [, w, h] = SIZES[kind][+(f.size?.value ?? 1)];
+  e.preventDefault(); let keepPal = doc?.palette || 'inkt'; const f = e.target, style = f.style.value, sample = f.content.value === 'voorbeeld', [, w, h] = SIZES[kind][+(f.size?.value ?? 1)];
+  const book = kind === 'world' && f.content.value === 'verhaal', spec = book ? parseBook($('#boText').value) : null;
+  if (book && !spec.lands.length) { toast('Schrijf eerst minstens één land, of klik op Voorbeeld invullen.'); $('#boText').focus(); return; }
   $('#newModal').hidden = true; $('#loading').hidden = false; doc = null; req(); await new Promise(r => setTimeout(r, 30));
   let d;
   const gen = kind === 'world' && f.content.value === 'genereer';
   if (gen) { d = sampleWorld(w, h, { seed: (Math.random() * 1e9) | 0, shape: f.shape.value, fill: $('#ngFill').checked }); d.sample = false; }
+  else if (book) { const st = $('#boStyle').value, title = $('#boTitle').value.trim();
+    lsSet('kartograaf.book', $('#boText').value); lsSet('kartograaf.bookTitle', title); ui.world.pack = st; lsSet('kartograaf.pack', st); if (st === 'oud') keepPal = 'oud';
+    d = genBook(w, h, spec, { seed: (Math.random() * 1e9) | 0, style: st, title }); d.sample = false; }
   else if (kind === 'world') d = sample ? sampleWorld() : newDoc('world', w, h);
   else d = sample ? (style === 'open' ? sampleVillage() : sampleDungeon()) : newDoc('local', w * 40, h * 40, { style });
   d.palette = keepPal; fullRebuild(d); docs[kind] = d; await setKind(kind); if (!sample) changed(); else scheduleSave();
@@ -4058,7 +4308,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.19.1', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.20.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;
