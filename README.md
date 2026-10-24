@@ -49,7 +49,7 @@ Kartograpper is ook een website die je als app kunt installeren. Daarna start hi
 
 - Alles wordt op je eigen toestel bewaard (IndexedDB). Er wordt niets naar een server gestuurd, en de app maakt geen verbinding met andere diensten.
 - **Updates wissen niets.** Vóór een nieuwe versie iets aanraakt, bewaart ze automatisch een herstelpunt. Je vindt het bij *Instellingen › Back-up en updates › Herstelpunten*.
-- **Updates vinden:** de Windows- en Android-app kijken één keer per dag op GitHub of er een nieuwe versie is en tonen dan een downloadknop. Daarbij wordt alleen de versie opgevraagd; er gaat niets van je kaarten mee. Uitzetten kan bij *Instellingen › Back-up en updates*.
+- **Bijwerken vanuit de app:** de Windows- en Android-app kijken één keer per dag op GitHub of er een nieuwe versie is. Klik op *Nu bijwerken*: op Windows gebeurt de rest vanzelf en start de app opnieuw; op Android tik je daarna nog op *Bijwerken* in het venster van Android (dat vraagt Android altijd bij apps van buiten de Play Store). Je kaarten worden eerst weggeschreven en blijven bewaard. Daarbij wordt alleen de nieuwe versie opgehaald; er gaat niets van je kaarten mee. Uitzetten kan bij *Instellingen › Back-up en updates*.
 - Kaarten en bibliotheek zitten vast aan de browser en het adres waar je ze maakte. Wil je ze op een ander toestel of in een andere browser, exporteer dan een back-up en importeer die daar (zie hieronder).
 - Wis je je browsergegevens voor deze site, dan zijn je kaarten weg. Bewaar belangrijke kaarten dus ook als bestand.
 

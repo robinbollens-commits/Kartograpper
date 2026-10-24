@@ -29,7 +29,10 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: Kartograpper-Windows
-          path: desktop/dist/*.exe
+          path: |
+            desktop/dist/*.exe
+            desktop/dist/*.blockmap
+            desktop/dist/latest.yml
           if-no-files-found: error
 
   android:
@@ -107,6 +110,8 @@ jobs:
           # A test APK (no signing key yet) is never published: it could not be updated later without wiping the user's maps.
           files: |
             out/*.exe
+            out/*.blockmap
+            out/latest.yml
             out/Kartograpper-*[0-9].apk
           body: |
             **Windows:** download `Kartograpper-Setup-….exe` en start het. Windows kan waarschuwen dat de uitgever onbekend is: klik op *Meer informatie › Toch uitvoeren*.

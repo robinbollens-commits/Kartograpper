@@ -1,5 +1,13 @@
 # Wijzigingen
 
+## 1.11.0
+
+- **Bijwerken met één klik.** Bij *Nieuwe versie* staat nu *Nu bijwerken*:
+  - **Windows:** de app downloadt de update, bewaart je kaarten, installeert stil en start opnieuw.
+  - **Android:** de app downloadt de APK zelf en opent het installatievenster van Android; daar tik je op *Bijwerken*. De eerste keer vraagt Android om Kartograpper toe te staan apps te installeren.
+- Lukt het automatisch bijwerken niet, dan kun je zoals voorheen de installer zelf downloaden.
+- Let op: dit werkt vanaf de update ná 1.11.0. Versie 1.11.0 zelf installeer je nog één keer op de oude manier.
+
 ## 1.10.0
 
 - **Overschilderen** bij de strooipenselen: zet het aan en een penseel vervangt wat eronder staat, bv. een gebergte over heuvels of dode bossen over een loofbos. Alleen symbolen die een penseel kan schilderen maken plaats. Land, water, ondergrond, gebouwen, plekken en namen blijven altijd staan. Eén keer ongedaan maken zet de hele streek terug.

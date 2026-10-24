@@ -1600,11 +1600,20 @@ async function docFromRecord(rec) {
   syncShadows(d); return d;
 }
 let saveTimer = null;
+let pendingSave = null;
 function scheduleSave() {
-  clearTimeout(saveTimer); const d = doc;
-  saveTimer = setTimeout(async () => {
-    try { const ok = await store.put(d.kind, await docToRecord(d, false)); if (d === doc) setSaved(ok ? 'Bewaard in deze browser · ' + new Date().toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' }) : 'Niet automatisch bewaard. Gebruik Bestand › Opslaan als bestand.'); } catch { setSaved('Niet automatisch bewaard. Gebruik Bestand › Opslaan als bestand.'); }
-  }, 1400);
+  clearTimeout(saveTimer); const d = doc; pendingSave = d;
+  saveTimer = setTimeout(() => saveNow(d), 1400);
+}
+async function saveNow(d) {
+  pendingSave = null;
+  try { const ok = await store.put(d.kind, await docToRecord(d, false)); if (d === doc) setSaved(ok ? 'Bewaard in deze browser · ' + new Date().toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' }) : 'Niet automatisch bewaard. Gebruik Bestand › Opslaan als bestand.'); } catch { setSaved('Niet automatisch bewaard. Gebruik Bestand › Opslaan als bestand.'); }
+}
+// before the app closes for an update: write what is still waiting, right now
+async function flushSaves() {
+  if (editing) commitLabelEdit();
+  clearTimeout(saveTimer); if (pendingSave) await saveNow(pendingSave);
+  clearTimeout(libTimer); await store.put('library', JSON.parse(JSON.stringify(lib)));
 }
 function setSaved(t) { const e = $('#saved'); e.textContent = t; e.hidden = !t; }
 
@@ -3187,7 +3196,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.10.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.11.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;
@@ -3492,18 +3501,52 @@ async function checkUpdates(manual) {
   if (!rel || !rel.tag_name || verNum(rel.tag_name) <= verNum(APP_VERSION)) { updRel = null; if (manual) syncUpdInfo(`Je hebt de nieuwste versie (${APP_VERSION}).`); return; }
   updRel = rel; syncUpdInfo(); showUpdBar();
 }
+// the apps can fetch and install an update themselves: Windows fully, Android up to its own confirmation
+const canSelfUpdate = () => PLATFORM === 'windows' ? !!window.kartoUpdater : PLATFORM === 'android' ? !!(window.capacitorFileOpener && window.capacitorFilesystem?.Filesystem?.downloadFile) : false;
+const manualLabel = () => PLATFORM === 'android' ? 'APK downloaden' : 'Installer downloaden';
 function showUpdBar() {
   const rel = updRel; if (!rel) return;
-  const asset = (rel.assets || []).find(a => a.name.toLowerCase().endsWith(PLATFORM === 'android' ? '.apk' : '.exe'));
+  const asset = (rel.assets || []).find(a => a.name.toLowerCase().endsWith(PLATFORM === 'android' ? '.apk' : '.exe')), auto = !!asset && canSelfUpdate();
   $('#updText').textContent = `Versie ${rel.tag_name.replace(/^v/, '')} is beschikbaar. Je hebt ${APP_VERSION}.`;
   $('#updGet').dataset.url = asset ? asset.browser_download_url : rel.html_url;
-  $('#updGet').textContent = asset ? (PLATFORM === 'android' ? 'APK downloaden' : 'Installer downloaden') : 'Naar GitHub';
+  $('#updGet').dataset.auto = auto ? '1' : '';
+  $('#updGet').textContent = auto ? 'Nu bijwerken' : asset ? manualLabel() : 'Naar GitHub';
   $('#updNews').dataset.url = rel.html_url;
   $('#updBar').hidden = false;
 }
 // a top-level navigation to https:// is handed to the normal browser by both apps
 const openOutside = url => { if (url && url.startsWith('https://')) location.href = url; };
-$('#updGet').addEventListener('click', () => { openOutside($('#updGet').dataset.url); $('#updBar').hidden = true; toast(PLATFORM === 'android' ? 'Open de gedownloade APK om bij te werken. Je kaarten blijven bewaard.' : 'Start de gedownloade installer om bij te werken. Je kaarten blijven bewaard.'); });
+let updHandler = null;
+if (window.kartoUpdater) window.kartoUpdater.on(m => { if (updHandler) updHandler(m); });
+async function updateWindows(say) {
+  await new Promise((res, rej) => {
+    updHandler = m => { if (m.type === 'progress') say(`Downloaden… ${Math.round(m.percent || 0)} %`); else if (m.type === 'ready') res(); else if (m.type === 'error') rej(new Error(m.message)); };
+    window.kartoUpdater.download().then(ok => { if (!ok) rej(new Error('GitHub gaf geen nieuwe versie')); }, rej);
+  });
+  updHandler = null;
+  say('Je kaarten worden bewaard en Kartograpper start opnieuw…');
+  await flushSaves();
+  await window.kartoUpdater.install();
+}
+async function updateAndroid(url, say) {
+  const FS = window.capacitorFilesystem.Filesystem, FO = window.capacitorFileOpener.FileOpener;
+  const h = await FS.addListener('progress', p => { if (p.contentLength > 0) say(`Downloaden… ${Math.round(p.bytes / p.contentLength * 100)} %`); });
+  let res; try { res = await FS.downloadFile({ url, path: 'kartograpper-update.apk', directory: 'CACHE', progress: true }); } finally { h.remove(); }
+  if (!res || !res.path) throw new Error('de download is niet gelukt');
+  say('Je kaarten worden bewaard…');
+  await flushSaves();
+  await FO.open({ filePath: res.path, contentType: 'application/vnd.android.package-archive', openWithDefault: true });
+  say('Tik in het venster van Android op Bijwerken. Vraagt Android eerst om toestemming? Sta dan installeren toe voor Kartograpper en ga terug.');
+}
+$('#updGet').addEventListener('click', async () => {
+  const b = $('#updGet'), url = b.dataset.url;
+  if (b.dataset.auto !== '1') { openOutside(url); $('#updBar').hidden = true; toast(PLATFORM === 'android' ? 'Open de gedownloade APK om bij te werken. Je kaarten blijven bewaard.' : 'Start de gedownloade installer om bij te werken. Je kaarten blijven bewaard.'); return; }
+  const say = t => { $('#updText').textContent = t; };
+  b.disabled = true; $('#updLater').disabled = true; say('De nieuwe versie wordt gedownload…');
+  try { if (PLATFORM === 'windows') await updateWindows(say); else await updateAndroid(url, say); }
+  catch (err) { updHandler = null; say(`Bijwerken lukte niet (${(err && err.message) || err}). Je kunt de nieuwe versie ook zelf downloaden.`); b.dataset.auto = ''; b.textContent = manualLabel(); }
+  finally { b.disabled = false; $('#updLater').disabled = false; }
+});
 $('#updNews').addEventListener('click', () => openOutside($('#updNews').dataset.url));
 $('#updLater').addEventListener('click', () => { $('#updBar').hidden = true; });
 $('#updNow').addEventListener('click', () => checkUpdates(true));

@@ -31,4 +31,9 @@ android {
 }
 `;
 fs.appendFileSync(path.join(__dirname, 'android', 'app', 'build.gradle'), extra);
+// The app may hand a downloaded update to Android's installer (Android still asks the user to confirm).
+const manifest = path.join(__dirname, 'android', 'app', 'src', 'main', 'AndroidManifest.xml');
+const perm = '<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />';
+let xml = fs.readFileSync(manifest, 'utf8');
+if (!xml.includes(perm)) fs.writeFileSync(manifest, xml.replace('</manifest>', `    ${perm}\n</manifest>`));
 console.log(`versie ${version} (code ${code})${sign === 'sign' ? ', ondertekend' : ''}`);

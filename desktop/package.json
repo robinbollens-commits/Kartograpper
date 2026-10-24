@@ -11,6 +11,9 @@
     "start": "npm run prepare-web && electron .",
     "dist": "npm run prepare-web && electron-builder --win nsis --publish never"
   },
+  "dependencies": {
+    "electron-updater": "6.3.9"
+  },
   "devDependencies": {
     "electron": "33.4.11",
     "electron-builder": "25.1.8"
@@ -18,9 +21,18 @@
   "build": {
     "appId": "io.github.robinbollens.kartograaf",
     "productName": "Kartograpper",
-    "files": ["main.js", "web/**/*"],
-    "directories": { "output": "dist", "buildResources": "build" },
-    "win": { "target": "nsis" },
+    "files": [
+      "main.js",
+      "preload.js",
+      "web/**/*"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "win": {
+      "target": "nsis"
+    },
     "nsis": {
       "oneClick": false,
       "perMachine": false,
@@ -30,6 +42,13 @@
       "createStartMenuShortcut": true,
       "shortcutName": "Kartograpper",
       "artifactName": "Kartograpper-Setup-${version}.exe"
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "robinbollens-commits",
+        "repo": "Kartograpper"
+      }
+    ]
   }
 }
