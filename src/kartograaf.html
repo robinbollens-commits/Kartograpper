@@ -958,6 +958,61 @@ const DETAIL_ASSETS = [
 const DETAIL_GENERATORS = { 'g-loof': genDLoof, 'g-eik': genDEik, 'g-den': genDDen, 'g-berk': genDBerk, 'g-struik': genDStruik, 'g-dood': genDDood, 'g-berg': genDBerg, 'g-heuvel': genDHeuvel };
 const DETAIL_FILL = { 'g-loof': '#c9a63f', 'g-eik': '#4f8f45', 'g-den': '#3f7a4a', 'g-berk': '#8fc06a', 'g-palm': '#5e9a48', 'g-struik': '#5f9a4c', 'g-berg': ROCK, 'g-heuvel': '#9cc46a', 'g-rotsen': '#b3ada2', 'g-vulkaan': '#a08670', 'g-gras': '#7fb05a', 'g-grot': ROCK, 'g-mijn': '#a8957a', 'g-zeeslang': '#6fa860', 'g-elfboom': '#a8d5c8', 'g-bergpoort': ROCK };
 
+/* ---------- more detailed symbols for elves, dwarves and the dark lands ---------- */
+const ELFSTONE = '#eef0ea', ELFROOF = '#7fb8a8', MINT = '#a8d5c8', WATER = '#7cc0de', DSTONE = '#b9b0a0', DSTONE2 = '#8f877a', GLOW = '#f08a32', RUNE = '#5fb7e8', DARK = '#3b3540', PURPLE = '#5b4a6b', BLOOD = '#a8322d', BONE = '#e8e0cc', LAVA = '#e0592b';
+// a slender elven spire with a leaf-shaped roof and a golden tip
+function dSpire(x, base, h, w, roof = ELFROOF) {
+  const top = base - h, tip = top - w * 2.6;
+  return [['w', `M${f2(x - w / 2)} ${base}L${f2(x - w * .38)} ${f2(top)}L${f2(x + w * .38)} ${f2(top)}L${f2(x + w / 2)} ${base}Z`, 1.3, ELFSTONE],
+    ['w', `M${f2(x - w * .62)} ${f2(top + 1)}C${f2(x - w * 1.05)} ${f2(top - w * .7)} ${f2(x - w * .3)} ${f2(top - w * 1.7)} ${x} ${f2(tip)}C${f2(x + w * .3)} ${f2(top - w * 1.7)} ${f2(x + w * 1.05)} ${f2(top - w * .7)} ${f2(x + w * .62)} ${f2(top + 1)}Z`, 1.3, roof],
+    ['s', `M${x} ${f2(top)}L${x} ${f2(top - w * 1.6)}`, .6], ['w', circ(x, f2(tip - 1.5), 1.8), .8, GOLD],
+    ['w', `M${f2(x - 1.6)} ${f2(top + 9)}L${f2(x - 1.6)} ${f2(top + 5)}Q${x} ${f2(top + 2.5)} ${f2(x + 1.6)} ${f2(top + 5)}L${f2(x + 1.6)} ${f2(top + 9)}Z`, .7, GLASS]];
+}
+function genDElfwoud(seed) { // a tall slender silver-leaved tree for elven woods
+  const r = rng(seed * 4241 + 7), top = -46 + r() * 8, base = 14 + r() * 10, w = 12 + r() * 6, lean = (r() - .5) * 7;
+  return [['w', 'M-3 44C-3 30 -2 20 -2 10L2.5 10C3 20 3 30 4 44Z', 1, '#d9d6cc'],
+    ['w', `M${f2(lean)} ${f2(top)}C${f2(lean + w * .9)} ${f2(top + 14)} ${f2(w * 1.15)} ${f2(base - 14)} 0 ${f2(base)}C${f2(-w * 1.15)} ${f2(base - 14)} ${f2(lean - w * .9)} ${f2(top + 14)} ${f2(lean)} ${f2(top)}Z`, 1],
+    ['s', `M${f2(lean * .9)} ${f2(top + 6)}Q${f2(lean * .3)} ${f2((top + base) / 2)} 0 ${f2(base - 2)}`, .55],
+    ['s', lines(L => { for (let i = 1; i <= 3; i++) { const y = top + (base - top) * i / 4.2 + 4, x0 = lean * (1 - (y - top) / (base - top)); L(x0, y + 5, x0 + w * .55, y - 1); L(x0, y + 7, x0 - w * .45, y + 1); } }), .45]];
+}
+function genDSpookboom(seed) { // a gnarled dark tree with clawing branches
+  const r = rng(seed * 733 + 5), C = '#4a3f4f', ops = [['w', 'M-7 44C-4 30 -10 18 -4 4C-2 -2 4 -2 5 4C9 16 4 30 9 44Z', 1.5, C]];
+  for (const [x0, y0, x1, y1, w] of [[-3, 6, -26, -18, 3], [2, 4, 22, -24, 3], [0, 0, -4, -40, 2.6], [-12, -8, -30, 0, 1.6], [12, -12, 32, -6, 1.6]]) ops.push(['w', branch(x0, y0, x1 + (r() - .5) * 6, y1 + (r() - .5) * 6, w), 1.2, C]);
+  ops.push(['s', 'M-26 -18L-32 -26M-26 -18L-34 -14M22 -24L26 -34M22 -24L32 -26M-4 -40L-10 -46M-4 -40L2 -48', 1.1], ['w', circ(-2, 14, 2.2), .7, '#e6d36a'], ['w', circ(3, 14, 2.2), .7, '#e6d36a']);
+  return ops;
+}
+const FOLK_ASSETS = [
+  // elves
+  ['g-elfstad', 'Elfenstad', 'elf', 70, [['w', 'M-46 42C-36 26 36 26 46 42Z', 1.5, '#9cc46a'], ...dSpire(-24, 34, 22, 9), ...dSpire(24, 34, 30, 9), ...dSpire(0, 30, 42, 11), ['s', 'M-18 4Q-11 -2 -5 4M5 2Q12 -4 18 2', .8], ['w', bumps(-38, 34, 7, 6, 6, 51, 1.3), 1.1, MINT], ['w', bumps(38, 34, 7, 6, 6, 52, 1.3), 1.1, MINT]]],
+  ['g-elftoren', 'Elfentoren', 'elf', 48, [['w', 'M-20 44C-14 36 14 36 20 44Z', 1.3, '#9cc46a'], ...dSpire(0, 40, 50, 13), ['w', rect(-11, 10, 22, 3), 1.1, ELFSTONE], ['w', bumps(-12, 38, 6, 5, 6, 53, 1.3), 1, MINT]]],
+  ['g-maanpoort', 'Maanpoort', 'elf', 52, [['w', rect(-30, 40, 60, 5), 1.3, ELFSTONE], ['w', 'M-24 40L-24 0C-24 -20 -8 -30 0 -38C8 -30 24 -20 24 0L24 40L15 40L15 2C15 -12 7 -20 0 -26C-7 -20 -15 -12 -15 2L-15 40Z', 1.5, ELFSTONE], ['f', 'M-15 40L-15 2C-15 -12 -7 -20 0 -26C7 -20 15 -12 15 2L15 40Z', 1, '#cfe9f1'], ['s', 'M-15 40L-15 2C-15 -12 -7 -20 0 -26C7 -20 15 -12 15 2L15 40', 1], ['w', 'M-3 -46A7 7 0 1 0 6 -38A5.5 5.5 0 1 1 -3 -46Z', 1, '#dfe7ef'], ['s', 'M-22 34Q-28 24 -22 14Q-17 6 -22 -4M-22 24L-27 22M-22 10L-17 8', .9], ['w', circ(-26, 22, 2), .7, MINT], ['w', circ(-17, 8, 2), .7, MINT]]],
+  ['g-elfwoud', 'Elfenwoud (boom)', 'elf', 38, genDElfwoud(0)],
+  ['g-elfbron', 'Elfenbron', 'elf', 46, [['w', 'M-34 34C-34 22 34 22 34 34C34 44 -34 44 -34 34Z', 1.5, ELFSTONE], ['w', 'M-26 32C-26 26 26 26 26 32C26 37 -26 37 -26 32Z', 1.1, WATER], ['w', 'M-5 30L-6 4L6 4L5 30Z', 1.3, ELFSTONE], ['w', 'M-12 4C-12 -2 12 -2 12 4Z', 1.2, ELFSTONE], ['s', 'M0 -2C-2 -10 -10 -12 -12 -6M0 -2C2 -10 10 -12 12 -6M0 -2L0 -14', .9], ['w', circ(0, -16, 2.4), .8, '#bfe8f6'], ['s', 'M-16 32Q-12 30 -8 32M8 32Q12 30 16 32', .7], ['w', star(-24, -12, 4, 1.4, 4), .6, GOLD], ['w', star(22, -18, 3, 1.1, 4), .6, GOLD]]],
+  ['g-elfenkring', 'Elfenkring', 'elf', 44, [['s', 'M-40 18A40 14 0 1 0 40 18A40 14 0 1 0 -40 18', .6], ...[[-30, 12], [-14, 6], [6, 5], [24, 9], [34, 18], [-36, 22], [-22, 30], [0, 32], [22, 28]].sort((a, b) => a[1] - b[1]).flatMap(([x, y], i) => [['w', `M${x - 2} ${y + 6}L${x - 1.6} ${y}L${x + 1.6} ${y}L${x + 2} ${y + 6}Z`, .9, '#f1ead8'], ['w', `M${x - 6} ${y}C${x - 6} ${y - 7} ${x + 6} ${y - 7} ${x + 6} ${y}Z`, 1, i % 3 ? '#c94a3a' : '#e0a53a'], ['b', circ(x - 2, y - 3, .9)], ['b', circ(x + 2.2, y - 2, .7)]]), ['w', star(0, -14, 4, 1.4, 4), .6, GOLD], ['w', star(-14, -6, 2.6, 1, 4), .5, GOLD], ['w', star(16, -8, 2.6, 1, 4), .5, GOLD]]],
+  // dwarves
+  ['g-dwergvesting', 'Dwergenvesting', 'dwerg', 68, [['w', 'M-48 40L-36 -6L-24 -2L-10 -30L10 -26L26 -40L48 40Z', 1.6, ROCK], ['w', poly([[-42, 40], [-42, -2], [-38, -8], [-26, -8], [-22, -2], [-22, 40]]), 1.4, DSTONE], ['w', poly([[22, 40], [22, -2], [26, -8], [38, -8], [42, -2], [42, 40]]), 1.4, DSTONE], ['w', rect(-44, 14, 88, 26), 1.5, DSTONE], ['w', cren(-46, 46, 14, 20, 5), 1.3, DSTONE],
+    ['w', poly([[-15, 40], [-15, -12], [-11, -22], [11, -22], [15, -12], [15, 40]]), 1.5, DSTONE2], ['w', poly([[-11, -22], [0, -32], [11, -22]]), 1.3, GOLD], ['w', 'M-7 40L-7 26L0 20L7 26L7 40Z', 1.3, GOLD], ['s', 'M0 20L0 40M-15 -6L15 -6M-15 8L15 8', .7], ['w', rect(-34, 0, 4, 7), .8, GLOW], ['w', rect(30, 0, 4, 7), .8, GLOW], ['w', rect(-2, -14, 4, 6), .8, GLOW]]],
+  ['g-smidse', 'Smidse', 'dwerg', 48, [['w', rect(-6, -2, 9, 30), 1.3, DSTONE2], ['w', 'M-4 -4C-10 -8 -8 -18 -2 -18C0 -26 10 -24 10 -18C18 -18 18 -8 10 -8C6 -4 0 -4 -4 -4Z', 1.1, '#cfcac3'], ...dHouse(-12, 40, 32, 18, 13, '#7a6a5c', false), ['w', 'M-17 40L-17 30Q-12 24 -7 30L-7 40Z', 1, GLOW], ['w', 'M12 29L18 28L40 28L38 32L32 32L32 37L36 40L22 40L26 37L26 32L18 31Z', 1.2, '#5b5651'], ['s', 'M28 22L30 18M33 23L36 20M24 23L22 19', .9]]],
+  ['g-runensteen', 'Runensteen', 'dwerg', 38, [['w', 'M-12 40L-14 -30L-6 -42L10 -40L14 -28L12 40Z', 1.5, DSTONE], ['w', 'M6 -40L14 -28L12 40L4 40Z', 1, DSTONE2], ['s', 'M-5 -28L-5 -16L1 -22M-6 -8L4 -8M-1 -12L-1 0M-5 8L3 16M3 8L-5 16M-2 24L2 28L-2 32', 1.1], ['f', 'M-5 -28L-5 -16L1 -22', 1, RUNE], ['w', bumps(-16, 38, 8, 5, 6, 61, 1.3), 1, '#7fb05a'], ['w', bumps(16, 38, 7, 5, 6, 62, 1.3), 1, '#7fb05a']]],
+  ['g-kristallen', 'Kristallen', 'dwerg', 40, [['w', 'M-36 40C-32 30 32 30 36 40Z', 1.3, DSTONE2], ...[[-16, 34, 8, 30, '#8e7cc3'], [12, 34, 9, 38, '#6fa8dc'], [-2, 36, 10, 48, '#a58fd6'], [26, 36, 6, 22, '#8e7cc3'], [-28, 37, 6, 18, '#6fa8dc']].flatMap(([x, b, w, h, c]) => [['w', poly([[x - w / 2, b], [x - w / 2, b - h * .75], [x, b - h], [x + w / 2, b - h * .75], [x + w / 2, b]]), 1.3, c], ['s', `M${x} ${b - h}L${x} ${b}M${x + w * .25} ${b - h * .8}L${x + w * .25} ${b - h * .3}`, .6]])]],
+  ['g-dwergmijn', 'Dwergenmijn', 'dwerg', 50, [['w', 'M-46 38C-40 8 -24 -16 0 -18C24 -16 40 8 46 38Z', 1.6, ROCK], ['k', 'M-13 38L-13 6L0 -4L13 6L13 38Z'], ['w', poly([[-18, 38], [-18, 6], [0, -10], [18, 6], [18, 38], [13, 38], [13, 8], [0, -2], [-13, 8], [-13, 38]]), 1.4, DSTONE], ['s', 'M-8 0L-5 -5L-2 0M2 0L5 -5L8 0', .7], ['s', 'M-10 38L-6 24M10 38L6 24M-8 32L8 32M-7 28L7 28', .7], ['w', 'M20 30L36 30L34 38L22 38Z', 1.1, WOOD], ['w', 'M21 30Q24 24 28 27Q31 23 35 30Z', 1, GOLD], ['b', circ(24, 39, 1.6)], ['b', circ(32, 39, 1.6)]]],
+  // dark lands
+  ['g-orkkamp', 'Orkkamp', 'duister', 60, [['w', 'M-36 24L-22 -10L-8 24Z', 1.4, '#a4835c'], ['k', 'M-25 24L-22 12L-19 24Z'], ['w', 'M4 22L20 -16L36 22Z', 1.4, '#8f7350'], ['k', 'M17 22L20 8L23 22Z'], ['s', 'M-22 -10L-26 -16M-22 -10L-18 -17M20 -16L16 -23M20 -16L24 -23', .9],
+    ['s', 'M-2 30L-2 -42', 1.3], ['w', 'M-2 -42L20 -40L15 -34L20 -27L-2 -28Z', 1.2, BLOOD], ['w', circ(7, -35, 3.2), .8, BONE], ['b', rect(5.4, -36, 1.2, 1.3)], ['b', rect(7.6, -36, 1.2, 1.3)],
+    ...Array.from({ length: 14 }, (_, i) => -42 + i * 6.5).map(x => ['w', poly([[x - 3, 44], [x - 3, 27], [x, 21], [x + 3, 27], [x + 3, 44]]), 1.1, '#7a5a3c']), ['s', 'M-45 37L45 37', .8]]],
+  ['g-spookboom', 'Spookboom', 'duister', 44, genDSpookboom(0)],
+  ['g-schedelrots', 'Schedelrots', 'duister', 56, [['w', 'M-30 36C-34 10 -26 -26 0 -28C26 -26 34 10 30 36L18 36L15 28L8 36L0 28L-8 36L-15 28L-18 36Z', 1.6, '#cfc6b4'], ['w', 'M14 -24C26 -14 32 8 30 36L18 36L15 28C22 10 22 -8 14 -24Z', 1, '#b3aa96'], ['k', 'M-17 -2C-17 -11 -4 -11 -4 -2C-4 5 -17 5 -17 -2Z'], ['k', 'M4 -2C4 -11 17 -11 17 -2C17 5 4 5 4 -2Z'], ['w', circ(-10.5, -3, 1.6), .5, '#e0592b'], ['w', circ(10.5, -3, 1.6), .5, '#e0592b'], ['k', 'M0 6L-4 15L4 15Z'], ['s', 'M8 -22L12 -16L10 -10', .8], ['s', 'M-46 38L-32 38M32 38L46 38', .9]]],
+  ['g-kerkhof', 'Kerkhof', 'duister', 56, [['w', 'M-46 40C-40 30 40 30 46 40Z', 1.3, '#7f8a6a'], ...[[-28, 30, 9, 16], [-8, 26, 10, 20], [14, 28, 9, 17], [32, 32, 8, 13]].flatMap(([x, b, w, h]) => [['w', `M${x - w / 2} ${b}L${x - w / 2} ${b - h + w / 2}C${x - w / 2} ${b - h - w * .1} ${x + w / 2} ${b - h - w * .1} ${x + w / 2} ${b - h + w / 2}L${x + w / 2} ${b}Z`, 1.3, '#a7a39a'], ['s', `M${x - 2} ${b - h * .55}L${x + 2} ${b - h * .55}M${x} ${b - h * .7}L${x} ${b - h * .3}`, .8]]),
+    ['w', 'M-42 6L-38 6L-38 -4L-34 -4L-34 -8L-38 -8L-38 -14L-42 -14L-42 -8L-46 -8L-46 -4L-42 -4Z', 1, '#7a6a5c'], ['s', 'M-46 34L46 34', .6], ['w', 'M24 -20A6 6 0 1 0 30 -12A4.6 4.6 0 1 1 24 -20Z', .9, '#e8e3c8']]],
+  ['g-lavaspleet', 'Lavaspleten', 'duister', 56, [['w', 'M-46 34C-40 20 -20 16 0 18C22 16 42 22 46 34C30 42 -30 42 -46 34Z', 1.5, '#4d4549'], ['w', 'M-30 30L-18 24L-10 28L4 22L14 27L28 24L22 30L12 31L2 27L-8 32L-20 29Z', 1.2, LAVA], ['w', 'M-34 26L-28 22L-22 25Z', .9, '#f2b134'], ['w', 'M20 32L30 30L36 33Z', .9, LAVA], ['w', 'M-6 16C-14 14 -12 2 -4 4C-2 -6 10 -4 8 4C16 4 14 14 8 14C4 18 -2 18 -6 16Z', 1, '#8a8088'], ['w', 'M16 14C12 12 13 6 17 7C18 2 24 3 23 7C27 7 26 13 22 13C20 15 18 15 16 14Z', .9, '#8a8088']]],
+  ['g-doornen', 'Doornen', 'duister', 34, [['w', 'M-24 34Q-24 8 -8 -18Q-14 8 -14 34Z', 1.2, '#5c4a52'], ['w', 'M-8 34Q-4 4 16 -16Q4 8 2 34Z', 1.2, '#5c4a52'], ['w', 'M6 34Q14 16 30 6Q18 20 16 34Z', 1.2, '#5c4a52'], ...[[-19, 12, -25, 8], [-13, 0, -8, -4], [-6, 18, 0, 15], [2, 4, -3, 0], [10, -4, 14, -1], [12, 22, 16, 17], [20, 14, 24, 18]].map(([x, y, a, b]) => ['w', poly([[x, y - 1.5], [a, b], [x + .5, y + 1.5]]), .7, '#5c4a52']), ['w', circ(-4, -6, 2.2), .7, BLOOD], ['w', circ(18, 6, 2), .7, BLOOD], ['s', 'M-30 36L32 36', .8]]],
+  ['g-duisterpoort', 'Duistere poort', 'duister', 64, [['w', 'M-42 42L-38 -20L-28 -30L-24 -20L-20 42Z', 1.5, DARK], ['w', 'M20 42L24 -20L28 -30L38 -20L42 42Z', 1.5, DARK], ['w', 'M-24 -18L24 -18L22 -6L-22 -6Z', 1.4, PURPLE], ['w', poly([[-24, -18], [-18, -30], [-12, -20], [-6, -34], [0, -22], [6, -34], [12, -20], [18, -30], [24, -18]]), 1.3, DARK], ['w', 'M-20 42L-20 -6L20 -6L20 42Z', 1.3, '#2a2330'], ['s', 'M-14 42L-14 -6M-6 42L-6 -6M2 42L2 -6M10 42L10 -6M-20 14L20 14', 1.1], ['w', circ(0, -12, 3), .8, '#f2b134'], ['w', circ(-31, 6, 2), .7, LAVA], ['w', circ(31, 6, 2), .7, LAVA]]],
+];
+const FOLK_GENERATORS = { 'g-elfwoud': genDElfwoud, 'g-spookboom': genDSpookboom };
+const FOLK_FILL = { 'g-elfwoud': '#b7dcd0', 'g-spookboom': '#4a3f4f' };
+
+DETAIL_ASSETS.push(...FOLK_ASSETS); Object.assign(DETAIL_GENERATORS, FOLK_GENERATORS); Object.assign(DETAIL_FILL, FOLK_FILL);
+
 const WORLD_ASSETS = [
   ['berg', 'Berg', 'land', 64, [['w', 'M-46 36L-20 -8L-12 -2L4 -38L46 36Z'], ['s', 'M4 -38L8 -18L2 -4L10 12L6 36'], ['s', 'M14 -14L20 -6M16 0L26 8M14 14L30 22M18 26L36 32', .7], ['s', 'M-20 -8L-16 6L-20 20', .7]]],
   ['berg2', 'Dubbele top', 'land', 72, [['w', 'M-48 36L-26 -20L-14 -6L-2 -30L8 -18L14 -26L48 36Z'], ['s', 'M-2 -30L2 -14L-4 2L4 20L0 36'], ['s', 'M14 -26L18 -10L14 4', .7], ['s', 'M22 -6L28 2M24 8L34 16M22 20L40 28', .7], ['s', 'M-26 -20L-24 -4L-30 10', .7]]],
@@ -1472,7 +1527,7 @@ function drawLabel(g, L) {
 const footY = s => s.y + s.s * (ASSETS[s.a]?.foot || 0);
 function stampOrder(d) { return d.kind === 'world' ? d.stamps.slice().sort((a, b) => footY(a) - footY(b)) : d.stamps; }
 /* Minimum spacing as an ellipse (fraction of the average size): wide and shallow, so a range shows its back peaks above the front ones. */
-const SPACING = { 'g-loof': [.5, .28], 'g-eik': [.55, .3], 'g-den': [.42, .24], 'g-berk': [.42, .24], 'g-struik': [.55, .3], 'g-dood': [.45, .26], 'g-palm': [.48, .28], 'g-berg': [.56, .3], 'g-heuvel': [.52, .28], 'g-rotsen': [.5, .35], 'g-gras': [.45, .3], berg: [.56, .3], berg2: [.58, .3], heuvels: [.52, .28], vulkaan: [.5, .3], naald: [.42, .24], spar: [.4, .24], loof: [.46, .26], palm: [.48, .28], riet: [.45, .3], rotsen: [.5, .35], boom: [.62, .62], struik: [.62, .62] };
+const SPACING = { 'g-elfwoud': [.42, .24], 'g-spookboom': [.5, .3], 'g-doornen': [.45, .3], 'g-kristallen': [.5, .32], 'g-loof': [.5, .28], 'g-eik': [.55, .3], 'g-den': [.42, .24], 'g-berk': [.42, .24], 'g-struik': [.55, .3], 'g-dood': [.45, .26], 'g-palm': [.48, .28], 'g-berg': [.56, .3], 'g-heuvel': [.52, .28], 'g-rotsen': [.5, .35], 'g-gras': [.45, .3], berg: [.56, .3], berg2: [.58, .3], heuvels: [.52, .28], vulkaan: [.5, .3], naald: [.42, .24], spar: [.4, .24], loof: [.46, .26], palm: [.48, .28], riet: [.45, .3], rotsen: [.5, .35], boom: [.62, .62], struik: [.62, .62] };
 const spacing = k => SPACING[k] || (k.startsWith('c:') || k.startsWith('img:') ? [.5, .3] : [.8, .7]);
 function collides(key, x, y, size, list, dens) {
   const [ax, ay] = spacing(key);
@@ -2234,6 +2289,8 @@ const PRESETS = {
     { id: 'dodebossen', since: 2, name: 'Dode bossen', items: [{ a: 'dodeboom', v: -1 }] },
     { id: 'g-bos', since: 3, name: 'Gedetailleerd bos', items: [{ a: 'g-loof', v: -1, n: 6 }, { a: 'g-eik', v: -1, n: 1 }, { a: 'g-den', v: -1, n: 3 }] },
     { id: 'g-dennen', since: 3, name: 'Gedetailleerd dennenbos', items: [{ a: 'g-den', v: -1, n: 6 }, { a: 'g-berk', v: -1, n: 1 }] },
+    { id: 'g-elfenwoud', since: 4, name: 'Gedetailleerd elfenwoud', items: [{ a: 'g-elfwoud', v: -1, n: 6 }, { a: 'g-berk', v: -1, n: 1 }] },
+    { id: 'g-duisterwoud', since: 4, name: 'Duister woud', items: [{ a: 'g-spookboom', v: -1, n: 6 }, { a: 'g-doornen', v: 0, n: 3 }, { a: 'g-dood', v: -1, n: 1 }] },
     { id: 'g-gebergte', since: 3, name: 'Gedetailleerd gebergte', grow: true, items: [{ a: 'g-berg', v: -1, n: 6 }, { a: 'g-heuvel', v: -1, zone: 'rand', n: 3, rel: .7 }] },
     { id: 'doornenland', since: 2, name: 'Doornenland', items: [{ a: 'doornen', v: 0, n: 6 }, { a: 'dodeboom', v: -1, n: 1 }, { a: 'rotsen', v: 0, n: 1, rel: .7 }] },
   ],
@@ -2248,7 +2305,7 @@ const normBrush = b => ({ id: String(b.id), name: String(b.name || 'Penseel').sl
   amount: +b.amount || 1.4, scale: +b.scale || 1, vary: b.vary ?? .25,
   items: (b.items || []).map(it => ({ a: String(it.a), v: Number.isInteger(it.v) ? it.v : 0, zone: ['overal', 'midden', 'rand'].includes(it.zone) ? it.zone : 'overal', n: snapN(+it.n || 3), rel: Math.max(.2, Math.min(3, +it.rel || 1)) })) });
 const presetBrushes = k => PRESETS[k].map(normBrush);
-const PRESET_LEVEL = 3; // raise together with `since` on brushes added later, so saved libraries get them once
+const PRESET_LEVEL = 4; // raise together with `since` on brushes added later, so saved libraries get them once
 const DEFAULT_TYPES = ['Bomen', 'Bergen', 'Heuvels', 'Gras en planten', 'Rotsen', 'Water', 'Gebouwen', 'Steden', 'Versiering', 'Overig'];
 const lib = { brushes: { world: presetBrushes('world'), local: presetBrushes('local') }, shapes: [], terrains: [], uploads: [], types: DEFAULT_TYPES.slice(), sel: { world: 'gebergte', local: 'bomen' }, presetsSeen: PRESET_LEVEL };
 const newId = () => Math.random().toString(36).slice(2, 9);
@@ -3753,7 +3810,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.16.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.17.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;

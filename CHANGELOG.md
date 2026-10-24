@@ -1,5 +1,13 @@
 # Wijzigingen
 
+## 1.17.0
+
+- Meer gedetailleerde symbolen voor de volken:
+  - **Elfen:** Elfenstad, Elfentoren, Maanpoort, Elfenwoud-boom, Elfenbron en Elfenkring, naast de Elfenboom.
+  - **Dwergen:** Dwergenvesting, Smidse, Runensteen, Kristallen en Dwergenmijn, naast de Bergpoort.
+  - **Duistere landen:** Orkkamp, Spookboom, Schedelrots, Kerkhof, Lavaspleten, Doornen en Duistere poort, naast de Duistere toren.
+- Nieuwe penselen: *Gedetailleerd elfenwoud* en *Duister woud*.
+
 ## 1.16.0
 
 - **Gedetailleerd pakket** voor de wereldkaart: een tweede set symbolen in een rijkere stijl, met een dikke omlijning, egale kleuren en detaillijntjes. Kies *Klassiek* of *Gedetailleerd* boven de categorieën.
