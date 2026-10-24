@@ -125,6 +125,7 @@ input[type=checkbox],input[type=radio]{accent-color:var(--accent);margin:0}
 .label-edit{position:absolute;transform:translate(-50%,-50%);border:1.5px solid #2a9ad6;background:#fff;color:#181818;border-radius:4px;padding:2px 6px;font-family:var(--f-map);text-align:center;outline:none;z-index:5;min-width:120px}
 .ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:.85}
 .modal{position:fixed;inset:0;background:rgba(8,12,18,.48);display:grid;place-items:center;z-index:80;padding:16px}
+#icModal,#padModal{z-index:85} /* they can open from inside Instellingen */
 .dialog{background:var(--panel);border:1px solid var(--rule);border-radius:14px;max-width:440px;width:100%;padding:20px;display:grid;gap:16px;box-shadow:0 20px 60px rgba(0,0,0,.35);max-height:100%;overflow:auto}
 .dialog h2{margin:0;font-family:var(--f-display);font-weight:400;font-size:27px;text-wrap:balance}
 fieldset{border:0;padding:0;margin:0;display:grid;gap:7px}
@@ -460,6 +461,7 @@ body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
         <div class="chips" id="icTools"></div>
         <div class="colorrow"><span>Verf</span><input type="color" id="icColor" value="#6f9c4c" aria-label="Verfkleur"></div>
         <label class="row"><span>Gevoelig</span><input type="range" id="icTol" min="10" max="160" value="70"><output id="icTolOut">70</output></label>
+        <label class="row"><span>Penseel</span><input type="range" id="icSize" min="1" max="100" value="10" aria-label="Grootte van Kleurpotlood en Kleur wissen ([ en ])"><output id="icSizeOut">10</output></label>
         <div class="btns"><button type="button" class="btn" id="icUndo">Ongedaan maken</button><button type="button" class="btn" id="icClear">Alles wissen</button></div>
         <p class="note">Tik met de Verfemmer op een deel, bv. eerst de kruin en dan de stam, elk in een eigen kleur. De emmer vult alles wat ongeveer dezelfde kleur heeft; met Gevoelig hoger vult hij meer. Zwarte lijnen blijven zwart. De kleuren zie je op een kleurenkaart.</p>
       </div>
@@ -483,6 +485,7 @@ body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
         <p class="note" id="padOpen" hidden>De omtrek is niet gesloten, dus er is geen binnenkant om in te kleuren. Trek de lijn rond tot ze bijna zichzelf raakt.</p>
         <div class="colorrow"><span>Basiskleur</span><input type="color" id="padColor" aria-label="Basiskleur van deze vorm op een kleurenkaart"><span class="note" style="margin:0">vult de hele binnenkant</span></div>
         <div class="colorrow"><span>Verf</span><input type="color" id="padPaint" value="#7fae62" aria-label="Kleur voor Verfemmer en Kleurpotlood"><span class="note" style="margin:0">voor Verfemmer en Kleurpotlood</span></div>
+        <label class="row" id="padBrushRow"><span>Penseel</span><input type="range" id="padBrush" min="1" max="100" value="20" aria-label="Grootte van Kleurpotlood en Kleur wissen ([ en ])"><output id="padBrushOut">20</output></label>
         <label class="row"><span>Grootte</span><input type="range" id="padSize" min="16" max="200" value="64"><output id="padSizeOut">64</output></label>
         <label class="field"><span>Naam</span><input type="text" id="padName" maxlength="40"></label>
         <canvas id="padPrev" width="560" height="168" aria-label="Zo ziet de vorm eruit op de kaart"></canvas>
@@ -2377,11 +2380,15 @@ function padBucket(p, quiet) {
   g.putImageData(img, 0, 0); pad.paintVer++;
 }
 function padDab(a, b) {
-  const g = pad.paint.getContext('2d'); g.save(); g.setTransform(2, 0, 0, 2, 100, 100); g.lineCap = 'round'; g.lineWidth = 5;
+  const g = pad.paint.getContext('2d'); g.save(); g.setTransform(2, 0, 0, 2, 100, 100); g.lineCap = 'round'; g.lineWidth = padBrushW();
   g.globalCompositeOperation = pad.tool === 'kleurgum' ? 'destination-out' : 'source-over'; g.strokeStyle = $('#padPaint').value;
   g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x + .01, b.y); g.stroke(); g.restore(); pad.paintVer++;
 }
 const f1 = v => Math.round(v * 10) / 10;
+// size of Kleurpotlood and Kleur wissen, in the -50..50 units of a shape (and in pixels of an uploaded picture)
+const padBrushW = () => +$('#padBrush').value / 4;
+const icBrushW = () => Math.max(1, +$('#icSize').value / 100 * Math.max(icS.W, icS.H) / 4);
+const brushKeys = (e, input, redraw) => { if (e.key !== '[' && e.key !== ']') return false; const el = $(input); el.value = Math.max(1, Math.min(100, +el.value + (e.key === ']' ? 4 : -4))); el.dispatchEvent(new Event('input')); redraw(); return true; };
 function grow(a, N, r) {
   let cur = a;
   for (let k = 0; k < r; k++) { const nx = cur.slice(); for (let i = 0; i < N * N; i++) if (cur[i]) { const x = i % N; if (x > 0) nx[i - 1] = 1; if (x < N - 1) nx[i + 1] = 1; if (i >= N) nx[i - N] = 1; if (i < N * N - N) nx[i + N] = 1; } cur = nx; }
@@ -2470,7 +2477,7 @@ function openPad(shape, fromBrush) {
 function syncPadTools() {
   const wb = $('#padWidths'); wb.textContent = '';
   for (const [w, n] of PAD_WIDTHS) { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = n; b.setAttribute('aria-pressed', pad.w === w); b.addEventListener('click', () => { pad.w = w; syncPadTools(); }); wb.append(b); }
-  $('#padHint').textContent = PAD_HINTS[pad.tool] || '';
+  $('#padHint').textContent = PAD_HINTS[pad.tool] || ''; $('#padBrushRow').hidden = !(pad.tool === 'potlood' || pad.tool === 'kleurgum');
   const box = $('#padTools'); box.textContent = '';
   for (const [k, n] of PAD_TOOLS) { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = n; b.setAttribute('aria-pressed', pad.tool === k); b.addEventListener('click', () => { padCommit(); pad.tool = k; drawPad(); syncPadTools(); }); box.append(b); }
 }
@@ -2490,6 +2497,8 @@ function drawPad() {
   const ref = $('#padRef').value; if (ref && ASSETS[ref]) { g.save(); g.globalAlpha = .15; drawAsset(g, ref, 0, 0, 100, 0, false, 0); g.restore(); }
   const draft = padDraft(size), mapPal = CUR;
   CUR = PALETTES.kleur; g.save(); g.globalAlpha = .9; drawAsset(g, 'c:__draft', 0, 0, 100, 0, false, 0); g.restore(); CUR = mapPal;
+  if (pad.hover && (pad.tool === 'potlood' || pad.tool === 'kleurgum')) { // where and how big the colour brush paints
+    g.strokeStyle = 'rgba(42,154,214,.9)'; g.lineWidth = 1.5 / k; for (const x of $('#padMirror').checked ? [pad.hover.x, -pad.hover.x] : [pad.hover.x]) { g.beginPath(); g.arc(x, pad.hover.y, padBrushW() / 2, 0, 7); g.stroke(); } }
   // preview at real map size and twice that
   const pv = $('#padPrev'), pg = pv.getContext('2d'), W = pv.width, H = pv.height;
   pg.setTransform(1, 0, 0, 1, 0, 0); pg.fillStyle = PAPERC; pg.fillRect(0, 0, W, H);
@@ -2524,7 +2533,7 @@ padCv.addEventListener('pointerdown', e => {
 padCv.addEventListener('pointermove', e => {
   if (!pad) return; const p = padPt(e), back = { x: -p.x, y: p.y }, mir = $('#padMirror').checked;
   if (pad.poly) { const pts = pad.live.pts, q = padSnapPt(p); pts[pts.length - 2] = f1(q.x); pts[pts.length - 1] = f1(q.y); drawPad(); return; }
-  if (!pad.live && !pad.erasing && !pad.painting && !pad.drag) return;
+  pad.hover = p; if (!pad.live && !pad.erasing && !pad.painting && !pad.drag) { if (pad.tool === 'potlood' || pad.tool === 'kleurgum') drawPad(); return; }
   if (pad.painting) { padDab(pad.painting, p); if (mir) padDab({ x: -pad.painting.x, y: pad.painting.y }, back); pad.painting = p; }
   else if (pad.drag) { const q = padSnapPt(p), dx = q.x - pad.drag.last.x, dy = q.y - pad.drag.last.y; pad.drag.st.pts = pad.drag.st.pts.map((v, i) => f1(v + (i % 2 ? dy : dx))); pad.drag.last = q; }
   else if (pad.erasing) { padErase(p); if (mir) padErase(back); }
@@ -2553,9 +2562,12 @@ const closePad = () => { $('#padModal').hidden = true; pad = null; };
 $('#padCancel').addEventListener('click', closePad);
 $('#padModal').addEventListener('keydown', e => {
   if (pad && pad.poly && (e.key === 'Enter' || e.key === 'Escape')) { e.preventDefault(); e.stopPropagation(); if (e.key === 'Enter') padCommit(); else { pad.live = null; pad.poly = null; pad.hist.pop(); } drawPad(); return; }
+  if (e.target.tagName !== 'INPUT' && brushKeys(e, '#padBrush', drawPad)) return;
   if (e.key === 'Escape') { e.stopPropagation(); closePad(); }
 });
 $('#padMirror').addEventListener('change', () => drawPad());
+$('#padBrush').addEventListener('input', e => { $('#padBrushOut').textContent = e.target.value; drawPad(); });
+padCv.addEventListener('pointerleave', () => { if (pad) { pad.hover = null; drawPad(); } });
 $('#padDelete').addEventListener('click', e => {
   if (!pad?.edit) return; const sh = pad.edit;
   armButton(e.currentTarget, 'Klik nogmaals om te verwijderen', () => {
@@ -2964,6 +2976,12 @@ function openColorer(u) {
   const sc = document.createElement('canvas'); sc.width = W; sc.height = H; const sg = sc.getContext('2d', { willReadFrequently: true }); sg.drawImage(a.image, 0, 0, W, H);
   const paint = document.createElement('canvas'); paint.width = W; paint.height = H;
   icS = { u, W, H, src: sg.getImageData(0, 0, W, H).data, paint, hist: [], tool: 'emmer', last: null };
+  // the see-through surroundings of the picture: colour never goes there
+  const out = new Uint8Array(W * H), stack = [], clear = j => icS.src[j * 4 + 3] < 40;
+  for (let x = 0; x < W; x++) for (const j of [x, (H - 1) * W + x]) if (!out[j] && clear(j)) { out[j] = 1; stack.push(j); }
+  for (let y = 0; y < H; y++) for (const j of [y * W, y * W + W - 1]) if (!out[j] && clear(j)) { out[j] = 1; stack.push(j); }
+  while (stack.length) { const j = stack.pop(), x = j % W; for (const n of [x > 0 ? j - 1 : -1, x < W - 1 ? j + 1 : -1, j - W, j + W]) if (n >= 0 && n < W * H && !out[n] && clear(n)) { out[n] = 1; stack.push(n); } }
+  icS.outside = out;
   if (a.paintImg) paint.getContext('2d').drawImage(a.paintImg, 0, 0, W, H);
   syncIcTools(); $('#icModal').hidden = false; drawIc();
 }
@@ -2979,7 +2997,15 @@ function drawIc() {
   g.fillStyle = '#eef0f3'; for (let y = 0; y < 600; y += 20) for (let x = (y / 20) % 2 * 20; x < 600; x += 40) g.fillRect(x, y, 20, 20); // a checkerboard shows see-through parts
   const c = document.createElement('canvas'); c.width = icS.W; c.height = icS.H; const cg = c.getContext('2d'), img = cg.createImageData(icS.W, icS.H);
   img.data.set(icS.src); colourize(img.data, icS.paint.getContext('2d').getImageData(0, 0, icS.W, icS.H).data, null); cg.putImageData(img, 0, 0);
-  g.imageSmoothingEnabled = true; g.drawImage(c, F.x, F.y, icS.W * F.f, icS.H * F.f);
+  icS.view = c; icCursor();
+}
+// the picture as last coloured, plus a circle that shows where and how big the colour brush paints
+function icCursor() {
+  if (!icS || !icS.view) return; const g = $('#icCv').getContext('2d'), F = icFit();
+  g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = '#fff'; g.fillRect(0, 0, 600, 600);
+  g.fillStyle = '#eef0f3'; for (let y = 0; y < 600; y += 20) for (let x = (y / 20) % 2 * 20; x < 600; x += 40) g.fillRect(x, y, 20, 20);
+  g.imageSmoothingEnabled = true; g.drawImage(icS.view, F.x, F.y, icS.W * F.f, icS.H * F.f);
+  if (icS.hover && icS.tool !== 'emmer') { g.strokeStyle = 'rgba(42,154,214,.9)'; g.lineWidth = 1.5; g.beginPath(); g.arc(F.x + icS.hover.x * F.f, F.y + icS.hover.y * F.f, icBrushW() / 2 * F.f, 0, 7); g.stroke(); }
 }
 function icPt(e) { const r = $('#icCv').getBoundingClientRect(), F = icFit(), x = (e.clientX - r.left) / r.width * 600, y = (e.clientY - r.top) / r.height * 600; return { x: (x - F.x) / F.f, y: (y - F.y) / F.f }; }
 function icBucket(p) {
@@ -2997,9 +3023,15 @@ function icBucket(p) {
   g.putImageData(img, 0, 0);
 }
 function icDab(a, b) {
-  const g = icS.paint.getContext('2d'); g.save(); g.lineCap = 'round'; g.lineWidth = Math.max(3, Math.max(icS.W, icS.H) / 40);
+  const g = icS.paint.getContext('2d'); g.save(); g.lineCap = 'round'; g.lineWidth = icBrushW();
   g.globalCompositeOperation = icS.tool === 'kleurgum' ? 'destination-out' : 'source-over'; g.strokeStyle = $('#icColor').value;
   g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x + .01, b.y); g.stroke(); g.restore();
+  if (icS.tool === 'potlood') { // keep the colour on the picture
+    const r = Math.ceil(icBrushW() / 2) + 2, x0 = Math.max(0, Math.floor(Math.min(a.x, b.x) - r)), y0 = Math.max(0, Math.floor(Math.min(a.y, b.y) - r)), x1 = Math.min(icS.W, Math.ceil(Math.max(a.x, b.x) + r)), y1 = Math.min(icS.H, Math.ceil(Math.max(a.y, b.y) + r));
+    if (x1 > x0 && y1 > y0) { const img = g.getImageData(x0, y0, x1 - x0, y1 - y0), d = img.data;
+      for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) if (icS.outside[y * icS.W + x]) d[((y - y0) * (x1 - x0) + (x - x0)) * 4 + 3] = 0;
+      g.putImageData(img, x0, y0); }
+  }
 }
 const icCv = $('#icCv');
 icCv.addEventListener('pointerdown', e => {
@@ -3008,7 +3040,9 @@ icCv.addEventListener('pointerdown', e => {
   if (icS.tool === 'emmer') icBucket(p); else { icS.last = p; icDab(p, p); }
   drawIc();
 });
-icCv.addEventListener('pointermove', e => { if (!icS || !icS.last) return; const p = icPt(e); icDab(icS.last, p); icS.last = p; drawIc(); });
+icCv.addEventListener('pointermove', e => { if (!icS) return; const p = icPt(e); icS.hover = p; if (!icS.last) { icCursor(); return; } icDab(icS.last, p); icS.last = p; drawIc(); });
+icCv.addEventListener('pointerleave', () => { if (icS) { icS.hover = null; icCursor(); } });
+$('#icSize').addEventListener('input', e => { $('#icSizeOut').textContent = e.target.value; icCursor(); });
 const icUp = () => { if (icS) icS.last = null; };
 icCv.addEventListener('pointerup', icUp); icCv.addEventListener('pointercancel', icUp);
 $('#icTol').addEventListener('input', e => { $('#icTolOut').textContent = e.target.value; });
@@ -3016,7 +3050,7 @@ $('#icUndo').addEventListener('click', () => { if (icS && icS.hist.length) { icS
 $('#icClear').addEventListener('click', () => { if (!icS) return; icS.hist.push(icS.paint.getContext('2d').getImageData(0, 0, icS.W, icS.H)); icS.paint.getContext('2d').clearRect(0, 0, icS.W, icS.H); drawIc(); });
 const closeColorer = () => { $('#icModal').hidden = true; icS = null; };
 $('#icCancel').addEventListener('click', closeColorer);
-$('#icModal').addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); closeColorer(); } });
+$('#icModal').addEventListener('keydown', e => { if (e.target.tagName !== 'INPUT' && brushKeys(e, '#icSize', icCursor)) return; if (e.key === 'Escape') { e.stopPropagation(); closeColorer(); } });
 $('#icSave').addEventListener('click', () => {
   const { u, paint, W, H } = icS, pd = paint.getContext('2d').getImageData(0, 0, W, H).data; let any = false; for (let i = 3; i < pd.length; i += 4) if (pd[i]) { any = true; break; }
   u.paint = any ? paint.toDataURL('image/png') : null; saveLib(); registerUpload(u, UPBMP.get(u.id));
@@ -3525,7 +3559,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.14.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.14.1', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;

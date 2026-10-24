@@ -1,5 +1,11 @@
 # Wijzigingen
 
+## 1.14.1
+
+- **Penseelgrootte** voor *Kleurpotlood* en *Kleur wissen*, zowel in *Afbeelding inkleuren* als in het tekenvenster voor eigen vormen. Een cirkel toont waar en hoe groot je schildert. Met de toetsen **[** en **]** maak je het penseel kleiner of groter.
+- Het kleurpotlood kleurt bij geüploade afbeeldingen niet meer buiten de afbeelding, op de doorzichtige achtergrond.
+- Herstel: *Inkleuren…* vanuit *Instellingen › Mijn assets* opende het venster achter de instellingen.
+
 ## 1.14.0
 
 - **Afbeelding inkleuren:** kleur delen van een geüploade afbeelding apart in, bv. de kruin groen en de stam bruin.
