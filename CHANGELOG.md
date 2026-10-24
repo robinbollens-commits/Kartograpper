@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## 1.19.1
+
+- Bergen, heuvels en de dwergenmijn in de stijl **Oud** hebben geen lijn meer langs de voet. Zo lijken ze meer met de hand getekend.
+
 ## 1.19.0
 
 - De symboolstijl **Oud** heeft nu ook getekende versies voor de volken:
