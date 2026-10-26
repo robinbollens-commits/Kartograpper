@@ -1,5 +1,12 @@
 # Wijzigingen
 
+## 1.22.1
+
+- Alle symbolen voor de elfen, dwergen en duistere landen in de stijl **Oud** zijn opnieuw getekend in de vintage penstijl:
+  - **Elfen:** elfenstad met groene torenspitsen, elfentoren met maansikkel, elfenboom, elfenwoud-boom, maanpoort en elfenbron.
+  - **Dwergen:** bergpoort, dwergenvesting op een rots, smidse met aambeeld, runensteen en dwergenmijn.
+  - **Duistere landen:** duistere toren met hoorns, orkkamp met palissade, dode boom, schedelrots, kerkhof met smeedijzeren hek, duistere poort en doornen.
+
 ## 1.22.0
 
 - De symboolstijl **Oud** is helemaal opnieuw getekend als een vintage fantasykaart met de hand: vette, licht trillende penlijnen, snelle arcering aan de schaduwkant en open onderkanten.
