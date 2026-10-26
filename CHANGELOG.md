@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## 1.22.2
+
+- De bergen in de stijl **Oud** zijn lager en breder, met een stompere, licht gebroken top, zoals op oude kaarten. Dat geldt ook voor de berg achter de bergpoort.
+
 ## 1.22.1
 
 - Alle symbolen voor de elfen, dwergen en duistere landen in de stijl **Oud** zijn opnieuw getekend in de vintage penstijl:

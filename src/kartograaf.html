@@ -1318,16 +1318,17 @@ const ticks = (r, n = 4, y = 42) => { let d = ''; for (let k = 0; k < n; k++) { 
 /* land */
 function inkPeak(ops, cx, base, w, h, r) {
   const tx = cx + (r() - .5) * w * .16, top = base - h;
-  const body = [[cx - w / 2, base], [cx - w * .3 + (r() - .5) * 4, base - h * .42], [tx - w * .07, top + h * .13], [tx, top], [tx + w * .09, top + h * .2], [cx + w * .27 + (r() - .5) * 4, base - h * .45], [cx + w / 2, base]];
+  // broad and fairly low, with a blunt, slightly broken top, the way old maps draw them
+  const body = [[cx - w / 2, base], [cx - w * .3 + (r() - .5) * 4, base - h * .48], [tx - w * .12, top + h * .1], [tx - w * .03, top + h * .02], [tx, top], [tx + w * .06, top + h * .06], [tx + w * .13, top + h * .2], [cx + w * .3 + (r() - .5) * 4, base - h * .45], [cx + w / 2, base]];
   const ridge = [[tx, top], [tx + w * .03 + (r() - .5) * 3, top + h * .5], [cx + w * .12 + (r() - .5) * 4, base - 1]], s0 = body[1];
   ops.push(['g', pl(body) + 'Z', base - h * .3], ['s', shadeFrom(ridge, body, [.6, 1], h * .3, 2.3, r), .65], ['s', sp(ridge, r, .8), 1], ['s', sp(body, r, 1.1), 1.5],
     ['s', sp([[s0[0] + w * .07, s0[1] + 3], [s0[0] + w * .1, base - 5]], r, .6), .8]);
 }
 function genInkBerg(seed) {
   const r = rng(seed * 977 + 3), ops = [], n = 1 + Math.floor(r() * 3);
-  if (n >= 2) inkPeak(ops, -21 - r() * 6, 40, 46, 42 + r() * 10, r);
-  if (n >= 3) inkPeak(ops, 22 + r() * 6, 40, 44, 36 + r() * 10, r);
-  inkPeak(ops, (r() - .5) * 8, 40, n > 1 ? 58 : 76, 60 + r() * 12, r);
+  if (n >= 2) inkPeak(ops, -24 - r() * 6, 40, 52, 28 + r() * 8, r);
+  if (n >= 3) inkPeak(ops, 25 + r() * 6, 40, 50, 24 + r() * 8, r);
+  inkPeak(ops, (r() - .5) * 8, 40, n > 1 ? 66 : 84, 40 + r() * 10, r);
   ops.push(['s', ticks(r), .7]); return ops;
 }
 function genInkVulkaan(seed) {
@@ -1496,7 +1497,7 @@ INK_ASSETS.push(
   ['o-elfbron', 'Elfenbron', 'elf', 46, (() => { const r = rng(35), C = curve([[-30, 30], [-20, 22], [0, 20], [20, 22], [30, 30], [20, 38], [0, 40], [-20, 38], [-30, 30]], 4);
     return [['w', sp(C, r, .4) + 'Z', 1.4, OWATER], ['s', 'M-16 30Q0 26 16 30M-8 34Q0 31 8 34', .6], ...[[-30, 28], [-14, 21], [12, 20], [28, 26]].flatMap(([x, y]) => inkStone(x, y, 7, 6, r)),
       ...[[-22, 41], [2, 43], [24, 40]].flatMap(([x, y]) => inkStone(x, y, 7, 5, r)), ['s', 'M0 28L0 6M-3 10Q0 0 3 10M-6 16Q0 4 6 16', .9], ['k', dots([[-5, 4, 1], [5, 2, 1], [0, -2, 1.1]])]]; })()],
-  ['o-bergpoort', 'Bergpoort', 'dwerg', 74, (() => { const r = rng(36), ops = []; inkPeak(ops, 22, 40, 50, 46, r); inkPeak(ops, -6, 40, 78, 74, r);
+  ['o-bergpoort', 'Bergpoort', 'dwerg', 74, (() => { const r = rng(36), ops = []; inkPeak(ops, 24, 40, 54, 34, r); inkPeak(ops, -6, 40, 86, 56, r);
     ops.push(['w', sp([[-26, 40], [-26, 12], [10, 12], [10, 40]], r, .4), 1.4, OSTONE], ['w', sp([[-30, 12], [-8, -2], [14, 12]], r, .4) + 'Z', 1.4, OSTONE2], ['s', 'M-21 14L-21 40M5 14L5 40M-8 3L-8 9', .7],
       ['k', 'M-16 40L-16 26Q-8 16 0 26L0 40Z'], ['s', hatchRect(5, 14, 9, 39, 2, 0), .55], ['s', ticks(r), .7]); return ops; })()],
   ['o-dwergvesting', 'Dwergenvesting', 'dwerg', 66, (() => { const r = rng(37), cliff = [[-46, 40], [-40, 16], [-30, 12], [30, 10], [40, 14], [46, 40]];
@@ -4650,7 +4651,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.22.1', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.22.2', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;
