@@ -1,5 +1,19 @@
 # Wijzigingen
 
+## 1.24.0
+
+- De symboolstijl **Gedetailleerd** bestaat nu volledig uit gegraveerde pentekeningen, op hoge resolutie. De vroegere getekende gedetailleerde symbolen zijn uit het paneel verdwenen. Kaarten waarop ze al staan, tonen ze nog wel.
+  - **Bergen, bomen en bossen hebben elk tot 17 varianten**, en een penseel wisselt ze willekeurig af:
+    - bergen (10 varianten), den, dennengroep, loofboom, bomengroep, losse boom, gemengd bos en naaldbos;
+    - **Elfen:** elfenbos, magisch woud en paddenstoelenwoud;
+    - **Duistere landen:** duister bos en dood bos.
+  - **De rijken:** ommuurde stad, ringdorp, vuurtoren, dwergenburcht, mijnnederzetting, dwergenhal, boomstad, bosdorp, heiligdomtoren, citadel, duistere burcht en ruïnetempel.
+  - **Plekken, zee en versiering:** geheime doorgang, steencirkel, hut van de kluizenaar, uitkijkpost, schipbreuk, handelsschepen, vloot, zeemonster, sirenenklif, kompasroos, titelcartouche, legendakader en schaalbalk.
+- **Geen witte vlakken:** de icoontjes zijn pure inkt, dus de ondergrond van je kaart loopt erdoor. Overlappende bomen en bergen dekken elkaar wel netjes af. Alleen de titelcartouche en het legendakader houden een papieren binnenkant voor tekst.
+- **Nieuwe penselen:** *Gedetailleerd bos*, *Gedetailleerd naaldbos*, *Gedetailleerd gebergte*, *Gedetailleerd elfenbos* en *Gedetailleerd duister bos*. Ze vervangen de oude gedetailleerde penselen.
+- De gegraveerde icoontjes uit 1.23.0 staan nu onder **Gedetailleerd** in plaats van onder Oud, en zijn scherper.
+- *Kaart uit een verhaal* gebruikt bij de stijl Gedetailleerd de gegraveerde icoontjes.
+
 ## 1.23.0
 
 - 25 nieuwe **gegraveerde symbolen** in de stijl **Oud**: fijn gearceerde pentekeningen. Ze verschijnen in de inkt en het papier van de gekozen kaartstijl.
