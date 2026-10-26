@@ -1,5 +1,23 @@
 # Wijzigingen
 
+## 1.22.0
+
+- De symboolstijl **Oud** is helemaal opnieuw getekend als een vintage fantasykaart met de hand: vette, licht trillende penlijnen, snelle arcering aan de schaduwkant en open onderkanten.
+  - **Landschap:** bergen met één tot drie toppen, heuvelruggen en een nieuwe vulkaan.
+  - **Bomen:** loofboom, den, bosje, en nieuw: een slanke boom en een struik.
+  - **Nederzettingen:**
+    - een burcht met kantelentorens en een stad met een spits torentje;
+    - een dorp en een ronde hut;
+    - nieuw: een huisje met strodak.
+  - **Plekken:**
+    - een stenen toren, en nieuw: een tempel, een grot, een hunebed en een kroon;
+    - nieuw: een slagveld, met een zwaard als teken.
+  - **Zee:** een galjoen, en nieuw: een drakar, een zeeslang en een draaikolk.
+  - **Elfen:** nieuw zijn de elfenstenen en een gevleugeld beeld.
+  - **Dwergen:** de kristallen zijn opnieuw getekend, en nieuw zijn een houweel en een mijnkar.
+  - Alle andere elfen-, dwergen- en duistere symbolen krijgen dezelfde trillende, vette penlijn.
+- Vier nieuwe ondergronden in getekende stijl: **Hoog gras**, **Wolken**, **Cactusvlakte** en **Arcering**.
+
 ## 1.21.1
 
 - De nederzettingen in de stijl **Oud** zijn opnieuw getekend, in fantasystijl:

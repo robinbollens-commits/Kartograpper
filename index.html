@@ -665,16 +665,16 @@ const BLUE = '#2a9ad6';
 const PALETTES = {
   inkt: { name: 'Inkt', ink: [24, 24, 24], paper: [252, 252, 252], water: [252, 252, 252], deep: [252, 252, 252], floor: [252, 252, 252], rock: [252, 252, 252], ground: [252, 252, 252], terr: {}, fill: {} },
   perkament: { name: 'Perkament', ink: [64, 45, 28], paper: [240, 227, 198], water: [229, 216, 186], deep: [222, 207, 175], floor: [242, 231, 205], rock: [221, 205, 172], ground: [236, 223, 192],
-    terr: { gras: [230, 222, 183], woestijn: [242, 224, 180], moeras: [217, 214, 180], sneeuw: [246, 241, 228], akkers: [235, 220, 182], rotsgrond: [224, 210, 184], dor: [221, 203, 172], bloemen: [234, 226, 188], land: [237, 230, 206], kasseien: [228, 214, 186], tegels: [234, 222, 196], planken: [230, 210, 172], aarde: [228, 210, 176], water: [222, 214, 190] }, fill: {} },
+    terr: { gras: [230, 222, 183], woestijn: [242, 224, 180], moeras: [217, 214, 180], sneeuw: [246, 241, 228], akkers: [235, 220, 182], rotsgrond: [224, 210, 184], dor: [221, 203, 172], bloemen: [234, 226, 188], land: [237, 230, 206], hooggras: [228, 222, 184], wolken: [246, 242, 230], cactus: [240, 224, 184], arcering: [232, 224, 200], kasseien: [228, 214, 186], tegels: [234, 222, 196], planken: [230, 210, 172], aarde: [228, 210, 176], water: [222, 214, 190] }, fill: {} },
   kleur: { name: 'Kleur', colorful: true, ink: [44, 36, 30], paper: [237, 229, 202], water: [182, 216, 228], deep: [126, 174, 204], floor: [234, 227, 210], rock: [156, 148, 138], ground: [221, 226, 192], river: '#3f78a6',
-    terr: { gras: [193, 216, 152], woestijn: [238, 215, 158], moeras: [170, 189, 143], sneeuw: [242, 246, 250], akkers: [226, 205, 140], rotsgrond: [200, 188, 170], dor: [186, 168, 148], bloemen: [208, 226, 164], land: [214, 216, 174], kasseien: [202, 198, 188], tegels: [216, 208, 192], planken: [210, 174, 124], aarde: [200, 172, 128], water: [146, 194, 218] },
+    terr: { gras: [193, 216, 152], woestijn: [238, 215, 158], moeras: [170, 189, 143], sneeuw: [242, 246, 250], akkers: [226, 205, 140], rotsgrond: [200, 188, 170], dor: [186, 168, 148], bloemen: [208, 226, 164], land: [214, 216, 174], hooggras: [180, 206, 140], wolken: [236, 240, 244], cactus: [236, 212, 156], arcering: [210, 206, 176], kasseien: [202, 198, 188], tegels: [216, 208, 192], planken: [210, 174, 124], aarde: [200, 172, 128], water: [146, 194, 218] },
     fill: { berg: '#cdb994', berg2: '#cdb994', vulkaan: '#b9a58a', heuvels: '#bccf92', rotsen: '#c2b8a8', riet: '#a9c48a', naald: '#6f9c5c', spar: '#5f8e55', loof: '#8fba67', palm: '#8fba67',
       nederzetting: '#ecdcb8', plek: '#e2d5b8', elf: '#e6eed6', elfboom: '#9cc47c', elfwoud: '#86b97a', dwerg: '#d8cbb0', dwergpoort: '#cdb994', duister: '#a39a92', orkkamp: '#c2a77f', schedelrots: '#d6cdbd', draak: '#a7b97c', kraken: '#cf9a94', steencirkel: '#c9c2b4', magiertoren: '#cdc6e4', schat: '#c9955a', schip: '#caa77c', zeeslang: '#93b58e', anker: '#ecdcb8', kompas: '#f4ecd8', schaal: '#f4ecd8',
       door: '#c08f5e', geheim: '#ebe3d2', meubel: '#c9a073', bed: '#ebe3d2', tapijt: '#b8665a', kerker: '#d2cbbf', boom: '#7fab60', struik: '#94bd6d', huis: '#c97a55', fontein: '#a9d0e2', kraam: '#e7d3a5', kar: '#c08f5e', tent: '#e6d2a2', boot: '#c08f5e', torenrond: '#d2cbbf', kampvuur: '#c2b8a8' } },
 };
 // an old map: sepia ink on sandy parchment, muted greens, dark green rivers
 PALETTES.oud = { name: 'Oude kaart', colorful: true, ink: [58, 44, 30], paper: [233, 220, 187], water: [176, 186, 160], deep: [150, 164, 140], floor: [236, 225, 196], rock: [205, 190, 160], ground: [228, 215, 182], river: '#3f5a40',
-  terr: { gras: [214, 212, 162], woestijn: [238, 222, 180], moeras: [190, 192, 152], sneeuw: [242, 238, 224], akkers: [226, 210, 164], rotsgrond: [214, 200, 170], dor: [204, 184, 150], bloemen: [216, 214, 168], land: [227, 219, 186], kasseien: [222, 208, 180], tegels: [230, 218, 192], planken: [222, 200, 160], aarde: [218, 198, 160], water: [190, 196, 172] },
+  terr: { gras: [214, 212, 162], woestijn: [238, 222, 180], moeras: [190, 192, 152], sneeuw: [242, 238, 224], akkers: [226, 210, 164], rotsgrond: [214, 200, 170], dor: [204, 184, 150], bloemen: [216, 214, 168], land: [227, 219, 186], hooggras: [208, 208, 160], wolken: [240, 234, 216], cactus: [238, 220, 176], arcering: [222, 212, 180], kasseien: [222, 208, 180], tegels: [230, 218, 192], planken: [222, 200, 160], aarde: [218, 198, 160], water: [190, 196, 172] },
   fill: { berg: '#e2d1a6', berg2: '#e2d1a6', heuvels: '#d8cf9e', vulkaan: '#cdb592', rotsen: '#cfc3a5', riet: '#9aa268', naald: '#6f7c48', spar: '#5f6c3c', loof: '#7c8a52', palm: '#7c8a52', boom: '#7c8a52', struik: '#8a9660',
     nederzetting: '#e8dbbb', plek: '#e2d3b0', schip: '#b08a5c', zeeslang: '#8a9a68', anker: '#e8dbbb', kompas: '#efe3c4', schaal: '#efe3c4', elf: '#dfe3cf', dwerg: '#d9ccb0', duister: '#a39a92',
     door: '#a07850', meubel: '#b89466', kerker: '#d2c7b2', huis: '#b9805a', fontein: '#b8c8b0', kraam: '#e3d0a2', kar: '#a07850', tent: '#e3d0a2', boot: '#a07850', torenrond: '#d2c7b2', kampvuur: '#c2b8a8' } };
@@ -1313,6 +1313,191 @@ OLD_ASSETS.push(
 );
 
 
+/* ---------- vintage ink: bold, slightly shaky pen lines and quick hatching on the shadow side ---------- */
+// a shaky pen line through points: every segment cut into small steps that wander a little
+function shaky(P, r, amp = 1, step = 4) {
+  const Q = [P[0]];
+  for (let i = 0; i < P.length - 1; i++) {
+    const a = P[i], b = P[i + 1], L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, n = Math.max(1, Math.round(L / step));
+    for (let k = 1; k <= n; k++) { const t = k / n, j = k === n ? 0 : (r() - .5) * amp; Q.push([a[0] + (b[0] - a[0]) * t - (b[1] - a[1]) / L * j, a[1] + (b[1] - a[1]) * t + (b[0] - a[0]) / L * j]); }
+  }
+  return Q;
+}
+const sp = (P, r, amp, step) => pl(shaky(P, r, amp, step));
+// points on a smooth curve through the given points (Catmull-Rom)
+function curve(C, n = 6) {
+  const P = [];
+  for (let i = 0; i < C.length - 1; i++) { const p0 = C[Math.max(0, i - 1)], p1 = C[i], p2 = C[i + 1], p3 = C[Math.min(C.length - 1, i + 2)];
+    for (let k = 0; k < n; k++) { const t = k / n, t2 = t * t, t3 = t2 * t; P.push([0, 1].map(j => .5 * (2 * p1[j] + (-p0[j] + p2[j]) * t + (2 * p0[j] - 5 * p1[j] + 4 * p2[j] - p3[j]) * t2 + (-p0[j] + 3 * p1[j] - 3 * p2[j] + p3[j]) * t3))); } }
+  P.push(C[C.length - 1]); return P;
+}
+const dots = pts => pts.map(([x, y, q]) => circ(x, y, q || .9)).join('');
+const rotP = (P, a, cx = 0, cy = 0) => P.map(([x, y]) => [cx + x * Math.cos(a) - y * Math.sin(a), cy + x * Math.sin(a) + y * Math.cos(a)]);
+const waves = (x0, x1, y, r) => { let d = ''; for (let x = x0; x < x1 - 6; x += 10 + r() * 4) d += `M${f2(x)} ${f2(y)}q2.5 -2.6 5 0q2.5 2.6 5 0`; return d; };
+const ticks = (r, n = 4, y = 42) => { let d = ''; for (let k = 0; k < n; k++) { const x = -40 + r() * 80; d += `M${f2(x)} ${f2(y + r() * 2)}l${f2(3 + r() * 4)} 0`; } return d; };
+
+/* land */
+function inkPeak(ops, cx, base, w, h, r) {
+  const tx = cx + (r() - .5) * w * .16, top = base - h;
+  const body = [[cx - w / 2, base], [cx - w * .3 + (r() - .5) * 4, base - h * .42], [tx - w * .07, top + h * .13], [tx, top], [tx + w * .09, top + h * .2], [cx + w * .27 + (r() - .5) * 4, base - h * .45], [cx + w / 2, base]];
+  const ridge = [[tx, top], [tx + w * .03 + (r() - .5) * 3, top + h * .5], [cx + w * .12 + (r() - .5) * 4, base - 1]], s0 = body[1];
+  ops.push(['g', pl(body) + 'Z', base - h * .3], ['s', shadeFrom(ridge, body, [.6, 1], h * .3, 2.3, r), .65], ['s', sp(ridge, r, .8), 1], ['s', sp(body, r, 1.1), 1.5],
+    ['s', sp([[s0[0] + w * .07, s0[1] + 3], [s0[0] + w * .1, base - 5]], r, .6), .8]);
+}
+function genInkBerg(seed) {
+  const r = rng(seed * 977 + 3), ops = [], n = 1 + Math.floor(r() * 3);
+  if (n >= 2) inkPeak(ops, -21 - r() * 6, 40, 46, 42 + r() * 10, r);
+  if (n >= 3) inkPeak(ops, 22 + r() * 6, 40, 44, 36 + r() * 10, r);
+  inkPeak(ops, (r() - .5) * 8, 40, n > 1 ? 58 : 76, 60 + r() * 12, r);
+  ops.push(['s', ticks(r), .7]); return ops;
+}
+function genInkVulkaan(seed) {
+  const r = rng(seed * 5 + 1), body = [[-44, 40], [-24, 6], [-11, -20], [-6, -18], [0, -21], [6, -17], [11, -20], [24, 6], [44, 40]], ridge = [[6, -17], [10, 10], [15, 40]];
+  return [['g', pl(body) + 'Z', 10], ['s', shadeFrom(ridge, body, [.6, 1], 18, 2.3, r), .65], ['s', sp(ridge, r, .8), 1], ['s', sp(body, r, 1.1), 1.5], ['s', sp([[-6, -18], [0, -15], [6, -17]], r, .4), 1],
+    ['s', 'M-2 -25Q-7 -33 -1 -37Q5 -42 0 -48M5 -25Q9 -31 7 -38', 1], ['k', dots([[-12, -32, 1.3], [-7, -40, 1], [11, -35, 1.3], [15, -28, 1], [-16, -26, .9], [16, -43, .9]])], ['s', ticks(r), .7]];
+}
+function genInkHeuvel(seed) {
+  const r = rng(seed * 613 + 9), ops = [], n = 2 + Math.floor(r() * 2), humps = [];
+  for (let i = 0; i < n; i++) { const w = 30 + r() * 16; humps.push([-44 + i * (88 - w) / (n - 1) + (r() - .5) * 4, w, 12 + r() * 12, 40 - (i % 2) * 3]); }
+  humps.sort((a, b) => b[2] - a[2]);
+  for (const [x0, w, h, base] of humps) {
+    const C = curve([[x0, base], [x0 + w * .22, base - h * .7], [x0 + w * .5, base - h], [x0 + w * .78, base - h * .7], [x0 + w, base]], 5), P = shaky(C, r, .7, 4);
+    let d = ''; for (let k = 0; k < 4; k++) { const p = C[Math.round((.56 + k * .09) * (C.length - 1))]; d += `M${f2(p[0] - 1)} ${f2(p[1] + 3)}L${f2(p[0] + 2)} ${f2(p[1] + 7.5)}`; }
+    let g = ''; for (let k = 0; k < 3; k++) { const p = C[Math.round((.18 + r() * .3) * (C.length - 1))]; g += `M${f2(p[0])} ${f2(p[1] - .4)}l-1.2 -3M${f2(p[0] + 1.6)} ${f2(p[1] - .4)}l.6 -3.6`; }
+    ops.push(['g', pl(P) + 'Z', base - h * .6], ['s', pl(P), 1.4], ['s', d, .6], ['s', g, .6]);
+  }
+  return ops;
+}
+
+/* trees */
+function inkCrown(x, cy, rx, ry, seed, r) {
+  let c = ''; for (let k = 0; k < 5; k++) { const px = x + (r() - .6) * rx * 1.2, py = cy + (r() - .5) * ry * 1.1; c += `M${f2(px - 2)} ${f2(py)}Q${f2(px)} ${f2(py + 2.4)} ${f2(px + 2)} ${f2(py)}`; }
+  let d = ''; for (let k = 0; k < 7; k++) { const a = -1 + k * .3, px = x + Math.cos(a) * rx * .8, py = cy + Math.sin(a) * ry * .8; d += `M${f2(px)} ${f2(py)}L${f2(px - 2)} ${f2(py + 2.6)}`; }
+  return [['w', bumps(x, cy, rx, ry, 9, seed, 1.24, .18), 1.5], ['s', c, .7], ['s', d, .6]];
+}
+function inkTrunk(x, top, w = 2.2) { return [['w', `M${f2(x - w)} 40L${f2(x - w * .7)} ${f2(top)}L${f2(x + w * .7)} ${f2(top)}L${f2(x + w)} 40Z`, 1.1, BARK2], ['s', `M${f2(x - w)} 40L${f2(x - w - 2.6)} 42M${f2(x + w)} 40L${f2(x + w + 2.6)} 42`, .8]]; }
+function genInkLoof(seed) { const r = rng(seed * 97 + 5), rx = 13 + r() * 4, ry = 12 + r() * 3, cy = 4 - r() * 4; return [...inkTrunk(0, cy + ry - 3), ...inkCrown(0, cy, rx, ry, seed * 5 + 1, r)]; }
+function genInkDen(seed) {
+  const r = rng(seed * 59 + 7), h = 50 + r() * 10, w = 13 + r() * 3, top = 34 - h, tiers = 4, R = [];
+  for (let i = 1; i <= tiers; i++) { const y = top + (h - 2) * i / tiers, x = w * (.3 + .7 * i / tiers); R.push([x, y]); if (i < tiers) R.push([x * .42, y - 1.5]); }
+  const P = [[0, top], ...R, ...R.slice().reverse().map(([x, y]) => [-x, y])];
+  let d = ''; for (let i = 1; i <= tiers; i++) { const y = top + (h - 2) * i / tiers, x = w * (.3 + .7 * i / tiers); for (let k = 0; k < 2; k++) d += `M${f2(x * (.35 + k * .22))} ${f2(y - 6 + k * 2)}L${f2(x * (.5 + k * .22))} ${f2(y - 2 + k * 2)}`; }
+  return [['s', 'M0 30L0 41M-2.4 41L2.4 41', 1.3], ['w', sp(P, r, .6, 4) + 'Z', 1.4], ['s', d, .6]];
+}
+function genInkCipres(seed) {
+  const r = rng(seed * 31 + 2), h = 56 + r() * 10, w = 9 + r() * 3, top = 34 - h;
+  const C = curve([[0, top], [w * .7, top + h * .28], [w, top + h * .62], [w * .55, 33], [-w * .55, 33], [-w, top + h * .62], [-w * .7, top + h * .28], [0, top]], 5);
+  return [['s', 'M0 30L0 41M-2.4 41L2.4 41', 1.3], ['w', sp(C, r, .5, 4) + 'Z', 1.4], ['s', lines(L => { for (let y = top + 9; y < 30; y += 3.2) { const x = w * Math.sin(Math.PI * Math.min(1, (y - top) / h * 1.1)) * .55; L(x, y, x + 2, y + 3.6); } }), .6]];
+}
+function genInkStruik(seed) { const r = rng(seed * 13 + 4), ops = []; for (const [x, y, q] of [[-14, 28, 12], [14, 26, 13], [0, 20, 15]]) ops.push(...inkCrown(x, y, q, q * .8, seed * 3 + x + 40 | 0, r)); ops.push(['s', ticks(r, 2, 40), .6]); return ops; }
+
+/* buildings */
+function inkTower(x, base, w, h, r, o = {}) { // a square stone tower with battlements, the right side shaded
+  const top = base - h, t = w * .05, m = Math.max(2, Math.round(w / 6)), mw = (w - 2 * t) / (2 * m - 1), col = o.col || OSTONE;
+  const ops = [['w', sp([[x - w / 2, base], [x - w / 2 + t, top], [x + w / 2 - t, top], [x + w / 2, base]], r, .6, 4), 1.4, col]];
+  for (let i = 0; i < m; i++) { const x0 = x - w / 2 + t + i * 2 * mw; ops.push(['w', sp([[x0, top + .3], [x0, top - mw * 1.1], [x0 + mw, top - mw * 1.1], [x0 + mw, top + .3]], r, .3, 3), 1.2, col]); }
+  ops.push(['s', hatchRect(x + w * .2, top + 1, x + w / 2 - 1, base - 1, 2, .15), .55], archWin(x - w * .08, top + h * .18, Math.max(2.4, w * .2), Math.max(4, w * .28)));
+  if (o.win2) ops.push(archWin(x - w * .08, top + h * .48, Math.max(2.2, w * .17), Math.max(3.6, w * .24)));
+  if (o.door) ops.push(['k', `M${f2(x - w * .17)} ${base}L${f2(x - w * .17)} ${f2(base - w * .32)}Q${f2(x)} ${f2(base - w * .52)} ${f2(x + w * .17)} ${f2(base - w * .32)}L${f2(x + w * .17)} ${base}Z`]);
+  return ops;
+}
+function inkSpire(x, base, w, h, rh, r, roof = SEPIA) { // a tower with a conical roof
+  const top = base - h;
+  return [['w', sp([[x - w / 2, base], [x - w / 2, top], [x + w / 2, top], [x + w / 2, base]], r, .5, 4), 1.4, OSTONE], ['s', hatchRect(x + w * .2, top + 1, x + w / 2 - 1, base - 1, 2, .15), .55],
+    ['w', sp([[x - w / 2 - 3, top + 1], [x, top - rh], [x + w / 2 + 3, top + 1]], r, .5, 4) + 'Z', 1.4, roof], ['s', lines(L => { for (let k = 1; k < 4; k++) L(x + .4, top - rh + 3, x + k * w * .17, top); }), .55],
+    archWin(x, top + h * .22, Math.max(2.2, w * .24), Math.max(3.6, w * .3))];
+}
+function inkHouse(x, base, w, h, r, roof = SEPIA) { // a cottage with a thick thatched roof
+  const top = base - h, rh = w * .78, R = curve([[x - w / 2 - 3, top + 2], [x - w * .2, top - rh * .82], [x, top - rh], [x + w * .2, top - rh * .82], [x + w / 2 + 3, top + 2]], 4);
+  return [['w', sp([[x - w / 2, base], [x - w / 2, top], [x + w / 2, top], [x + w / 2, base]], r, .5, 4), 1.4, OWALL], ['s', hatchRect(x + w * .22, top + 1, x + w / 2 - 1, base - 1, 2, .15), .55],
+    ['w', pl(shaky(R, r, .5, 4)) + 'Z', 1.4, roof], ['s', lines(L => { for (let k = 0; k < 5; k++) { const px = x - w * .3 + k * w * .15; L(x + (px - x) * .35, top - rh * .7, px + (px - x) * .25, top - .5); } }), .5],
+    ['k', `M${f2(x - w * .3)} ${base}L${f2(x - w * .3)} ${f2(base - h * .55)}Q${f2(x - w * .16)} ${f2(base - h * .74)} ${f2(x - w * .02)} ${f2(base - h * .55)}L${f2(x - w * .02)} ${base}Z`],
+    ['k', rect(f2(x + w * .08), f2(top + h * .26), f2(w * .16), f2(h * .2))]];
+}
+const inkFlag = (x, y) => [['s', `M${x} ${y}L${x} ${y - 10}`, .9], ['w', `M${x} ${y - 10}Q${x + 5} ${y - 11} ${x + 9} ${y - 8.5}Q${x + 5} ${y - 7} ${x} ${y - 6}Z`, .8, '#9a4a3a']];
+function inkHut(r) {
+  const C = curve([[-22, 40], [-19, 14], [-8, -2], [0, -4], [8, -2], [19, 14], [22, 40]], 4);
+  return [['w', sp(C, r, .6, 4), 1.5, '#d9c08a'], ['s', 'M-17 12Q0 4 17 12M-20 24Q0 16 20 24M-12 2Q0 -3 12 2', .7], ['s', hatchPoly([[8, -1], [19, 14], [22, 40], [10, 40]], 2.2, .2), .55], ['k', 'M-7 40L-7 30Q0 22 7 30L7 40Z'], ['s', ticks(r, 3, 42), .6]];
+}
+
+/* sea */
+function inkGalleon(r) {
+  const hull = [[-44, -4], [-31, -4], [-29, 6], [34, 6], [44, 1], [34, 22], [-30, 22], [-36, 10]];
+  const sails = []; for (const [x, t, b] of [[-14, -40, -4], [6, -46, -4], [26, -32, 0]]) { const w = x === 6 ? 12 : 10; sails.push(['w', `M${x - w} ${t + 6}Q${x} ${t + 9} ${x + w} ${t + 6}L${x + w + 1} ${(t + b) / 2}Q${x} ${(t + b) / 2 + 4} ${x - w - 1} ${(t + b) / 2}Z`, 1.1, OWALL],
+    ['w', `M${x - w - 1} ${(t + b) / 2 + 2}Q${x} ${(t + b) / 2 + 5} ${x + w + 1} ${(t + b) / 2 + 2}L${x + w + 2} ${b}Q${x} ${b + 4} ${x - w - 2} ${b}Z`, 1.1, OWALL], ['s', `M${x + w * .4} ${t + 9}L${x + w * .5} ${(t + b) / 2}M${x + w * .4} ${(t + b) / 2 + 5}L${x + w * .5} ${b}`, .5], ...inkFlag(x, t + 2)); }
+  return [['s', 'M-14 6L-14 -38M6 6L6 -44M26 6L26 -30M-44 -4L-52 -12', 1.1], ...sails, ['w', sp(hull, r, .5, 4) + 'Z', 1.5, '#a07850'], ['s', 'M-30 12L38 12M-30 17L36 17', .6],
+    ['k', [-20, -10, 0, 10, 20].map(x => rect(x, 8, 3, 2.4)).join('')], ['s', hatchPoly([[10, 18], [34, 18], [38, 12], [34, 22], [10, 22]], 1.8, .3), .5], ['s', waves(-46, 46, 28, r) + waves(-36, 30, 34, r), .8]];
+}
+function inkLongship(r) {
+  return [['s', 'M0 6L0 -42', 1.2], ['w', 'M-20 -38L20 -38L22 -4Q0 0 -22 -4Z', 1.2, OWALL], ['k', 'M-12 -38L-6 -38L-6 -3L-12 -3.6ZM2 -38L8 -38L8 -3.6L2 -3Z'],
+    ['w', sp([[-42, 0], [-36, 14], [-20, 20], [20, 20], [36, 14], [42, 0], [34, 6], [-34, 6]], r, .4, 4) + 'Z', 1.5, '#a07850'], ['s', 'M40 2Q48 -10 42 -18Q37 -22 35 -15Q38 -13 40 -15M-40 2Q-46 -6 -42 -12', 1.2],
+    ['w', [-24, -15, -6, 3, 12, 21].map(x => circ(x, 9, 3.6)).join(''), 1, '#c9a874'], ['k', dots([-24, -15, -6, 3, 12, 21].map(x => [x, 9, .9]))], ['s', 'M-30 16L30 16', .6], ['s', waves(-46, 46, 27, r) + waves(-30, 34, 33, r), .8]];
+}
+
+const INK_ASSETS = [
+  ['o-berg', 'Berg', 'land', 74, genInkBerg(0)],
+  ['o-heuvel', 'Heuvel', 'land', 54, genInkHeuvel(0)],
+  ['o-vulkaan', 'Vulkaan', 'land', 64, genInkVulkaan(0)],
+  ['o-loof', 'Loofboom', 'boom', 26, genInkLoof(0)],
+  ['o-den', 'Den', 'boom', 26, genInkDen(0)],
+  ['o-cipres', 'Slanke boom', 'boom', 26, genInkCipres(0)],
+  ['o-struik', 'Struik', 'boom', 24, genInkStruik(0)],
+  ['o-bosje', 'Bosje', 'boom', 46, (() => { const r = rng(77), ops = []; for (const [x, y, s] of [[-16, 18, 9], [6, 14, 10], [20, 24, 8], [-6, 30, 9], [-26, 32, 7], [14, 36, 8]]) { ops.push(['s', `M${x} ${y + s * .7}L${x} ${y + s * 1.5}`, 1.1], ...inkCrown(x, y, s, s * .9, x * 7 + 50 | 0, r).map(o => o[0] === 'w' ? [o[0], o[1], 1.2] : o)); } return ops; })()],
+  ['o-hut', 'Ronde hut', 'nederzetting', 30, inkHut(rng(5))],
+  ['o-huis', 'Huisje', 'nederzetting', 30, inkHouse(0, 40, 30, 26, rng(6))],
+  ['o-dorp', 'Dorp', 'nederzetting', 48, (() => { const r = rng(8); return [...inkHouse(-14, 26, 20, 16, r, OROOF), ...inkHouse(14, 28, 18, 15, r), ...inkHouse(-2, 42, 22, 17, r)]; })()],
+  ['o-toren', 'Stenen toren', 'plek', 52, (() => { const r = rng(11); return [...inkTower(0, 40, 26, 66, r, { door: true, win2: true }), ['s', ticks(r, 3, 42), .6]]; })()],
+  ['o-burcht', 'Burcht', 'nederzetting', 58, (() => { const r = rng(12); return [...inkTower(-24, 40, 22, 60, r, { win2: true }), ...inkTower(24, 40, 22, 60, r, { win2: true }), ...inkTower(0, 40, 30, 36, r, { door: true }), ...inkFlag(-24, -26)]; })()],
+  ['o-stad', 'Stad', 'nederzetting', 58, (() => { const r = rng(13); return [...inkTower(-20, 40, 22, 62, r, { win2: true }), ...inkSpire(4, 40, 16, 46, 20, r), ...inkFlag(4, -26), ...inkHouse(24, 40, 18, 16, r, OROOF), ['k', dots([[-34, 43, 1.4], [-29, 44, 1.1], [32, 44, 1.2], [37, 43, 1]])]]; })()],
+  ['o-tempel', 'Tempel', 'plek', 46, (() => { const r = rng(14); return [['w', sp([[-34, 40], [-34, 34], [34, 34], [34, 40]], r, .4), 1.3, OSTONE], ['w', sp([[-30, 34], [-30, 30], [30, 30], [30, 34]], r, .4), 1.2, OSTONE],
+    ...[-22, -8, 6, 20].flatMap(x => [['w', rect(x - 3, -2, 6, 32), 1.2, OWALL], ['s', `M${x + 1.2} 0L${x + 1.2} 29`, .5]]), ['w', sp([[-31, -2], [-31, -8], [31, -8], [31, -2]], r, .4) + 'Z', 1.3, OSTONE],
+    ['w', sp([[-34, -8], [0, -26], [34, -8]], r, .5) + 'Z', 1.4, OSTONE], ['s', 'M-22 -11L0 -22L22 -11', .6], ['s', hatchPoly([[0, -24], [32, -9], [0, -9]], 2, .3), .5]]; })()],
+  ['o-beeld', 'Gevleugeld beeld', 'elf', 44, (() => { const r = rng(15); return [['w', sp([[-11, 40], [-11, 35], [11, 35], [11, 40]], r, .3), 1.2, OSTONE], ['w', sp([[-6, 35], [-6, 12], [6, 12], [6, 35]], r, .4), 1.3, OSTONE], ['s', hatchRect(2, 13, 5.5, 34, 1.6, 0), .5],
+    ['w', 'M-3 -8Q-17 -22 -13 6Q-9 -2 -3 0ZM3 -8Q17 -22 13 6Q9 -2 3 0Z', 1.2, OWALL], ['w', 'M-5 12L-3 -10Q0 -15 3 -10L5 12Z', 1.2, OSTONE], ['w', circ(0, -18, 4), 1.2, OSTONE], ['s', 'M-1 -6L-1 10M2 -4L2 10', .5]]; })()],
+  ['o-grot', 'Grot', 'plek', 40, (() => { const r = rng(16), C = curve([[-26, 40], [-22, 14], [-8, -2], [6, -2], [20, 12], [26, 40]], 4);
+    return [['w', sp(C, r, .7, 4), 1.5, '#cdbd96'], ['s', shadeFrom([[6, -2], [14, 20], [20, 40]], [[-26, 40], ...C, [26, 40]], [.5, 1], 14, 2.2, r), .6], ['k', 'M-10 40L-10 28Q-2 16 8 28L8 40Z'], ['s', ticks(r, 3, 42), .6]]; })()],
+  ['o-menhir', 'Elfenstenen', 'elf', 40, (() => { const r = rng(17); return [['w', sp([[-24, 40], [-26, -6], [-18, -14], [-10, -8], [-10, 40]], r, .6), 1.4, OSTONE2], ['w', sp([[10, 40], [10, -10], [18, -16], [26, -8], [24, 40]], r, .6), 1.4, OSTONE2],
+    ['s', 'M-17 6Q-12 4 -13 10Q-15 16 -21 12Q-25 4 -17 0Q-8 -2 -8 10', .9], ['s', hatchRect(-15, -6, -11, 39, 1.8, .1) + hatchRect(19, -10, 23, 39, 1.8, .1), .5], ['s', ticks(r, 3, 42), .6]]; })()],
+  ['o-dolmen', 'Hunebed', 'plek', 44, (() => { const r = rng(18); return [['w', sp([[-28, 40], [-28, -4], [-14, -4], [-14, 40]], r, .6), 1.4, OSTONE2], ['w', sp([[14, 40], [14, -4], [28, -4], [28, 40]], r, .6), 1.4, OSTONE2],
+    ['w', sp([[-34, -4], [-32, -16], [32, -18], [34, -4]], r, .6) + 'Z', 1.4, OSTONE2], ['s', hatchRect(-19, -2, -15, 39, 1.8, 0) + hatchRect(23, -2, 27, 39, 1.8, 0) + hatchPoly([[18, -17], [32, -17], [34, -5], [18, -5]], 1.8, .3), .5], ['s', ticks(r, 3, 42), .6]]; })()],
+  ['o-zwaard', 'Slagveld', 'plek', 40, (() => { const a = Math.PI / 4, B = rotP([[-3.5, 20], [-3.5, -34], [0, -42], [3.5, -34], [3.5, 20]], a), G = rotP([[-14, 20], [14, 20], [14, 25], [-14, 25]], a), H = rotP([[-2.5, 25], [2.5, 25], [2.5, 38], [-2.5, 38]], a), [pc] = rotP([[0, 42]], a), F = rotP([[0, -32], [0, 18]], a);
+    return [['w', pl(B) + 'Z', 1.4, '#e8e4dc'], ['s', pl(F), .6], ['w', pl(H) + 'Z', 1.2, '#7a5a3c'], ['w', pl(G) + 'Z', 1.3, '#b08a5c'], ['w', circ(f2(pc[0]), f2(pc[1]), 3.6), 1.2, '#b08a5c']]; })()],
+  ['o-kroon', 'Kroon', 'plek', 34, [['w', 'M-24 20L-26 -6L-14 6L-6 -12L0 4L6 -12L14 6L26 -6L24 20Z', 1.4, '#e3c46a'], ['w', 'M-25 20L25 20L25 28L-25 28Z', 1.3, '#e3c46a'], ['k', dots([[-26, -8, 2.2], [-6, -14, 2.2], [6, -14, 2.2], [26, -8, 2.2], [-12, 24, 1.6], [0, 24, 1.6], [12, 24, 1.6]])]]],
+  ['o-kristallen', 'Kristallen', 'dwerg', 38, (() => { const r = rng(19); return [...[[-14, 40, 9, 30, -.35], [12, 40, 8, 26, .4], [0, 40, 10, 44, 0]].flatMap(([x, y, w, h, t]) => {
+    const tx = x + t * h, P = [[x - w / 2, y], [tx - w / 2, y - h], [tx, y - h - w * .9], [tx + w / 2, y - h], [x + w / 2, y]];
+    return [['w', sp(P, r, .3, 4) + 'Z', 1.3, '#d5dccf'], ['s', `M${f2(tx)} ${f2(y - h - w * .9)}L${f2(x)} ${y}`, .6], ['s', hatchPoly([[x, y], [tx, y - h - w * .9], [tx + w / 2, y - h], [x + w / 2, y]], 1.8, t), .45]]; }), ['s', ticks(r, 3, 42), .6]]; })()],
+  ['o-houweel', 'Houweel', 'dwerg', 32, [['w', 'M-2 40L-2 -10L2 -10L2 40Z', 1.3, '#a07850'], ['w', 'M-30 -4Q0 -26 30 -4Q16 -12 0 -12Q-16 -12 -30 -4Z', 1.4, '#9c968c'], ['s', 'M-14 -12L-12 -16M8 -16L10 -12', .6]]],
+  ['o-mijnkar', 'Mijnkar', 'dwerg', 34, [['w', 'M-24 14L24 14L26 2Q16 -4 12 2Q6 -6 0 0Q-6 -6 -12 2Q-18 -4 -26 2Z', 1.2, '#7d6f62'], ['w', 'M-26 2L26 2L22 26L-22 26Z', 1.4, '#a07850'], ['s', 'M-24 10L24 10M-23 18L23 18M10 4L8 25', .6], ['w', circ(-13, 30, 6) + circ(13, 30, 6), 1.3, '#9c968c'], ['k', dots([[-13, 30, 1.6], [13, 30, 1.6]])], ['s', 'M-40 37L40 37', 1]]],
+  ['o-schip', 'Galjoen', 'zee', 60, inkGalleon(rng(20))],
+  ['o-drakar', 'Drakar', 'zee', 54, inkLongship(rng(21))],
+  ['o-zeeslang', 'Zeeslang', 'zee', 56, (() => { const r = rng(22); return [['w', 'M-34 22C-34 6 -22 6 -22 22M-12 22C-12 2 4 2 4 22M14 22C14 8 24 8 24 22', 1.4, '#8a9a68'],
+    ['w', 'M24 22C24 6 30 -12 38 -14L46 -10L44 -4L38 -6C34 0 32 10 32 22Z', 1.4, '#8a9a68'], ['k', circ(40, -10, 1.2)], ['s', 'M38 -14L36 -22L41 -15M-34 22L-42 18L-38 24', .9], ['s', 'M-30 10L-27 14M-6 8L-3 12M17 12L20 15', .6], ['s', waves(-46, 46, 24, r) + waves(-34, 34, 30, r), .8]]; })()],
+  ['o-draaikolk', 'Draaikolk', 'zee', 54, (() => { const r = rng(23); let d = 'M0 0'; for (let a = 0; a < Math.PI * 7; a += .3) { const q = 1.2 + a * 1.25; d += `L${f2(Math.cos(a) * q * 1.6)} ${f2(Math.sin(a) * q * .7)}`; } return [['s', d, 1], ['s', waves(-48, -22, -8, r) + waves(24, 48, 6, r) + waves(-40, -10, 20, r) + waves(14, 44, -18, r), .8]]; })()],
+];
+// the ink drawings replace the earlier old-map symbols with the same key, the rest are added
+{ const lists = [OLD_ASSETS, OLD_FOLK_ASSETS];
+  for (const e of INK_ASSETS) { let hit = false; for (const list of lists) { const i = list.findIndex(x => x[0] === e[0]); if (i >= 0) { list[i] = e; hit = true; } } if (!hit) OLD_ASSETS.push(e); } }
+// the older drawings (the peoples, the ruin) get the same pen: shaky lines and a heavier hand
+function roughen(d, r, amp = .7, step = 4) {
+  const T = d.match(/[A-Za-z]|-?\d*\.?\d+(?:e-?\d+)?/g); if (!T) return d;
+  let out = '', i = 0, cmd = '', cx = null, cy = null; const num = () => +T[i++];
+  while (i < T.length) {
+    if (/[A-Za-z]/.test(T[i])) { cmd = T[i++]; if (cmd === 'Z' || cmd === 'z') { out += cmd; continue; } }
+    if (cmd === 'M') { const x = num(), y = num(); out += `M${f2(x)} ${f2(y)}`; cx = x; cy = y; cmd = 'L'; }
+    else if (cmd === 'L') { const x = num(), y = num(); out += cx == null ? `L${f2(x)} ${f2(y)}` : shaky([[cx, cy], [x, y]], r, amp, step).slice(1).map(q => `L${f2(q[0])} ${f2(q[1])}`).join(''); cx = x; cy = y; }
+    else if (cmd === 'Q' || cmd === 'C' || cmd === 'A') { const n = { Q: 4, C: 6, A: 7 }[cmd], a = T.slice(i, i + n).map(Number); i += n; out += cmd + a.join(' '); cx = a[n - 2]; cy = a[n - 1]; }
+    else { const n = { h: 1, v: 1, H: 1, V: 1, l: 2, m: 2, q: 4, t: 2, T: 2, c: 6, s: 4, S: 4, a: 7 }[cmd] || 2; out += cmd + T.slice(i, i + n).join(' '); i += n; cx = cy = null; if (cmd === 'm') cmd = 'l'; }
+  }
+  return out;
+}
+const inkify = ops => { const r = rng(ops.length * 7 + 3); return ops.map(o => o[0] === 'w' || o[0] === 's' || o[0] === 'g'
+  ? [o[0], roughen(o[1], r, o[0] === 's' && (o[2] || 1) < .9 ? .35 : .7), o[0] === 'g' ? o[2] : (o[2] || 1) * ((o[2] || 1) < .9 ? 1.35 : 1.2), o[3]] : o); };
+{ const inked = new Set(INK_ASSETS.map(e => e[0]));
+  for (const list of [OLD_ASSETS, OLD_FOLK_ASSETS]) for (const e of list) if (!inked.has(e[0])) e[4] = inkify(e[4]);
+  for (const k in OLD_FOLK_GENERATORS) { const f = OLD_FOLK_GENERATORS[k]; OLD_FOLK_GENERATORS[k] = seed => inkify(f(seed)); } }
+Object.assign(OLD_GENERATORS, { 'o-berg': genInkBerg, 'o-heuvel': genInkHeuvel, 'o-loof': genInkLoof, 'o-den': genInkDen, 'o-cipres': genInkCipres, 'o-struik': genInkStruik });
+Object.assign(OLD_FILL, { 'o-cipres': OLIVE2, 'o-struik': OLIVE, 'o-vulkaan': '#cdb592', 'o-bosje': OLIVE });
+
 const WORLD_ASSETS = [
   ['berg', 'Berg', 'land', 64, [['w', 'M-46 36L-20 -8L-12 -2L4 -38L46 36Z'], ['s', 'M4 -38L8 -18L2 -4L10 12L6 36'], ['s', 'M14 -14L20 -6M16 0L26 8M14 14L30 22M18 26L36 32', .7], ['s', 'M-20 -8L-16 6L-20 20', .7]]],
   ['berg2', 'Dubbele top', 'land', 72, [['w', 'M-48 36L-26 -20L-14 -6L-2 -30L8 -18L14 -26L48 36Z'], ['s', 'M-2 -30L2 -14L-4 2L4 20L0 36'], ['s', 'M14 -26L18 -10L14 4', .7], ['s', 'M22 -6L28 2M24 8L34 16M22 20L40 28', .7], ['s', 'M-26 -20L-24 -4L-30 10', .7]]],
@@ -1493,7 +1678,7 @@ const FLAT = new Set(['stip-hoofdstad', 'stip-stad', 'stip-dorp', 'kompas', 'sch
 for (const k in ASSETS) ASSETS[k].foot = ASSETS[k].kind === 'world' && !FLAT.has(k) ? .38 : 0;
 
 // symbols shaded on their right side; never mirrored, so the light always comes from the left
-const SHADED = new Set(['o-elfstad', 'o-elftoren', 'o-elfboom', 'o-elfwoud', 'o-maanpoort', 'o-bergpoort', 'o-dwergvesting', 'o-smidse', 'o-runensteen', 'o-dwergmijn', 'o-kristallen', 'o-duistertoren', 'o-orkkamp', 'o-dodeboom', 'o-schedelrots', 'o-kerkhof', 'o-duisterpoort', 'o-berg', 'o-heuvel', 'o-loof', 'o-den', 'o-bosje', 'o-toren', 'o-burcht', 'o-ruine', 'g-berg', 'g-vulkaan', 'g-grot', 'g-rotsen', 'g-bergpoort', 'g-mijn', 'berg', 'berg2', 'heuvels', 'vulkaan', 'rotsen', 'naald', 'spar', 'loof', 'elfstad', 'elfboom', 'elfwoud', 'elfpoort', 'elftoren', 'dwergpoort', 'dwergvesting', 'smidse', 'runensteen', 'schedelrots', 'magiertoren', 'schat']);
+const SHADED = new Set([...[...OLD_ASSETS, ...OLD_FOLK_ASSETS].map(e => e[0]), 'o-elfstad', 'o-elftoren', 'o-elfboom', 'o-elfwoud', 'o-maanpoort', 'o-bergpoort', 'o-dwergvesting', 'o-smidse', 'o-runensteen', 'o-dwergmijn', 'o-kristallen', 'o-duistertoren', 'o-orkkamp', 'o-dodeboom', 'o-schedelrots', 'o-kerkhof', 'o-duisterpoort', 'o-berg', 'o-heuvel', 'o-loof', 'o-den', 'o-bosje', 'o-toren', 'o-burcht', 'o-ruine', 'g-berg', 'g-vulkaan', 'g-grot', 'g-rotsen', 'g-bergpoort', 'g-mijn', 'berg', 'berg2', 'heuvels', 'vulkaan', 'rotsen', 'naald', 'spar', 'loof', 'elfstad', 'elfboom', 'elfwoud', 'elfpoort', 'elftoren', 'dwergpoort', 'dwergvesting', 'smidse', 'runensteen', 'schedelrots', 'magiertoren', 'schat']);
 function tinted(a, color) {
   let c = a.tints[color]; if (c) return c;
   c = document.createElement('canvas'); c.width = c.height = 200; const g = c.getContext('2d');
@@ -1607,6 +1792,31 @@ const TERRAIN_DEFS = {
       jit(S, 36, r, (x, y) => { if (r() < .4) return; const w = 3 + r() * 3, t = r() < .35;
         wrap((dx, dy) => { const X = x + dx, Y = y + dy; g.beginPath(); g.moveTo(X - w, Y); g.quadraticCurveTo(X, Y - 1.6, X + w, Y);
           if (t) { g.moveTo(X - 1, Y - .6); g.lineTo(X - 1.8, Y - 3.6); g.moveTo(X + 1, Y - .6); g.lineTo(X + 1.6, Y - 4.2); } g.stroke(); }); });
+    }],
+    // the hand-drawn grounds of an old map: thick grass, clouds, a cactus plain, quick hatching
+    ['hooggras', 'Hoog gras', (g, S, r, wrap) => {
+      g.lineWidth = 1;
+      jit(S, 14, r, (x, y) => { if (r() < .2) return; const h = 5 + r() * 3, B = [-3.2, -1.1, 1, 3.1].map(o => [o, (o / 3) * (.4 + r() * .3), .7 + r() * .3]);
+        wrap((dx, dy) => { const X = x + dx, Y = y + dy; g.beginPath(); for (const [o, a, k] of B) { g.moveTo(X + o, Y); g.lineTo(X + o + a * h, Y - h * k); } g.moveTo(X - 5, Y + .4); g.lineTo(X + 5, Y + .4); g.stroke(); }); });
+    }],
+    ['wolken', 'Wolken', (g, S, r, wrap) => {
+      g.lineWidth = 1.1;
+      jit(S, 48, r, (x, y) => { if (r() < .25) return; const w = 9 + r() * 6, n = 3 + (r() * 2 | 0);
+        wrap((dx, dy) => { const X = x + dx, Y = y + dy; g.beginPath(); g.moveTo(X - w, Y);
+          for (let k = 0; k < n; k++) { const x0 = X - w + 2 * w * k / n, x1 = X - w + 2 * w * (k + 1) / n, hh = (k === 0 || k === n - 1 ? 4 : 7); g.bezierCurveTo(x0, Y - hh * 1.3, x1, Y - hh * 1.3, x1, Y); }
+          g.moveTo(X - w - 2, Y + .2); g.lineTo(X + w + 2, Y + .2); g.stroke(); }); });
+    }],
+    ['cactus', 'Cactusvlakte', (g, S, r, wrap) => {
+      jit(S, 12, r, (x, y) => { if (r() < .6) return; wrap((dx, dy) => { g.beginPath(); g.arc(x + dx, y + dy, .6, 0, 7); g.fill(); }); });
+      g.lineWidth = 1;
+      jit(S, 52, r, (x, y) => { const w = 14 + r() * 10; wrap((dx, dy) => { const X = x + dx, Y = y + dy; g.beginPath(); g.moveTo(X - w, Y + 3); g.quadraticCurveTo(X - w * .2, Y - 4, X + w, Y + 2); g.stroke(); }); });
+      jit(S, 80, r, (x, y) => { if (r() < .35) return; const h = 8 + r() * 4, s = r() < .5 ? 1 : -1;
+        wrap((dx, dy) => { const X = x + dx, Y = y + dy; g.lineWidth = 2; g.beginPath(); g.moveTo(X, Y); g.lineTo(X, Y - h); g.moveTo(X, Y - h * .5); g.lineTo(X + 3 * s, Y - h * .5); g.lineTo(X + 3 * s, Y - h * .8); g.moveTo(X, Y - h * .35); g.lineTo(X - 2.6 * s, Y - h * .35); g.lineTo(X - 2.6 * s, Y - h * .6); g.stroke(); g.lineWidth = 1; }); });
+    }],
+    ['arcering', 'Arcering', (g, S, r, wrap) => {
+      g.lineWidth = .9;
+      jit(S, 24, r, (x, y) => { if (r() < .3) return; const n = 4 + (r() * 3 | 0), len = 7 + r() * 5, a = -.9 + (r() - .5) * .4, ca = Math.cos(a), sa = Math.sin(a);
+        wrap((dx, dy) => { g.beginPath(); for (let k = 0; k < n; k++) { const o = (k - (n - 1) / 2) * 2.4, cx = x + dx + o, cy = y + dy; g.moveTo(cx - ca * len / 2, cy - sa * len / 2); g.lineTo(cx + ca * len / 2, cy + sa * len / 2); } g.stroke(); }); });
     }],
   ],
   local: [
@@ -1839,7 +2049,7 @@ function drawLabel(g, L) {
 const footY = s => s.y + s.s * (ASSETS[s.a]?.foot || 0);
 function stampOrder(d) { return d.kind === 'world' ? d.stamps.slice().sort((a, b) => footY(a) - footY(b)) : d.stamps; }
 /* Minimum spacing as an ellipse (fraction of the average size): wide and shallow, so a range shows its back peaks above the front ones. */
-const SPACING = { 'o-elfwoud': [.7, .5], 'o-dodeboom': [1.05, .75], 'o-doornen': [.9, .6], 'o-berg': [.72, .42], 'o-heuvel': [.62, .36], 'o-loof': [.8, .55], 'o-den': [.7, .5], 'o-bosje': [.8, .55], 'g-elfwoud': [.42, .24], 'g-spookboom': [.5, .3], 'g-doornen': [.45, .3], 'g-kristallen': [.5, .32], 'g-loof': [.5, .28], 'g-eik': [.55, .3], 'g-den': [.42, .24], 'g-berk': [.42, .24], 'g-struik': [.55, .3], 'g-dood': [.45, .26], 'g-palm': [.48, .28], 'g-berg': [.56, .3], 'g-heuvel': [.52, .28], 'g-rotsen': [.5, .35], 'g-gras': [.45, .3], berg: [.56, .3], berg2: [.58, .3], heuvels: [.52, .28], vulkaan: [.5, .3], naald: [.42, .24], spar: [.4, .24], loof: [.46, .26], palm: [.48, .28], riet: [.45, .3], rotsen: [.5, .35], boom: [.62, .62], struik: [.62, .62] };
+const SPACING = { 'o-cipres': [.6, .4], 'o-struik': [.7, .45], 'o-elfwoud': [.7, .5], 'o-dodeboom': [1.05, .75], 'o-doornen': [.9, .6], 'o-berg': [.72, .42], 'o-heuvel': [.62, .36], 'o-loof': [.8, .55], 'o-den': [.7, .5], 'o-bosje': [.8, .55], 'g-elfwoud': [.42, .24], 'g-spookboom': [.5, .3], 'g-doornen': [.45, .3], 'g-kristallen': [.5, .32], 'g-loof': [.5, .28], 'g-eik': [.55, .3], 'g-den': [.42, .24], 'g-berk': [.42, .24], 'g-struik': [.55, .3], 'g-dood': [.45, .26], 'g-palm': [.48, .28], 'g-berg': [.56, .3], 'g-heuvel': [.52, .28], 'g-rotsen': [.5, .35], 'g-gras': [.45, .3], berg: [.56, .3], berg2: [.58, .3], heuvels: [.52, .28], vulkaan: [.5, .3], naald: [.42, .24], spar: [.4, .24], loof: [.46, .26], palm: [.48, .28], riet: [.45, .3], rotsen: [.5, .35], boom: [.62, .62], struik: [.62, .62] };
 const spacing = k => SPACING[k] || (k.startsWith('c:') || k.startsWith('img:') ? [.5, .3] : [.8, .7]);
 function collides(key, x, y, size, list, dens) {
   const [ax, ay] = spacing(key);
@@ -2834,7 +3044,7 @@ const PRESETS = {
     { id: 'dodebossen', since: 2, name: 'Dode bossen', items: [{ a: 'dodeboom', v: -1 }] },
     { id: 'g-bos', since: 3, name: 'Gedetailleerd bos', items: [{ a: 'g-loof', v: -1, n: 6 }, { a: 'g-eik', v: -1, n: 1 }, { a: 'g-den', v: -1, n: 3 }] },
     { id: 'g-dennen', since: 3, name: 'Gedetailleerd dennenbos', items: [{ a: 'g-den', v: -1, n: 6 }, { a: 'g-berk', v: -1, n: 1 }] },
-    { id: 'o-bos', since: 5, name: 'Oud bos', items: [{ a: 'o-loof', v: -1, n: 4 }, { a: 'o-den', v: -1, n: 2 }] },
+    { id: 'o-bos', since: 5, name: 'Oud bos', items: [{ a: 'o-loof', v: -1, n: 4 }, { a: 'o-den', v: -1, n: 2 }, { a: 'o-cipres', v: -1, n: 1 }] },
     { id: 'o-gebergte', since: 5, name: 'Oud gebergte', grow: true, items: [{ a: 'o-berg', v: -1, n: 4 }, { a: 'o-heuvel', v: -1, zone: 'rand', n: 3, rel: .7 }] },
     { id: 'o-elfenwoud', since: 6, name: 'Oud elfenwoud', items: [{ a: 'o-elfwoud', v: -1, n: 5 }, { a: 'o-elfboom', v: 0, n: 1 }] },
     { id: 'o-dodenwoud', since: 6, name: 'Oud dodenwoud', items: [{ a: 'o-dodeboom', v: -1, n: 3 }, { a: 'o-doornen', v: 0, n: 1 }] },
@@ -4376,7 +4586,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.21.1', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.22.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;
