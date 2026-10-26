@@ -1,5 +1,16 @@
 # Wijzigingen
 
+## 1.23.0
+
+- 25 nieuwe **gegraveerde symbolen** in de stijl **Oud**: fijn gearceerde pentekeningen. Ze verschijnen in de inkt en het papier van de gekozen kaartstijl.
+  - **Nederzettingen:** ommuurde stad, ringdorp.
+  - **Plekken:** geheime doorgang, steencirkel, hut van de kluizenaar, uitkijkpost, vuurtoren.
+  - **Zee:** schipbreuk, handelsschepen, vloot, zeemonster, sirenenklif.
+  - **Dwergen:** dwergenburcht, mijnnederzetting, dwergenhal.
+  - **Elfen:** boomstad, bosdorp, heiligdomtoren.
+  - **Duistere landen:** citadel, duistere burcht, ruïnetempel.
+  - **Versiering:** kompasroos, titelcartouche (met een lege binnenkant voor je titel), legendakader, schaalbalk.
+
 ## 1.22.3
 
 - Het penseel *Oud gebergte* strooit veel minder heuvels aan de rand, zodat de bergen het beeld bepalen. Een penseel dat je zelf hebt aangepast, blijft zoals het is.
