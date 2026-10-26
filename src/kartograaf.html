@@ -3110,7 +3110,7 @@ const PRESETS = {
     { id: 'g-bos', since: 3, name: 'Gedetailleerd bos', items: [{ a: 'g-loof', v: -1, n: 6 }, { a: 'g-eik', v: -1, n: 1 }, { a: 'g-den', v: -1, n: 3 }] },
     { id: 'g-dennen', since: 3, name: 'Gedetailleerd dennenbos', items: [{ a: 'g-den', v: -1, n: 6 }, { a: 'g-berk', v: -1, n: 1 }] },
     { id: 'o-bos', since: 5, name: 'Oud bos', items: [{ a: 'o-loof', v: -1, n: 4 }, { a: 'o-den', v: -1, n: 2 }, { a: 'o-cipres', v: -1, n: 1 }] },
-    { id: 'o-gebergte', since: 5, name: 'Oud gebergte', grow: true, items: [{ a: 'o-berg', v: -1, n: 4 }, { a: 'o-heuvel', v: -1, zone: 'rand', n: 3, rel: .7 }] },
+    { id: 'o-gebergte', since: 5, name: 'Oud gebergte', grow: true, items: [{ a: 'o-berg', v: -1, n: 4 }, { a: 'o-heuvel', v: -1, zone: 'rand', n: 1, rel: .7 }] },
     { id: 'o-elfenwoud', since: 6, name: 'Oud elfenwoud', items: [{ a: 'o-elfwoud', v: -1, n: 5 }, { a: 'o-elfboom', v: 0, n: 1 }] },
     { id: 'o-dodenwoud', since: 6, name: 'Oud dodenwoud', items: [{ a: 'o-dodeboom', v: -1, n: 3 }, { a: 'o-doornen', v: 0, n: 1 }] },
     { id: 'g-elfenwoud', since: 4, name: 'Gedetailleerd elfenwoud', items: [{ a: 'g-elfwoud', v: -1, n: 6 }, { a: 'g-berk', v: -1, n: 1 }] },
@@ -3145,6 +3145,9 @@ async function loadLib() {
   const seen = +L.presetsSeen || 1;
   for (const k of ['world', 'local']) for (const p of PRESETS[k]) if ((p.since || 1) > seen && !lib.brushes[k].some(b => b.id === p.id)) lib.brushes[k].push(normBrush(p));
   if (seen < PRESET_LEVEL) saveLib();
+  // since 1.22.3 the old-map range strews fewer hills; a brush you changed yourself stays as it is
+  const og = lib.brushes.world.find(b => b.id === 'o-gebergte'), oh = og && og.items.find(i => i.a === 'o-heuvel');
+  if (oh && oh.n === 3) { oh.n = 1; saveLib(); }
   if (L.sel) Object.assign(lib.sel, L.sel);
   lib.terrains = Array.isArray(L.terrains) ? L.terrains.filter(validTerr) : [];
   for (const t of lib.terrains) registerTerrain(t);
@@ -4651,7 +4654,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.22.2', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.22.3', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;

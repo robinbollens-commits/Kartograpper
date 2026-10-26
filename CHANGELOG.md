@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## 1.22.3
+
+- Het penseel *Oud gebergte* strooit veel minder heuvels aan de rand, zodat de bergen het beeld bepalen. Een penseel dat je zelf hebt aangepast, blijft zoals het is.
+
 ## 1.22.2
 
 - De bergen in de stijl **Oud** zijn lager en breder, met een stompere, licht gebroken top, zoals op oude kaarten. Dat geldt ook voor de berg achter de bergpoort.
