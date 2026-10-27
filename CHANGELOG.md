@@ -1,5 +1,12 @@
 # Wijzigingen
 
+## 1.24.2
+
+- De gegraveerde icoontjes van **Gedetailleerd** zijn weer ingevuld, met een lichte sepiatint die zich aanpast aan de kaartstijl. In Inkt is die tint wit.
+  - **Bergen:** de vulling vervaagt naar onderen, zodat ze in de ondergrond overlopen.
+  - **Gevuld:** de gebouwen, plekken, schepen, zeemonsters en versieringen.
+  - **Niet gevuld:** de bomen en bossen blijven pure inkt, zodat de ondergrond erdoorheen blijft lopen.
+
 ## 1.24.1
 
 - De kaartstijl **Perkament** is nu helemaal sepia. Alle ondergronden houden hun eigen lichtheid, maar krijgen de tint van het perkament: geen groene of gele vlakken meer.
