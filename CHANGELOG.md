@@ -1,5 +1,15 @@
 # Wijzigingen
 
+## 1.25.0
+
+- 18 nieuwe gegraveerde symbolen in **Gedetailleerd**, met dezelfde sepiavulling:
+  - **Nederzettingen:** kloosterburcht, oude dorpskerk, markt, kerkdorp.
+  - **Plekken:** bergabdij, vergeten cisternevesting, wortelmonnikentoren, ruïnemarkering (2 varianten).
+  - **Elfen:** hoog-elfenstad, hoog-elfensanctuarium, elfendorpsplein, elfenspitsen, hoog-elfenpoort, elfenster, elfenbomen.
+  - **Duistere landen:** kronkelwoud.
+  - **Versiering:** schild voor de elfen, schild voor de mensen.
+- Binnenplaatsen, zoals het kloosterplein en het marktplein, zijn mee ingevuld, zodat de kaart er niet doorheen schijnt.
+
 ## 1.24.3
 
 - Ook de gegraveerde bomen en bossen van **Gedetailleerd** krijgen de lichte sepiavulling. Kustlijnen, ondergronden en andere symbolen schijnen er niet meer doorheen.
