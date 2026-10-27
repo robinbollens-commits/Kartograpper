@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## 1.24.1
+
+- De kaartstijl **Perkament** is nu helemaal sepia. Alle ondergronden houden hun eigen lichtheid, maar krijgen de tint van het perkament: geen groene of gele vlakken meer.
+
 ## 1.24.0
 
 - De symboolstijl **Gedetailleerd** bestaat nu volledig uit gegraveerde pentekeningen, op hoge resolutie. De vroegere getekende gedetailleerde symbolen zijn uit het paneel verdwenen. Kaarten waarop ze al staan, tonen ze nog wel.

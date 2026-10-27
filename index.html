@@ -672,6 +672,9 @@ const PALETTES = {
       nederzetting: '#ecdcb8', plek: '#e2d5b8', elf: '#e6eed6', elfboom: '#9cc47c', elfwoud: '#86b97a', dwerg: '#d8cbb0', dwergpoort: '#cdb994', duister: '#a39a92', orkkamp: '#c2a77f', schedelrots: '#d6cdbd', draak: '#a7b97c', kraken: '#cf9a94', steencirkel: '#c9c2b4', magiertoren: '#cdc6e4', schat: '#c9955a', schip: '#caa77c', zeeslang: '#93b58e', anker: '#ecdcb8', kompas: '#f4ecd8', schaal: '#f4ecd8',
       door: '#c08f5e', geheim: '#ebe3d2', meubel: '#c9a073', bed: '#ebe3d2', tapijt: '#b8665a', kerker: '#d2cbbf', boom: '#7fab60', struik: '#94bd6d', huis: '#c97a55', fontein: '#a9d0e2', kraam: '#e7d3a5', kar: '#c08f5e', tent: '#e6d2a2', boot: '#c08f5e', torenrond: '#d2cbbf', kampvuur: '#c2b8a8' } },
 };
+// Perkament is sepia only: every ground keeps its own lightness, but takes the hue of the paper
+{ const P = PALETTES.perkament, lumOf = c => .299 * c[0] + .587 * c[1] + .114 * c[2], base = lumOf(P.paper);
+  for (const k in P.terr) { const f = lumOf(P.terr[k]) / base; P.terr[k] = P.paper.map(v => Math.min(255, Math.round(v * f))); } }
 // an old map: sepia ink on sandy parchment, muted greens, dark green rivers
 PALETTES.oud = { name: 'Oude kaart', colorful: true, ink: [58, 44, 30], paper: [233, 220, 187], water: [176, 186, 160], deep: [150, 164, 140], floor: [236, 225, 196], rock: [205, 190, 160], ground: [228, 215, 182], river: '#3f5a40',
   terr: { gras: [214, 212, 162], woestijn: [238, 222, 180], moeras: [190, 192, 152], sneeuw: [242, 238, 224], akkers: [226, 210, 164], rotsgrond: [214, 200, 170], dor: [204, 184, 150], bloemen: [216, 214, 168], land: [227, 219, 186], hooggras: [208, 208, 160], wolken: [240, 234, 216], cactus: [238, 220, 176], arcering: [222, 212, 180], kasseien: [222, 208, 180], tegels: [230, 218, 192], planken: [222, 200, 160], aarde: [218, 198, 160], water: [190, 196, 172] },
@@ -4752,7 +4755,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.24.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.24.1', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;
