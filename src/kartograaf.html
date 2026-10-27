@@ -1578,6 +1578,47 @@ const inkify = ops => { const r = rng(ops.length * 7 + 3); return ops.map(o => o
 Object.assign(OLD_FOLK_GENERATORS, { 'o-elfwoud': genInkElfwoud, 'o-dodeboom': genInkDood });
 Object.assign(OLD_GENERATORS, { 'o-berg': genInkBerg, 'o-heuvel': genInkHeuvel, 'o-loof': genInkLoof, 'o-den': genInkDen, 'o-cipres': genInkCipres, 'o-struik': genInkStruik });
 Object.assign(OLD_FILL, { 'o-cipres': OLIVE2, 'o-struik': OLIVE, 'o-vulkaan': '#cdb592', 'o-bosje': OLIVE });
+/* old-map trees with real variety: each draw is a different kind of tree, and woods are small groups drawn as one symbol */
+function inkTreeAt(x, base, s, kind, r) { // one tree standing at (x, base); s sets its size
+  const ops = [], tw = Math.max(1.2, s * .17);
+  if (kind === 'den' || kind === 'spar') { // a pine in tiers
+    const h = s * (kind === 'spar' ? 3.4 : 2.9), w = s * (kind === 'spar' ? .75 : .95), top = base - h, n = 3 + (r() * 3 | 0), R = [];
+    for (let i = 1; i <= n; i++) { const y = top + (h - s * .35) * i / n, xx = w * (.3 + .7 * i / n); R.push([xx, y]); if (i < n) R.push([xx * .42, y - s * .12]); }
+    const P = [[0, top], ...R, ...R.slice().reverse().map(([a, b]) => [-a, b])].map(([a, b]) => [x + a, b]);
+    let d = ''; for (let i = 1; i <= n; i++) { const y = top + (h - s * .35) * i / n, xx = w * (.3 + .7 * i / n); d += `M${f2(x + xx * .35)} ${f2(y - s * .5)}L${f2(x + xx * .55)} ${f2(y - s * .12)}`; }
+    ops.push(['s', `M${f2(x)} ${f2(base - s * .4)}L${f2(x)} ${f2(base)}`, 1.1], ['w', sp(P, r, .4, 3) + 'Z', 1.2], ['s', d, .55]);
+    return ops;
+  }
+  // leafy kinds: round, broad oak, tall poplar, double crown
+  const k = { rond: [1, 1, 1.25], eik: [1.45, .85, 1.1], populier: [.62, 1.7, 1.15], dubbel: [1.2, 1, 1.2] }[kind] || [1, 1, 1.25];
+  const rx = s * k[0] * (.9 + r() * .2), ry = s * k[1] * (.9 + r() * .2), cy = base - s * k[2] - ry, top = cy + ry * .6;
+  ops.push(['w', `M${f2(x - tw)} ${f2(base)}L${f2(x - tw * .7)} ${f2(top)}L${f2(x + tw * .7)} ${f2(top)}L${f2(x + tw)} ${f2(base)}Z`, 1, BARK2]);
+  if (kind === 'eik') ops.push(['s', `M${f2(x)} ${f2(cy + ry * .7)}L${f2(x - rx * .45)} ${f2(cy + ry * .1)}M${f2(x)} ${f2(cy + ry * .8)}L${f2(x + rx * .4)} ${f2(cy + ry * .15)}`, .9]);
+  if (kind === 'dubbel') ops.push(...inkCrown(x - rx * .4, cy + ry * .15, rx * .6, ry * .75, (r() * 999) | 0, r), ...inkCrown(x + rx * .35, cy - ry * .1, rx * .65, ry * .8, (r() * 999) | 0, r));
+  else ops.push(...inkCrown(x, cy, rx, ry, (r() * 999) | 0, r));
+  return ops;
+}
+const LEAFY = ['rond', 'eik', 'populier', 'dubbel'];
+function genInkLoofVar(seed) { const r = rng(seed * 131 + 9); return [...inkTreeAt(0, 40, 11 + r() * 3, LEAFY[seed % 4], r), ['s', 'M-6 41L6 41', .5]]; }
+function genInkDenVar(seed) { const r = rng(seed * 71 + 3); return [...inkTreeAt(0, 40, 16 + r() * 3, seed % 2 ? 'spar' : 'den', r), ['s', 'M-5 41L5 41', .5]]; }
+// a group of trees drawn as one symbol: back ones first and a little smaller
+function inkGroup(seed, kinds, n, w, s0) {
+  const r = rng(seed * 977 + 41), T = [];
+  for (let i = 0; i < n; i++) { let x, y, t = 0; do { x = (r() - .5) * w; y = 40 - r() * 16; t++; } while (t < 30 && T.some(q => Math.abs(q[0] - x) < s0 * .9 && Math.abs(q[1] - y) < 6)); T.push([x, y]); }
+  T.sort((a, b) => a[1] - b[1]); const ops = [];
+  for (const [x, y] of T) ops.push(...inkTreeAt(x, y, s0 * (.8 + (y - 24) / 16 * .25) * (.9 + r() * .2), kinds[(r() * kinds.length) | 0], r));
+  ops.push(['s', ticks(r, 3, 42), .6]);
+  return ops.map(o => o[0] === 'k' ? o : [o[0], o[1], (o[2] || 1) * .55, o[3]]); // the small trees of a group get a finer pen, or the wood turns black
+}
+const genInkBomen = seed => inkGroup(seed, ['rond', 'rond', 'eik', 'dubbel'], 4 + seed % 3, 46, 9);
+const genInkDennen = seed => inkGroup(seed, ['den', 'spar'], 4 + seed % 3, 44, 10);
+const genInkGemengd = seed => inkGroup(seed, ['rond', 'eik', 'populier', 'den', 'spar'], 5 + seed % 3, 52, 9);
+const genInkPopulieren = seed => inkGroup(seed, ['populier'], 3 + seed % 3, 36, 9);
+for (const [key, name, size, gen] of [['o-loof', 'Loofboom', 26, genInkLoofVar], ['o-den', 'Den', 26, genInkDenVar], ['o-bomen', 'Bomengroep', 58, genInkBomen], ['o-dennen', 'Dennengroep', 58, genInkDennen],
+  ['o-gemengd', 'Gemengd bos', 64, genInkGemengd], ['o-populieren', 'Populieren', 50, genInkPopulieren], ['o-bosje', 'Bosje', 54, s => genInkBomen(s + 3)]]) {
+  const e = [key, name, 'boom', size, gen(0)], i = OLD_ASSETS.findIndex(x => x[0] === key); if (i >= 0) OLD_ASSETS[i] = e; else OLD_ASSETS.push(e);
+  OLD_GENERATORS[key] = gen; OLD_FILL[key] = key === 'o-den' ? OLIVE2 : OLIVE;
+}
 
 const WORLD_ASSETS = [
   ['berg', 'Berg', 'land', 64, [['w', 'M-46 36L-20 -8L-12 -2L4 -38L46 36Z'], ['s', 'M4 -38L8 -18L2 -4L10 12L6 36'], ['s', 'M14 -14L20 -6M16 0L26 8M14 14L30 22M18 26L36 32', .7], ['s', 'M-20 -8L-16 6L-20 20', .7]]],
@@ -2240,7 +2281,7 @@ function layerSel(o, dir) {
   });
 }
 /* Minimum spacing as an ellipse (fraction of the average size): wide and shallow, so a range shows its back peaks above the front ones. */
-const SPACING = { 'e-den': [.5, .3], 'e-loof': [.5, .3], 'e-boom': [.5, .3], 'e-dennen': [.6, .4], 'e-bomen': [.6, .4], 'e-bos': [.62, .42], 'e-naaldbos': [.62, .42], 'e-duisterbos': [.62, .42], 'e-doodbos': [.62, .42], 'e-elfenbos': [.62, .42], 'e-magischwoud': [.62, .42], 'e-paddenstoelen': [.62, .42], 'e-berg': [.62, .36], 'o-cipres': [.6, .4], 'o-struik': [.7, .45], 'o-elfwoud': [.7, .5], 'o-dodeboom': [1.05, .75], 'o-doornen': [.9, .6], 'o-berg': [.72, .42], 'o-heuvel': [.62, .36], 'o-loof': [.8, .55], 'o-den': [.7, .5], 'o-bosje': [.8, .55], 'g-elfwoud': [.42, .24], 'g-spookboom': [.5, .3], 'g-doornen': [.45, .3], 'g-kristallen': [.5, .32], 'g-loof': [.5, .28], 'g-eik': [.55, .3], 'g-den': [.42, .24], 'g-berk': [.42, .24], 'g-struik': [.55, .3], 'g-dood': [.45, .26], 'g-palm': [.48, .28], 'g-berg': [.56, .3], 'g-heuvel': [.52, .28], 'g-rotsen': [.5, .35], 'g-gras': [.45, .3], berg: [.56, .3], berg2: [.58, .3], heuvels: [.52, .28], vulkaan: [.5, .3], naald: [.42, .24], spar: [.4, .24], loof: [.46, .26], palm: [.48, .28], riet: [.45, .3], rotsen: [.5, .35], boom: [.62, .62], struik: [.62, .62] };
+const SPACING = { 'o-bomen': [.62, .42], 'o-dennen': [.62, .42], 'o-gemengd': [.62, .42], 'o-populieren': [.6, .42], 'e-den': [.5, .3], 'e-loof': [.5, .3], 'e-boom': [.5, .3], 'e-dennen': [.6, .4], 'e-bomen': [.6, .4], 'e-bos': [.62, .42], 'e-naaldbos': [.62, .42], 'e-duisterbos': [.62, .42], 'e-doodbos': [.62, .42], 'e-elfenbos': [.62, .42], 'e-magischwoud': [.62, .42], 'e-paddenstoelen': [.62, .42], 'e-berg': [.62, .36], 'o-cipres': [.6, .4], 'o-struik': [.7, .45], 'o-elfwoud': [.7, .5], 'o-dodeboom': [1.05, .75], 'o-doornen': [.9, .6], 'o-berg': [.72, .42], 'o-heuvel': [.62, .36], 'o-loof': [.8, .55], 'o-den': [.7, .5], 'o-bosje': [.8, .55], 'g-elfwoud': [.42, .24], 'g-spookboom': [.5, .3], 'g-doornen': [.45, .3], 'g-kristallen': [.5, .32], 'g-loof': [.5, .28], 'g-eik': [.55, .3], 'g-den': [.42, .24], 'g-berk': [.42, .24], 'g-struik': [.55, .3], 'g-dood': [.45, .26], 'g-palm': [.48, .28], 'g-berg': [.56, .3], 'g-heuvel': [.52, .28], 'g-rotsen': [.5, .35], 'g-gras': [.45, .3], berg: [.56, .3], berg2: [.58, .3], heuvels: [.52, .28], vulkaan: [.5, .3], naald: [.42, .24], spar: [.4, .24], loof: [.46, .26], palm: [.48, .28], riet: [.45, .3], rotsen: [.5, .35], boom: [.62, .62], struik: [.62, .62] };
 const spacing = k => SPACING[k] || (k.startsWith('c:') || k.startsWith('img:') ? [.5, .3] : [.8, .7]);
 function collides(key, x, y, size, list, dens) {
   const [ax, ay] = spacing(key);
@@ -3240,6 +3281,8 @@ const PRESETS = {
     { id: 'e-gebergte-p', since: 7, name: 'Gedetailleerd gebergte', grow: true, items: [{ a: 'e-berg', v: -1, n: 6 }] },
     { id: 'e-elfen-p', since: 7, name: 'Gedetailleerd elfenbos', items: [{ a: 'e-elfenbos', v: -1, n: 3 }, { a: 'e-magischwoud', v: -1, n: 1 }, { a: 'e-paddenstoelen', v: -1, n: 1 }] },
     { id: 'e-duister-p', since: 7, name: 'Gedetailleerd duister bos', items: [{ a: 'e-duisterbos', v: -1, n: 3 }, { a: 'e-doodbos', v: -1, n: 3 }] },
+    { id: 'o-gemengd-p', since: 8, name: 'Oud gemengd bos', items: [{ a: 'o-gemengd', v: -1, n: 3 }, { a: 'o-bomen', v: -1, n: 3 }, { a: 'o-loof', v: -1, n: 3 }, { a: 'o-den', v: -1, n: 1 }] },
+    { id: 'o-naald-p', since: 8, name: 'Oud naaldbos', items: [{ a: 'o-dennen', v: -1, n: 6 }, { a: 'o-den', v: -1, n: 3 }] },
     { id: 'o-bos', since: 5, name: 'Oud bos', items: [{ a: 'o-loof', v: -1, n: 4 }, { a: 'o-den', v: -1, n: 2 }, { a: 'o-cipres', v: -1, n: 1 }] },
     { id: 'o-gebergte', since: 5, name: 'Oud gebergte', grow: true, items: [{ a: 'o-berg', v: -1, n: 4 }, { a: 'o-heuvel', v: -1, zone: 'rand', n: 1, rel: .7 }] },
     { id: 'o-elfenwoud', since: 6, name: 'Oud elfenwoud', items: [{ a: 'o-elfwoud', v: -1, n: 5 }, { a: 'o-elfboom', v: 0, n: 1 }] },
@@ -3257,7 +3300,7 @@ const normBrush = b => ({ id: String(b.id), name: String(b.name || 'Penseel').sl
   amount: +b.amount || 1.4, scale: +b.scale || 1, vary: b.vary ?? .25,
   items: (b.items || []).map(it => ({ a: String(it.a), v: Number.isInteger(it.v) ? it.v : 0, zone: ['overal', 'midden', 'rand'].includes(it.zone) ? it.zone : 'overal', n: snapN(+it.n || 3), rel: Math.max(.2, Math.min(3, +it.rel || 1)) })) });
 const presetBrushes = k => PRESETS[k].map(normBrush);
-const PRESET_LEVEL = 7; // raise together with `since` on brushes added later, so saved libraries get them once
+const PRESET_LEVEL = 8; // raise together with `since` on brushes added later, so saved libraries get them once
 const DEFAULT_TYPES = ['Bomen', 'Bergen', 'Heuvels', 'Gras en planten', 'Rotsen', 'Water', 'Gebouwen', 'Steden', 'Versiering', 'Overig'];
 const lib = { brushes: { world: presetBrushes('world'), local: presetBrushes('local') }, shapes: [], terrains: [], uploads: [], types: DEFAULT_TYPES.slice(), sel: { world: 'gebergte', local: 'bomen' }, presetsSeen: PRESET_LEVEL };
 const newId = () => Math.random().toString(36).slice(2, 9);
@@ -4828,7 +4871,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.27.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.28.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;

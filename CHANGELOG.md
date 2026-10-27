@@ -1,5 +1,13 @@
 # Wijzigingen
 
+## 1.28.0
+
+- De bomen in de stijl **Oud** hebben nu echte variatie:
+  - **Loofboom:** 10 varianten, als ronde boom, brede eik, slanke populier of boom met dubbele kruin.
+  - **Den:** 10 varianten, als brede den of slanke spar, met 3 tot 5 lagen takken.
+  - **Nieuwe groepjes**, elk met 10 varianten: bomengroep, dennengroep, gemengd bos en populieren. Het bosje is opnieuw getekend.
+- Nieuwe penselen: *Oud gemengd bos* en *Oud naaldbos*.
+
 ## 1.27.0
 
 - **Staande kaarten.** Bij een nieuwe kaart kies je nu de richting: **Liggend** of **Staand**. Staand is handig voor een boekpagina. Het werkt voor:
