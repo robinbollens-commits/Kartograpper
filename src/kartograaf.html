@@ -3283,7 +3283,7 @@ const PRESETS = {
     { id: 'e-duister-p', since: 7, name: 'Gedetailleerd duister bos', items: [{ a: 'e-duisterbos', v: -1, n: 3 }, { a: 'e-doodbos', v: -1, n: 3 }] },
     { id: 'o-gemengd-p', since: 8, name: 'Oud gemengd bos', items: [{ a: 'o-gemengd', v: -1, n: 3 }, { a: 'o-bomen', v: -1, n: 3 }, { a: 'o-loof', v: -1, n: 3 }, { a: 'o-den', v: -1, n: 1 }] },
     { id: 'o-naald-p', since: 8, name: 'Oud naaldbos', items: [{ a: 'o-dennen', v: -1, n: 6 }, { a: 'o-den', v: -1, n: 3 }] },
-    { id: 'o-bos', since: 5, name: 'Oud bos', items: [{ a: 'o-loof', v: -1, n: 4 }, { a: 'o-den', v: -1, n: 2 }, { a: 'o-cipres', v: -1, n: 1 }] },
+    { id: 'o-bos', since: 5, name: 'Oud bos', items: [{ a: 'o-bomen', v: -1, n: 3 }, { a: 'o-loof', v: -1, n: 3 }, { a: 'o-dennen', v: -1, n: 1 }, { a: 'o-den', v: -1, n: 1 }] },
     { id: 'o-gebergte', since: 5, name: 'Oud gebergte', grow: true, items: [{ a: 'o-berg', v: -1, n: 4 }, { a: 'o-heuvel', v: -1, zone: 'rand', n: 1, rel: .7 }] },
     { id: 'o-elfenwoud', since: 6, name: 'Oud elfenwoud', items: [{ a: 'o-elfwoud', v: -1, n: 5 }, { a: 'o-elfboom', v: 0, n: 1 }] },
     { id: 'o-dodenwoud', since: 6, name: 'Oud dodenwoud', items: [{ a: 'o-dodeboom', v: -1, n: 3 }, { a: 'o-doornen', v: 0, n: 1 }] },
@@ -3319,6 +3319,9 @@ async function loadLib() {
   // since 1.22.3 the old-map range strews fewer hills; a brush you changed yourself stays as it is
   const og = lib.brushes.world.find(b => b.id === 'o-gebergte'), oh = og && og.items.find(i => i.a === 'o-heuvel');
   if (oh && oh.n === 3) { oh.n = 1; saveLib(); }
+  // since 1.28.1 the old-map wood strews groups of trees too; a brush you changed yourself stays as it is
+  const ob = lib.brushes.world.find(b => b.id === 'o-bos');
+  if (ob && ob.items.map(i => i.a).join() === 'o-loof,o-den,o-cipres') { ob.items = normBrush(PRESETS.world.find(b => b.id === 'o-bos')).items; saveLib(); }
   // since 1.24.0 the detailed pack is made of engravings: the brushes of the old drawn detailed pack go
   const gone = ['g-bos', 'g-dennen', 'g-elfenwoud', 'g-duisterwoud', 'g-gebergte'], before = lib.brushes.world.length;
   lib.brushes.world = lib.brushes.world.filter(b => !gone.includes(b.id)); if (lib.brushes.world.length !== before) saveLib();
@@ -4871,7 +4874,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.28.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.28.1', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;

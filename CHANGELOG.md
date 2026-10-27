@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## 1.28.1
+
+- Het penseel *Oud bos* strooit nu ook bomengroepjes en dennengroepjes tussen de losse bomen. Een *Oud bos* dat je zelf hebt aangepast, blijft zoals het is.
+
 ## 1.28.0
 
 - De bomen in de stijl **Oud** hebben nu echte variatie:
