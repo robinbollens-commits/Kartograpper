@@ -428,6 +428,10 @@ body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
       <label class="opt"><input type="radio" name="shape" id="ngEil" value="eilanden"> Eilandenrijk</label>
       <label class="check"><input type="checkbox" id="ngFill" checked> Meteen bergen, bossen, rivieren, steden en namen erop zetten</label>
     </fieldset>
+    <fieldset id="fsOrient"><legend>Richting</legend>
+      <label class="opt"><input type="radio" name="orient" id="noLand" value="liggend" checked> Liggend</label>
+      <label class="opt"><input type="radio" name="orient" id="noStaand" value="staand"> Staand, bijvoorbeeld voor een boekpagina</label>
+    </fieldset>
     <fieldset id="fsSize"><legend>Formaat</legend></fieldset>
     <p class="note">Je huidige kaart wordt vervangen. Wil je hem houden? Kies dan eerst Bestand › Opslaan als bestand.</p>
     <div class="btns end">
@@ -2288,6 +2292,7 @@ function genLand(d, R, o = {}) {
     : shape === 'twee' ? [[.25 + r0() * .1, .32 + r0() * .36, .27, .36], [.66 + r0() * .1, .32 + r0() * .36, .27, .36]]
     : shape === 'eilanden' ? Array.from({ length: (full ? 6 : 3) + Math.floor(r0() * 5) }, () => [.15 + r0() * .7, .17 + r0() * .66, .08 + r0() * .1, .1 + r0() * .12])
     : [[.5 + (r0() - .5) * .1, .52 + (r0() - .5) * .1, .46, .44]];
+  if (random && H > W) for (const c of centers) { [c[0], c[1]] = [c[1], c[0]]; [c[2], c[3]] = [c[3], c[2]]; } // a standing map: lands lie above each other, not side by side
   const zoom = full ? 1 : Math.max(.3, Math.min(1, Math.sqrt(W * H / (1800 * 1200))));
   const sc = (shape === 'eilanden' ? 190 : shape === 'twee' ? 270 : 320) * zoom, oct = random ? 6 : 5, edge = Math.min(W, H) * .12;
   const LS = 6, gw = Math.ceil(W / LS) + 2, gh = Math.ceil(H / LS) + 2, hv = new Float32Array(gw * gh);
@@ -4786,10 +4791,13 @@ function openNew(gen) {
   $('#newTitle').textContent = kind === 'world' ? 'Nieuwe wereldkaart' : 'Nieuwe plattegrond';
   $('#fsStyle').hidden = kind !== 'local';
   const fs = $('#fsSize'); fs.innerHTML = '<legend>Formaat</legend>';
-  SIZES[kind].forEach(([n, w, h], i) => { const l = document.createElement('label'); l.className = 'opt'; l.innerHTML = `<input type="radio" name="size" id="nz${i}" value="${i}" ${i === 1 ? 'checked' : ''}> ${n} · ${kind === 'world' ? `${w} × ${h} pixels` : `${w} × ${h} vakken`}`; fs.append(l); });
+  SIZES[kind].forEach(([n], i) => { const l = document.createElement('label'); l.className = 'opt'; l.innerHTML = `<input type="radio" name="size" id="nz${i}" value="${i}" ${i === 1 ? 'checked' : ''}> ${n} · <span></span>`; fs.append(l); });
   syncNew(); $('#newModal').hidden = false; $('#ncEmpty').focus();
 }
-function syncNew() { const sample = $('#ncSample').checked; for (const i of $('#fsSize').querySelectorAll('input')) i.disabled = sample; $('#fsGen').hidden = kind !== 'world' || !$('#ncGen').checked;
+// width and height for a size, turned upright when the map stands
+const newSize = i => { const [, w, h] = SIZES[kind][i]; return $('#noStaand').checked ? [h, w] : [w, h]; };
+function syncNew() { const sample = $('#ncSample').checked; for (const i of $('#fsSize').querySelectorAll('input')) i.disabled = sample; for (const i of $('#fsOrient').querySelectorAll('input')) i.disabled = sample;
+  $('#fsSize').querySelectorAll('label span').forEach((sp, i) => { const [w, h] = newSize(i); sp.textContent = kind === 'world' ? `${w} × ${h} pixels` : `${w} × ${h} vakken`; }); $('#fsGen').hidden = kind !== 'world' || !$('#ncGen').checked;
   const book = kind === 'world' && $('#ncBook').checked; $('#fsBook').hidden = !book; $('#newForm').classList.toggle('wide', book); }
 // what the generator understood, line by line, so you can see it before you make the map
 function showBook() { const ul = $('#boSeen'); ul.textContent = ''; const sp = parseBook($('#boText').value);
@@ -4803,7 +4811,7 @@ $('#mNew').addEventListener('click', () => openNew(false));
 $('#newCancel').addEventListener('click', () => { $('#newModal').hidden = true; });
 $('#newModal').addEventListener('keydown', e => { if (e.key === 'Escape') $('#newModal').hidden = true; });
 $('#newForm').addEventListener('submit', async e => {
-  e.preventDefault(); let keepPal = doc?.palette || 'inkt'; const f = e.target, style = f.style.value, sample = f.content.value === 'voorbeeld', [, w, h] = SIZES[kind][+(f.size?.value ?? 1)];
+  e.preventDefault(); let keepPal = doc?.palette || 'inkt'; const f = e.target, style = f.style.value, sample = f.content.value === 'voorbeeld', [w, h] = newSize(+(f.size?.value ?? 1));
   const book = kind === 'world' && f.content.value === 'verhaal', spec = book ? parseBook($('#boText').value) : null;
   if (book && !spec.lands.length) { toast('Schrijf eerst minstens één land, of klik op Voorbeeld invullen.'); $('#boText').focus(); return; }
   $('#newModal').hidden = true; $('#loading').hidden = false; doc = null; req(); await new Promise(r => setTimeout(r, 30));
@@ -4820,7 +4828,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.26.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.27.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;

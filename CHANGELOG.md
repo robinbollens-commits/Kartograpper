@@ -1,5 +1,13 @@
 # Wijzigingen
 
+## 1.27.0
+
+- **Staande kaarten.** Bij een nieuwe kaart kies je nu de richting: **Liggend** of **Staand**. Staand is handig voor een boekpagina. Het werkt voor:
+  - wereldkaarten en plattegronden;
+  - de willekeurige generator;
+  - *Kaart uit een verhaal*.
+- Op een staande kaart legt de generator twee continenten of een eilandenrijk boven elkaar in plaats van naast elkaar.
+
 ## 1.26.0
 
 - **Exporteren voor drukwerk.** Je vindt het in het menu Bestand. Je kiest 2×, 3× of 4× de resolutie van de kaart, en per keuze zie je tot hoe groot die scherp gedrukt kan worden op 300 dpi.
