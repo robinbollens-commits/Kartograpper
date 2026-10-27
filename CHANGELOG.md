@@ -1,5 +1,13 @@
 # Wijzigingen
 
+## 1.25.1
+
+- **Lagen voor symbolen op de wereldkaart.** Een geselecteerd symbool heeft nu de knoppen **Naar voren** en **Naar achteren**, en dat werkt ook met **Page Up** en **Page Down**.
+  - Elke klik verschuift het symbool één laag.
+  - Binnen dezelfde laag blijft de gewone regel gelden: wat lager op de kaart staat, staat vooraan.
+  - **Gewone laag** zet een symbool weer terug.
+  - De lagen worden mee bewaard in je kaart.
+
 ## 1.25.0
 
 - 18 nieuwe gegraveerde symbolen in **Gedetailleerd**, met dezelfde sepiavulling:

@@ -2237,7 +2237,16 @@ function drawLabel(g, L) {
   g.restore();
 }
 const footY = s => s.y + s.s * (ASSETS[s.a]?.foot || 0);
-function stampOrder(d) { return d.kind === 'world' ? d.stamps.slice().sort((a, b) => footY(a) - footY(b)) : d.stamps; }
+// on a world map symbols stand in front of what is higher up; a layer (z) set by hand goes first
+const byLayer = (a, b) => (a.z || 0) - (b.z || 0) || footY(a) - footY(b);
+function stampOrder(d) { return d.kind === 'world' ? d.stamps.slice().sort(byLayer) : d.stamps; }
+// one layer forwards (+1) or backwards (-1); on a floor plan the symbol goes to the very front or back
+function layerSel(o, dir) {
+  objEdit(() => {
+    if (doc.kind === 'world') { o.z = (o.z || 0) + dir; if (!o.z) delete o.z; }
+    else { doc.stamps = doc.stamps.filter(x => x !== o); dir > 0 ? doc.stamps.push(o) : doc.stamps.unshift(o); }
+  });
+}
 /* Minimum spacing as an ellipse (fraction of the average size): wide and shallow, so a range shows its back peaks above the front ones. */
 const SPACING = { 'e-den': [.5, .3], 'e-loof': [.5, .3], 'e-boom': [.5, .3], 'e-dennen': [.6, .4], 'e-bomen': [.6, .4], 'e-bos': [.62, .42], 'e-naaldbos': [.62, .42], 'e-duisterbos': [.62, .42], 'e-doodbos': [.62, .42], 'e-elfenbos': [.62, .42], 'e-magischwoud': [.62, .42], 'e-paddenstoelen': [.62, .42], 'e-berg': [.62, .36], 'o-cipres': [.6, .4], 'o-struik': [.7, .45], 'o-elfwoud': [.7, .5], 'o-dodeboom': [1.05, .75], 'o-doornen': [.9, .6], 'o-berg': [.72, .42], 'o-heuvel': [.62, .36], 'o-loof': [.8, .55], 'o-den': [.7, .5], 'o-bosje': [.8, .55], 'g-elfwoud': [.42, .24], 'g-spookboom': [.5, .3], 'g-doornen': [.45, .3], 'g-kristallen': [.5, .32], 'g-loof': [.5, .28], 'g-eik': [.55, .3], 'g-den': [.42, .24], 'g-berk': [.42, .24], 'g-struik': [.55, .3], 'g-dood': [.45, .26], 'g-palm': [.48, .28], 'g-berg': [.56, .3], 'g-heuvel': [.52, .28], 'g-rotsen': [.5, .35], 'g-gras': [.45, .3], berg: [.56, .3], berg2: [.58, .3], heuvels: [.52, .28], vulkaan: [.5, .3], naald: [.42, .24], spar: [.4, .24], loof: [.46, .26], palm: [.48, .28], riet: [.45, .3], rotsen: [.5, .35], boom: [.62, .62], struik: [.62, .62] };
 const spacing = k => SPACING[k] || (k.startsWith('c:') || k.startsWith('img:') ? [.5, .3] : [.8, .7]);
@@ -2752,7 +2761,7 @@ async function docFromRecord(rec) {
   if (libChanged) saveLib();
   const d = newDoc(rec.kind, w, h, { style: rec.style === 'open' ? 'open' : 'dungeon', grid: !!rec.grid, palette: rec.palette });
   const okT = new Set(TERRAINS[rec.kind].map(t => 't:' + t.id));
-  d.stamps = (rec.stamps || []).filter(s => ASSETS[s.a] && isFinite(s.x) && isFinite(s.y)).map(s => ({ id: 0, a: s.a, x: +s.x, y: +s.y, s: +s.s || ASSETS[s.a].size, r: +s.r || 0, f: !!s.f, v: Math.max(0, +s.v | 0), c: typeof s.c === 'string' && /^#[0-9a-f]{6}$/i.test(s.c) ? s.c : undefined }));
+  d.stamps = (rec.stamps || []).filter(s => ASSETS[s.a] && isFinite(s.x) && isFinite(s.y)).map(s => ({ id: 0, a: s.a, x: +s.x, y: +s.y, s: +s.s || ASSETS[s.a].size, r: +s.r || 0, f: !!s.f, v: Math.max(0, +s.v | 0), z: (+s.z | 0) || undefined, c: typeof s.c === 'string' && /^#[0-9a-f]{6}$/i.test(s.c) ? s.c : undefined }));
   d.lines = (rec.lines || []).filter(l => Array.isArray(l.pts) && l.pts.length >= 4).map(l => ({ id: 0, type: String(l.type), pts: l.pts.map(Number) }));
   d.labels = (rec.labels || []).filter(L => typeof L.text === 'string').map(L => ({ id: 0, text: L.text.slice(0, 200), x: +L.x, y: +L.y, fs: +L.fs || 20, st: TEXT_STYLES.some(s => s[0] === L.st) ? L.st : 'gewoon', r: +L.r || 0 }));
   for (const arr of [d.stamps, d.lines, d.labels]) for (const o of arr) o.id = d.nid++;
@@ -2840,7 +2849,7 @@ const ICONS = {
 const svg = p => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
 const pick = (v, k) => typeof v === 'object' ? v[k] : v;
 const HINTS = {
-  select: 'Klik op een symbool, tekst of lijn om het aan te passen. Sleep om te verplaatsen. Op een lege plek verschuif je de kaart.',
+  select: 'Klik op een symbool, tekst of lijn om het aan te passen. Sleep om te verplaatsen. Op een lege plek verschuif je de kaart. Page Up en Page Down zetten een symbool naar voren of naar achteren.',
   hand: 'Sleep om de kaart te verschuiven. Scroll of knijp om te zoomen.',
   paint: { world: 'Sleep om land te tekenen. Met [ en ] maak je het penseel kleiner of groter.', local: 'Sleep om vloer uit te hakken: gangen, grotten, rare kamers.' },
   erase: { world: 'Sleep om zee, meren en rivieren te tekenen. Een smal penseel geeft een rivier.', local: 'Sleep om vloer terug in rots te veranderen.' },
@@ -2884,7 +2893,7 @@ objL.g = objL.cv.getContext('2d');
 let objEpoch = 0; // bumped when objects can look different without the map data changing (palette, own shapes, fonts)
 function objSig(d, skip) {
   let h = objEpoch * 7919 + d.stamps.length;
-  for (const s of d.stamps) h = (h * 1.0000003 + s.x * 3.1 + s.y * 7.3 + s.s * 1.7 + (s.r || 0) * .37 + (s.v || 0) * 11 + (s.f ? 5 : 0) + s.a.length * 13 + s.a.charCodeAt(s.a.length - 1) + (s.c ? s.c.charCodeAt(s.c.length - 1) * 3 + s.c.length : 0)) % 1e12;
+  for (const s of d.stamps) h = (h * 1.0000003 + s.x * 3.1 + s.y * 7.3 + s.s * 1.7 + (s.r || 0) * .37 + (s.v || 0) * 11 + (s.z || 0) * 17 + (s.f ? 5 : 0) + s.a.length * 13 + s.a.charCodeAt(s.a.length - 1) + (s.c ? s.c.charCodeAt(s.c.length - 1) * 3 + s.c.length : 0)) % 1e12;
   return h + '|' + skip + '|' + JSON.stringify(d.lines) + JSON.stringify(d.labels);
 }
 function objDirty(s) { const e = s.s * .8 + 4; objL.rects.push([s.x - e, s.y - e, s.x + e, s.y + e]); }
@@ -2914,7 +2923,7 @@ function syncObjLayer(v) {
       g.setTransform(...T); g.beginPath(); g.rect(0, 0, d.w, d.h); g.clip();
       const x0 = (dx0 - T[4]) / T[0], y0 = (dy0 - T[5]) / T[0], x1 = (dx1 - T[4]) / T[0], y1 = (dy1 - T[5]) / T[0];
       const near = d.stamps.filter(s => { const e = s.s * .8 + 4; return s.x + e > x0 && s.x - e < x1 && s.y + e > y0 && s.y - e < y1; });
-      drawObjects(g, d, skip, d.kind === 'world' ? near.sort((a, b) => footY(a) - footY(b)) : near, true);
+      drawObjects(g, d, skip, d.kind === 'world' ? near.sort(byLayer) : near, true);
       g.restore();
     }
   } else {
@@ -3025,7 +3034,8 @@ function refreshSel() {
     if (ASSETS[o.a].vars) list.push(['Andere vorm', () => objEdit(() => o.v = ((o.v || 0) + 1) % ASSETS[o.a].vars.length)]);
     list.push(['↺ 90°', () => objEdit(() => o.r = norm(o.r - 90))], ['↻ 90°', () => objEdit(() => o.r = norm(o.r + 90))], ['Spiegelen', () => objEdit(() => o.f = !o.f)]);
     if (SHADED.has(o.a)) list.pop();
-    if (kind === 'local') list.push(['Naar voren', () => objEdit(() => { doc.stamps = doc.stamps.filter(x => x !== o); doc.stamps.push(o); })], ['Naar achteren', () => objEdit(() => { doc.stamps = doc.stamps.filter(x => x !== o); doc.stamps.unshift(o); })]);
+    list.push(['Naar voren', () => layerSel(o, 1)], ['Naar achteren', () => layerSel(o, -1)]);
+    if (kind === 'world' && o.z) list.push(['Gewone laag', () => objEdit(() => delete o.z)]); // back to standing in front of what is higher up
     body.append(btnRow(list));
     if (PALETTES[doc.palette]?.colorful) {
       const row = document.createElement('div'); row.className = 'colorrow';
@@ -4492,6 +4502,7 @@ window.addEventListener('keydown', e => {
   if (k === 'escape') { if (action) cancelAction(); else select(null); return; }
   const o = getSelObj();
   if (k === '[' || k === ']') { const f = k === ']' ? 1.15 : 1 / 1.15; if (o && sel.type === 'stamp' && tool === 'select') objEdit(() => o.s = f2(Math.max(6, Math.min(500, o.s * f)))); else setBrush(U().brush * f); return; }
+  if ((k === 'pageup' || k === 'pagedown') && o && sel.type === 'stamp') { e.preventDefault(); layerSel(o, k === 'pageup' ? 1 : -1); return; }
   if ((k === ',' || k === '.') && o && sel.type !== 'line') { objEdit(() => o.r = norm(o.r + (k === '.' ? 15 : -15))); return; }
   if (k === '0') { fit(); return; } if (k === '+' || k === '=') { zoomAt(cvW / 2, cvH / 2, 1.25); return; } if (k === '-') { zoomAt(cvW / 2, cvH / 2, .8); return; }
   if (k === 'm' && kind === 'world') { if (lib.brushes.world.some(b => b.id === 'gebergte')) lib.sel.world = 'gebergte'; setTool('nature'); return; }
@@ -4783,7 +4794,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.25.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.25.1', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;
