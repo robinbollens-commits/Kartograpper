@@ -1,5 +1,11 @@
 # Wijzigingen
 
+## 1.26.0
+
+- **Exporteren voor drukwerk.** Je vindt het in het menu Bestand. Je kiest 2×, 3× of 4× de resolutie van de kaart, en per keuze zie je tot hoe groot die scherp gedrukt kan worden op 300 dpi.
+  - De kaart wordt op die resolutie volledig opnieuw getekend en niet uitvergroot, dus kustlijnen, ondergronden, lijnen, tekst en getekende symbolen blijven haarscherp.
+  - De PNG krijgt 300 dpi mee, zodat opmaakprogramma's hem meteen op de juiste grootte plaatsen.
+
 ## 1.25.1
 
 - **Lagen voor symbolen op de wereldkaart.** Een geselecteerd symbool heeft nu de knoppen **Naar voren** en **Naar achteren**, en dat werkt ook met **Page Up** en **Page Down**.

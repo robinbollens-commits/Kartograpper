@@ -266,6 +266,7 @@ body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
         <button type="button" class="wide-item" id="mFull">Back-up exporteren<small>Al je kaarten en je bibliotheek in één bestand.</small></button>
         <button type="button" class="wide-item" id="mFullIn">Back-up importeren…<small>Een back-up openen, bv. in een nieuwe installatie.</small></button>
         <button type="button" id="mPng">Exporteren als PNG<small>Een afbeelding om te printen of te delen.</small></button>
+        <button type="button" id="mHiRes">Exporteren voor drukwerk…<small>Een scherpe PNG op hoge resolutie, voor een boek.</small></button>
         <button type="button" id="mPrint">Afdrukken op A4…<small>Vakken op ware grootte, over meerdere bladen om aan elkaar te plakken.</small></button>
       </div>
     </details>
@@ -388,6 +389,14 @@ body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
   </aside>
 </div>
 
+<div class="modal" id="hiModal" hidden>
+  <form class="dialog" id="hiForm" role="dialog" aria-modal="true" aria-labelledby="hiTitle">
+    <h2 id="hiTitle">Exporteren voor drukwerk</h2>
+    <p class="note">De kaart wordt op een hogere resolutie opnieuw getekend: kustlijnen, ondergronden, lijnen, tekst en symbolen blijven scherp. Een drukker vraagt meestal 300 dpi.</p>
+    <fieldset id="hiScales"><legend>Resolutie</legend></fieldset>
+    <div class="btns end"><button type="button" class="btn" id="hiCancel">Annuleren</button><button type="submit" class="btn primary">Exporteren</button></div>
+  </form>
+</div>
 <div class="modal" id="newModal" hidden>
   <form class="dialog" id="newForm" role="dialog" aria-modal="true" aria-labelledby="newTitle">
     <h2 id="newTitle">Nieuwe wereldkaart</h2>
@@ -2242,7 +2251,7 @@ let cutBehind = false;
 function drawObjects(g, d, skipLabel, stamps = stampOrder(d), own = false) {
   if (!own) { // on a canvas that already holds the map, draw the symbols on their own layer first and lay that on top
     const c = document.createElement('canvas'); c.width = g.canvas.width; c.height = g.canvas.height; const o = c.getContext('2d');
-    o.setTransform(g.getTransform()); o.beginPath(); o.rect(0, 0, d.w, d.h); o.clip(); drawObjects(o, d, skipLabel, stamps, true);
+    o.setTransform(g.getTransform()); o.imageSmoothingQuality = 'high'; o.beginPath(); o.rect(0, 0, d.w, d.h); o.clip(); drawObjects(o, d, skipLabel, stamps, true);
     g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(c, 0, 0); g.restore(); return;
   }
   cutBehind = true;
@@ -4720,6 +4729,44 @@ $('#mPng').addEventListener('click', async () => {
   const c = document.createElement('canvas'); c.width = doc.w; c.height = doc.h; const g = c.getContext('2d'); g.drawImage(doc.cache, 0, 0); drawObjects(g, doc, null);
   const blob = await new Promise(r => c.toBlob(r, 'image/png')); await offerFile(kind === 'world' ? 'wereldkaart.png' : 'plattegrond.png', blob);
 });
+/* ---------- export for print: the whole map drawn k times finer, in tiles so memory stays small ---------- */
+function crc32(b) { let c = ~0; for (let i = 0; i < b.length; i++) { c ^= b[i]; for (let k = 0; k < 8; k++) c = c & 1 ? (c >>> 1) ^ 0xEDB88320 : c >>> 1; } return ~c >>> 0; }
+// write the resolution into the PNG (pHYs), so layout programs place it at the right size
+async function withDpi(blob, dpi) {
+  const b = new Uint8Array(await blob.arrayBuffer()), ppm = Math.round(dpi / .0254), ch = new Uint8Array(21), dv = new DataView(ch.buffer);
+  dv.setUint32(0, 9); ch.set([112, 72, 89, 115], 4); dv.setUint32(8, ppm); dv.setUint32(12, ppm); ch[16] = 1; dv.setUint32(17, crc32(ch.subarray(4, 17)));
+  const out = new Uint8Array(b.length + 21); out.set(b.subarray(0, 33)); out.set(ch, 33); out.set(b.subarray(33), 54); return new Blob([out], { type: 'image/png' });
+}
+async function exportHiRes(k) {
+  const d = doc; if (d.dirty) { const q = d.dirty; d.dirty = null; rebuild(d, q[0], q[1], q[2], q[3]); }
+  const W = d.w * k, H = d.h * k, c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
+  const T = 400;
+  for (let y = 0; y < d.h; y += T) for (let x = 0; x < d.w; x += T) {
+    const x1 = Math.min(d.w, x + T), y1 = Math.min(d.h, y + T), t = document.createElement('canvas'); t.width = (x1 - x) * k; t.height = (y1 - y) * k;
+    rebuild(d, x, y, x1, y1, k, t.getContext('2d', { willReadFrequently: true })); g.drawImage(t, x * k, y * k);
+    await new Promise(r => setTimeout(r, 0)); // let the page breathe between tiles
+  }
+  g.setTransform(k, 0, 0, k, 0, 0); g.imageSmoothingQuality = 'high'; drawObjects(g, d, null);
+  const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+  if (!blob) throw new Error('te groot voor dit toestel');
+  return withDpi(blob, 300);
+}
+$('#mHiRes').addEventListener('click', () => {
+  menu.open = false; if (!doc) return; commitLabelEdit();
+  const fs = $('#hiScales'); fs.innerHTML = '<legend>Resolutie</legend>';
+  for (const k of [2, 3, 4]) { const w = doc.w * k, h = doc.h * k, cm = v => (v / 300 * 2.54).toFixed(0);
+    const l = document.createElement('label'); l.className = 'opt'; l.innerHTML = `<input type="radio" name="hiK" value="${k}" ${k === 3 ? 'checked' : ''}> ${k}× · ${w} × ${h} pixels · scherp tot ${cm(w)} × ${cm(h)} cm`; fs.append(l); }
+  $('#hiModal').hidden = false;
+});
+$('#hiCancel').addEventListener('click', () => { $('#hiModal').hidden = true; });
+$('#hiModal').addEventListener('keydown', e => { if (e.key === 'Escape') $('#hiModal').hidden = true; });
+$('#hiForm').addEventListener('submit', async e => {
+  e.preventDefault(); const k = +($('#hiForm').hiK.value || 3); $('#hiModal').hidden = true;
+  const ld = $('#loading'), was = ld.textContent; ld.textContent = 'De kaart wordt scherp getekend…'; ld.hidden = false; await new Promise(r => setTimeout(r, 30));
+  try { const blob = await exportHiRes(k); await offerFile((kind === 'world' ? 'wereldkaart' : 'plattegrond') + `-${k}x.png`, blob); }
+  catch (err) { toast('Exporteren lukte niet: ' + (err?.message || err) + '. Probeer een lagere resolutie.'); }
+  finally { ld.hidden = true; ld.textContent = was; }
+});
 $('#mOpen').addEventListener('click', () => { menu.open = false; $('#fileIn').value = ''; $('#fileIn').click(); });
 $('#fileIn').addEventListener('change', e => { const f = e.target.files[0]; if (f) openKartograafFile(f); });
 async function openKartograafFile(f) {
@@ -4773,7 +4820,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.25.1', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.26.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;
