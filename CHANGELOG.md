@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## 1.24.3
+
+- Ook de gegraveerde bomen en bossen van **Gedetailleerd** krijgen de lichte sepiavulling. Kustlijnen, ondergronden en andere symbolen schijnen er niet meer doorheen.
+
 ## 1.24.2
 
 - De gegraveerde icoontjes van **Gedetailleerd** zijn weer ingevuld, met een lichte sepiatint die zich aanpast aan de kaartstijl. In Inkt is die tint wit.
