@@ -1,5 +1,17 @@
 # Wijzigingen
 
+## 1.30.0
+
+- De gegraveerde symbolen van **Gedetailleerd** kunnen nu **in kleur**. Kies onder de stijlknoppen tussen *In kleur* en *Sepia*. De keuze wordt per kaart bewaard. In de kaartstijl Kleur staat kleur standaard aan.
+  - **Hoogelfen:** wit en blauw met gouden spitsen.
+  - **Boselfen en bomen:** groene kruinen boven bruine stammen.
+  - **Mensen:** donkerrode daken en lichte steen.
+  - **Dwergen:** grijze steen en goud.
+  - **Duistere landen:** heel donkere kleuren.
+  - **Bergen:** besneeuwde toppen die naar onderen in de ondergrond vervagen.
+  - **Zee en versiering:** houten schepen, een groen zeemonster, goud voor versieringen.
+- Kies je voor één symbool zelf een kleur, dan wordt dat de hoofdkleur van dat symbool.
+
 ## 1.29.0
 
 - **Ondergronden laten overvloeien.** Bij het gereedschap Ondergrond staat een nieuwe schuifregelaar **Overvloeien**.

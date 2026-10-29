@@ -361,6 +361,7 @@ body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
     <section class="sec" id="secAssets">
       <h3>Symbolen</h3>
       <div class="chips" id="assetPack" aria-label="Stijl van de symbolen"></div>
+      <div class="chips" id="engColorRow" hidden aria-label="Kleur van de gedetailleerde symbolen"><button type="button" class="chip" data-eng="kleur">In kleur</button><button type="button" class="chip" data-eng="sepia">Sepia</button></div>
       <div class="chips" id="assetCats"></div>
       <div class="assets" id="assets"></div>
       <label class="check"><input type="checkbox" id="optScatter" checked> Strooien als je sleept</label>
@@ -1856,6 +1857,44 @@ const ENGRAVED = [
 ];
 const ENGRAVED_PANELS = new Set(['e-cartouche', 'e-kader']); // frames keep their paper middle for a title or legend
 // every engraving gets a light sepia fill inside its silhouette, so nothing of the map shows through it; mountains fade out at the foot
+/* engravings in colour: each people has its own colours, laid as a gradient from top to foot (gold spire tips,
+   green crowns over brown trunks, snowy peaks over earth), and the ink takes a matching dark tone */
+const ENG_FAM = {
+  hoog: { top: '#d8b456', base: '#f3f0e8', low: '#a9c0dd', ink: '#22345c' },
+  bos: { top: '#86ad5c', base: '#a9c47c', low: '#8a6a44', ink: '#28351b' },
+  mens: { top: '#8c3f30', base: '#e3d7bd', low: '#a99a7c', ink: '#33261c' },
+  dwerg: { top: '#cba43d', base: '#a8a197', low: '#77706a', ink: '#27231f' },
+  duister: { top: '#64303a', base: '#5f5866', low: '#353039', ink: '#0d0b0f' },
+  boom: { top: '#8db367', base: '#6e9550', low: '#6c573a', ink: '#1f2b16' },
+  naald: { top: '#5f8a4c', base: '#4d7343', low: '#5e4a33', ink: '#17220f' },
+  berg: { top: '#f1ede4', base: '#b7a98d', low: '#948a6c', ink: '#352d22' },
+  zee: { top: '#f0e9d7', base: '#b48d5e', low: '#7f9fb4', ink: '#28272c' },
+  monster: { top: '#7fa07a', base: '#5f8565', low: '#6d93a8', ink: '#16241c' },
+  deco: { top: '#d6b15a', base: '#f1e7cc', low: '#cfa957', ink: '#463420' },
+  plek: { top: '#bfb4a0', base: '#d3c9b3', low: '#978c78', ink: '#352c22' },
+};
+const ENG_WHO = { 'e-boomstad': 'bos', 'e-bosdorp': 'bos', 'e-elfenbos': 'bos', 'e-magischwoud': 'bos', 'e-paddenstoelen': 'bos', 'e-elfbomen': 'bos',
+  'e-den': 'naald', 'e-dennen': 'naald', 'e-naaldbos': 'naald', 'e-zeemonster': 'monster', 'e-sirene': 'monster',
+  'e-vuurtoren': 'mens', 'e-kluis': 'mens', 'e-uitkijk': 'mens', 'e-bergabdij': 'mens', 'e-wortel': 'mens', 'e-schild-mens': 'mens', 'e-schild-elf': 'hoog' };
+const ENG_CAT = { elf: 'hoog', dwerg: 'dwerg', duister: 'duister', nederzetting: 'mens', boom: 'boom', land: 'berg', zee: 'zee', deco: 'deco', plek: 'plek' };
+// colour when the map is in a colour style and the map has it on (on by default for Kleur)
+function engColorOn() { return CUR.colorful && !!doc && (doc.engColor ?? doc.palette === 'kleur'); }
+function engFamily(a, col) { const f = ENG_FAM[ENG_WHO[a.key] || ENG_CAT[a.cat] || 'plek']; return col ? { ...f, base: col, key: col } : f; } // a colour picked for one symbol becomes its main colour
+function engravedColor(b, f, fade) {
+  const key = [f.top, f.base, f.low, fade ? 1 : 0].join(); b.cfills = b.cfills || {}; if (b.cfills[key]) return b.cfills[key];
+  const c = document.createElement('canvas'); c.width = b.iw; c.height = b.ih; const g = c.getContext('2d');
+  g.drawImage(b.sil, 0, 0); g.globalCompositeOperation = 'source-in';
+  const gr = g.createLinearGradient(0, 0, 0, c.height); gr.addColorStop(0, f.top); gr.addColorStop(.32, f.base); gr.addColorStop(.7, f.base); gr.addColorStop(1, f.low);
+  g.fillStyle = gr; g.fillRect(0, 0, c.width, c.height);
+  if (fade) { const fg = g.createLinearGradient(0, 0, 0, c.height); fg.addColorStop(0, '#000'); fg.addColorStop(.45, '#000'); fg.addColorStop(1, 'rgba(0,0,0,0)'); g.globalCompositeOperation = 'destination-in'; g.fillStyle = fg; g.fillRect(0, 0, c.width, c.height); }
+  return b.cfills[key] = c;
+}
+function engravedInk(b, ink) {
+  b.cinks = b.cinks || {}; if (b.cinks[ink]) return b.cinks[ink];
+  const c = document.createElement('canvas'); c.width = b.iw; c.height = b.ih; const g = c.getContext('2d');
+  g.drawImage(b.image, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = ink; g.fillRect(0, 0, c.width, c.height);
+  return b.cinks[ink] = c;
+}
 function engravedFill(b, fade) {
   const key = CUR.name + (fade ? '/f' : ''); b.fills = b.fills || {}; if (b.fills[key]) return b.fills[key];
   const P = CUR.paper, I = CUR.ink, t = CUR === PALETTES.inkt ? 0 : .08, col = P.map((v, i) => Math.round(v + (I[i] - v) * t)); // a shade under the paper
@@ -1912,6 +1951,8 @@ function drawAsset(g, key, x, y, s, rot, flip, v, col) {
     const b = a.imgVars[(v || 0) % a.imgVars.length]; if (!b.image) { g.restore(); return; }
     const m = Math.max(b.iw, b.ih), x = -b.iw / m * 50, y = -b.ih / m * 50, w = b.iw / m * 100, h = b.ih / m * 100;
     if (cutBehind && b.sil) { g.globalCompositeOperation = 'destination-out'; g.drawImage(b.sil, x, y, w, h); g.globalCompositeOperation = 'source-over'; }
+    const fam = engColorOn() && b.sil ? engFamily(a, col) : null;
+    if (fam) { g.drawImage(engravedColor(b, fam, a.fade), x, y, w, h); g.drawImage(engravedInk(b, fam.ink), x, y, w, h); g.restore(); return; }
     if (a.fill && b.sil) g.drawImage(engravedFill(b, a.fade), x, y, w, h);
     g.drawImage(monoUpload(b), x, y, w, h); g.restore(); return;
   }
@@ -2804,7 +2845,7 @@ const store = {
 async function docToRecord(d, asText) {
   const layers = {};
   for (const k in d.layers) { const c = d.layers[k].cv; layers[k] = asText ? c.toDataURL('image/png') : await new Promise(res => c.toBlob(res, 'image/png')); }
-  return { app: 'kartograaf', v: 1, kind: d.kind, w: d.w, h: d.h, palette: d.palette, style: d.style, grid: d.grid, blend: d.blend || 0, stamps: d.stamps, lines: d.lines, labels: d.labels, nid: d.nid, sample: d.sample, layers,
+  return { app: 'kartograaf', v: 1, kind: d.kind, w: d.w, h: d.h, palette: d.palette, style: d.style, grid: d.grid, blend: d.blend || 0, engColor: d.engColor, stamps: d.stamps, lines: d.lines, labels: d.labels, nid: d.nid, sample: d.sample, layers,
     shapes: lib.shapes.filter(sh => d.stamps.some(st => st.a === 'c:' + sh.id)), terrains: lib.terrains.filter(t => d.layers['t:u:' + t.id]), uploads: await usedUploads(d, asText) };
 }
 async function docFromRecord(rec) {
@@ -2823,7 +2864,7 @@ async function docFromRecord(rec) {
   }
   if (libChanged) saveLib();
   const d = newDoc(rec.kind, w, h, { style: rec.style === 'open' ? 'open' : 'dungeon', grid: !!rec.grid, palette: rec.palette });
-  d.blend = Math.max(0, Math.min(1, +rec.blend || 0));
+  d.blend = Math.max(0, Math.min(1, +rec.blend || 0)); if (typeof rec.engColor === 'boolean') d.engColor = rec.engColor;
   const okT = new Set(TERRAINS[rec.kind].map(t => 't:' + t.id));
   d.stamps = (rec.stamps || []).filter(s => ASSETS[s.a] && isFinite(s.x) && isFinite(s.y)).map(s => ({ id: 0, a: s.a, x: +s.x, y: +s.y, s: +s.s || ASSETS[s.a].size, r: +s.r || 0, f: !!s.f, v: Math.max(0, +s.v | 0), z: (+s.z | 0) || undefined, c: typeof s.c === 'string' && /^#[0-9a-f]{6}$/i.test(s.c) ? s.c : undefined }));
   d.lines = (rec.lines || []).filter(l => Array.isArray(l.pts) && l.pts.length >= 4).map(l => ({ id: 0, type: String(l.type), pts: l.pts.map(Number) }));
@@ -4582,6 +4623,7 @@ window.addEventListener('keyup', e => { if (e.key === ' ') { spaceDown = false; 
 /* ---------- panel UI ---------- */
 function setBrush(v) { v = Math.round(Math.max(4, Math.min(220, v))); U().brush = v; $('#brushSize').value = v; $('#brushOut').textContent = v; req(); }
 $('#brushSize').addEventListener('input', e => setBrush(+e.target.value));
+$('#engColorRow').addEventListener('click', e => { const bt = e.target.closest('[data-eng]'); if (!bt || !doc) return; doc.engColor = bt.dataset.eng === 'kleur'; objEpoch++; buildAssets(); req(); changed(); });
 // grounds flowing into each other: stored with the map, the whole map is inked again (shortly after the slider stops)
 function blendLabel(v) { return v ? v + '%' : 'uit'; }
 let blendT = 0;
@@ -4683,6 +4725,9 @@ function buildAssets() {
   for (const [k, n] of catList(kind)) { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = n; b.setAttribute('aria-pressed', U().cat === k); b.addEventListener('click', () => { U().cat = k; buildAssets(); }); cats.append(b); }
   const pk = $('#assetPack'); pk.textContent = ''; pk.hidden = kind !== 'world';
   for (const [k, n] of [['klassiek', 'Klassiek'], ['detail', 'Gedetailleerd'], ['oud', 'Oud']]) { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = n; b.setAttribute('aria-pressed', (U().pack || 'klassiek') === k); b.addEventListener('click', () => { U().pack = k; lsSet('kartograaf.pack', k); buildAssets(); }); pk.append(b); }
+  // colour or sepia for the engraved pack: only meaningful in a colour style
+  const er = $('#engColorRow'); er.hidden = !(kind === 'world' && U().pack === 'detail' && PALETTES[doc?.palette]?.colorful);
+  if (!er.hidden) { const on = engColorOn(); for (const bt of er.children) bt.setAttribute('aria-pressed', (bt.dataset.eng === 'kleur') === on); }
   const box = $('#assets'); box.textContent = '';
   // the detailed pack replaces the classic symbols of a category when it has its own; otherwise the classic ones stay
   const pack = kind === 'world' ? U().pack || 'klassiek' : 'klassiek', inCat = ASSET_LIST[kind].filter(k => ASSETS[k].cat === U().cat);
@@ -4912,7 +4957,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.29.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.30.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;
