@@ -1,5 +1,12 @@
 # Wijzigingen
 
+## 1.29.0
+
+- **Ondergronden laten overvloeien.** Bij het gereedschap Ondergrond staat een nieuwe schuifregelaar **Overvloeien**.
+  - **Uit:** ondergronden hebben harde randen, zoals voorheen.
+  - **Aan:** kleur en textuur lopen zacht in elkaar en in de gewone grond over. Bij 100% gebeurt dat over ongeveer 30 pixels.
+  - De instelling wordt per kaart bewaard, en geldt ook voor wat je daarna nog schildert en voor het exporteren.
+
 ## 1.28.1
 
 - Het penseel *Oud bos* strooit nu ook bomengroepjes en dennengroepjes tussen de losse bomen. Een *Oud bos* dat je zelf hebt aangepast, blijft zoals het is.

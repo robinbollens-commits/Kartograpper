@@ -328,6 +328,7 @@ body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
     <section class="sec" id="secTerrain" hidden>
       <h3>Ondergrond</h3>
       <div class="swatches" id="swatches"></div>
+      <label class="row"><span>Overvloeien</span><input type="range" id="terrBlend" min="0" max="100" value="0" aria-label="Hoe zacht ondergronden in elkaar overlopen"><output id="terrBlendOut">uit</output></label>
     </section>
     <section class="sec" id="secNature" hidden>
       <h3>Strooipenselen</h3>
@@ -2164,12 +2165,22 @@ function rebuild(doc, rx0, ry0, rx1, ry1, k = 1, dst = null) {
       if (y < eh - 2) { const k = j + ew; if (x < ew - 1 && (t = d[k + 1] + 11) < v) v = t; if (x > 0 && (t = d[k - 1] + 11) < v) v = t; } }
     d[i] = v; } }
 
-  const PAL = PALETTES[doc.palette] || PALETTES.inkt, IK = PAL.ink;
+  const PAL = PALETTES[doc.palette] || PALETTES.inkt, IK = PAL.ink, blendR = blendRadius(doc);
   const terr = [];
   for (const T of TERRAINS[doc.kind]) {
     const L = doc.layers['t:' + T.id]; if (!L) continue;
     const tx0 = x0 >> 1, ty0 = y0 >> 1, tx1 = Math.min(L.cv.width * k, ((x1 - 1) >> 1) + 1), ty1 = Math.min(L.cv.height * k, ((y1 - 1) >> 1) + 1);
     if (tx1 <= tx0 || ty1 <= ty0) continue;
+    if (blendR) { // soft edges: the mask of a wider area, blurred, gives each ground a weight that fades over blendR map pixels
+      const bx0 = ex0 >> 1, by0 = ey0 >> 1, bx1 = Math.min(L.cv.width * k, ((ex1 - 1) >> 1) + 1), by1 = Math.min(L.cv.height * k, ((ey1 - 1) >> 1) + 1), bw = bx1 - bx0, bh = by1 - by0;
+      if (bw <= 0 || bh <= 0) continue;
+      const raw = k === 1 ? L.ctx.getImageData(bx0, by0, bw, bh).data : upscaled(L.cv, bx0, by0, bw, bh, k);
+      const w = new Float32Array(bw * bh); let any = false; for (let i = 0; i < w.length; i++) { const v = raw[i * 4 + 3]; if (v) { w[i] = v / 255; any = true; } }
+      if (!any) continue;
+      boxBlur(w, bw, bh, Math.max(1, Math.round(blendR * k / 4))); boxBlur(w, bw, bh, Math.max(1, Math.round(blendR * k / 4)));
+      terr.push({ bg: PAL.terr[T.id] || (PAL.colorful && T.color) || null, A: T.tile.A, S: T.tile.S, C: T.tile.C || null, TW: T.tile.W || T.tile.S, TH: T.tile.H || T.tile.S, w, tx0: bx0, ty0: by0, tw: bw });
+      continue;
+    }
     const data = k === 1 ? L.ctx.getImageData(tx0, ty0, tx1 - tx0, ty1 - ty0).data : upscaled(L.cv, tx0, ty0, tx1 - tx0, ty1 - ty0, k);
     terr.push({ bg: PAL.terr[T.id] || (PAL.colorful && T.color) || null, A: T.tile.A, S: T.tile.S, C: T.tile.C || null, TW: T.tile.W || T.tile.S, TH: T.tile.H || T.tile.S, data, tx0, ty0, tw: tx1 - tx0 });
   }
@@ -2180,17 +2191,25 @@ function rebuild(doc, rx0, ry0, rx1, ry1, k = 1, dst = null) {
     const a0 = (ix % S + S) % S, b0 = (iy % S + S) % S, a1 = (a0 + 1) % S, b1 = (b0 + 1) % S;
     return (A[b0 * S + a0] * (1 - tx) + A[b0 * S + a1] * tx) * (1 - tyy) + (A[b1 * S + a0] * (1 - tx) + A[b1 * S + a1] * tx) * tyy; };
   const WA = WATER_TILE.A, HA = HATCH_TILE.A, hn = doc.hn.a, hgw = doc.hn.gw, WALL = dung ? 4 : 3;
-  const terrN = terr.length;
-  let p = 0;
+  const terrN = terr.length, mx = [0, 0, 0];
+  let p = 0, mixW = 1, mixR = 0, mixG = 0, mixB = 0;
   for (let y = y0; y < y1; y++) {
     const ty = y >> 1, yi = k === 1 ? y : (y / k) | 0, gy = yi % C === 0;
     for (let x = x0; x < x1; x++, p += 4) {
       const i = (y - ey0) * ew + (x - ex0), a = md[i * 4 + 3], dd = d[i] * .2 / k, xi = k === 1 ? x : (x / k) | 0;
       let tInk = 0, tBg = null, tC = null, tj = 0;
-      for (let m = 0; m < terrN; m++) { const T = terr[m]; if (T.data[((ty - T.ty0) * T.tw + ((x >> 1) - T.tx0)) * 4 + 3] >= 128) { if (T.C) { tC = T.C; tj = ((yi % T.TH) * T.TW + (xi % T.TW)) * 4; } else tInk = k === 1 ? T.A[(y % T.S) * T.S + (x % T.S)] : tile(T.A, T.S, x, y); tBg = T.bg; break; } }
+      if (blendR) { // mix the grounds by weight; whatever is left over is the plain ground below
+        let sw = 0, si = 0, sr = 0, sg = 0, sb = 0, sp = 0; const P0 = PAL.paper;
+        for (let m = 0; m < terrN; m++) { const T = terr[m], w = T.w[(ty - T.ty0) * T.tw + ((x >> 1) - T.tx0)]; if (!(w > .004)) continue;
+          sw += w;
+          if (T.C) { const j = ((yi % T.TH) * T.TW + (xi % T.TW)) * 4, al = T.C[j + 3] / 255, c0 = T.bg || P0; sr += w * (c0[0] + (T.C[j] - c0[0]) * al); sg += w * (c0[1] + (T.C[j + 1] - c0[1]) * al); sb += w * (c0[2] + (T.C[j + 2] - c0[2]) * al); }
+          else { si += w * (k === 1 ? T.A[(y % T.S) * T.S + (x % T.S)] : tile(T.A, T.S, x, y)); if (T.bg) { sr += w * T.bg[0]; sg += w * T.bg[1]; sb += w * T.bg[2]; } else sp += w; } }
+        if (sw > 0) { const nrm = sw > 1 ? 1 / sw : 1; tInk = si * nrm; mixW = 1 - (sw - sp) * nrm; mixR = sr * nrm; mixG = sg * nrm; mixB = sb * nrm; } else mixW = 1;
+      } else for (let m = 0; m < terrN; m++) { const T = terr[m]; if (T.data[((ty - T.ty0) * T.tw + ((x >> 1) - T.tx0)) * 4 + 3] >= 128) { if (T.C) { tC = T.C; tj = ((yi % T.TH) * T.TW + (xi % T.TW)) * 4; } else tInk = k === 1 ? T.A[(y % T.S) * T.S + (x % T.S)] : tile(T.A, T.S, x, y); tBg = T.bg; break; } }
       let ink, B = null, br = 0, bg = 0, bb = 0;
+      const mixed = base => { const r = base || PAL.paper; mx[0] = r[0] * mixW + mixR; mx[1] = r[1] * mixW + mixG; mx[2] = r[2] * mixW + mixB; return mx; };
       if (world) {
-        if (a >= 128) { ink = tInk > 255 - a ? tInk : 255 - a; B = tBg || PAL.paper; }
+        if (a >= 128) { ink = tInk > 255 - a ? tInk : 255 - a; B = blendR ? mixed(PAL.paper) : tBg || PAL.paper; }
         else {
           const q = dd >= 34 ? 1 : dd / 34, W0 = PAL.water, W1 = PAL.deep;
           br = W0[0] + (W1[0] - W0[0]) * q; bg = W0[1] + (W1[1] - W0[1]) * q; bb = W0[2] + (W1[2] - W0[2]) * q;
@@ -2201,7 +2220,7 @@ function rebuild(doc, rx0, ry0, rx1, ry1, k = 1, dst = null) {
         }
       } else {
         const gInk = grid && (gy || xi % C === 0) ? 64 : 0;
-        if (a >= 128) { ink = Math.max(tInk, 255 - a, gInk); B = tBg || PAL.floor; }
+        if (a >= 128) { ink = Math.max(tInk, 255 - a, gInk); B = blendR ? mixed(PAL.floor) : tBg || PAL.floor; }
         else {
           const wall = dd <= WALL ? 255 : dd < WALL + aa ? (WALL + aa - dd) / aa * 255 : 0;
           if (dung) {
@@ -2212,7 +2231,7 @@ function rebuild(doc, rx0, ry0, rx1, ry1, k = 1, dst = null) {
               if (dd < band) { h = k === 1 ? HA[(y & 255) * 256 + (x & 255)] : tile(HA, 256, x, y); if (dd > band - 5) h *= (band - dd) / 5; }
             }
             ink = wall > h ? wall : h; B = PAL.rock;
-          } else { ink = Math.max(wall, tInk, gInk); B = tBg || PAL.ground; }
+          } else { ink = Math.max(wall, tInk, gInk); B = blendR ? mixed(PAL.ground) : tBg || PAL.ground; }
         }
       }
       if (B) { br = B[0]; bg = B[1]; bb = B[2]; }
@@ -2230,6 +2249,16 @@ function upscaled(cv, x0, y0, w, h, k) {
   return g.getImageData(0, 0, w, h).data;
 }
 function fullRebuild(d) { d.dirty = null; rebuild(d, 0, 0, d.w, d.h); }
+// how far grounds flow into each other, in map pixels (0 = hard edges)
+const blendRadius = d => Math.round(Math.max(0, Math.min(1, +d.blend || 0)) * 30);
+// in-place box blur of a w×h float grid, radius r, rows then columns (twice gives a soft, nearly round fall-off)
+function boxBlur(a, w, h, r) {
+  const t = new Float32Array(Math.max(w, h)), n = 2 * r + 1;
+  for (let y = 0; y < h; y++) { const o = y * w; let s = 0; for (let i = -r; i <= r; i++) s += a[o + Math.min(w - 1, Math.max(0, i))];
+    for (let x = 0; x < w; x++) { t[x] = s / n; s += a[o + Math.min(w - 1, x + r + 1)] - a[o + Math.max(0, x - r)]; } a.set(t.subarray(0, w), o); }
+  for (let x = 0; x < w; x++) { let s = 0; for (let i = -r; i <= r; i++) s += a[Math.min(h - 1, Math.max(0, i)) * w + x];
+    for (let y = 0; y < h; y++) { t[y] = s / n; s += a[Math.min(h - 1, y + r + 1) * w + x] - a[Math.max(0, y - r) * w + x]; } for (let y = 0; y < h; y++) a[y * w + x] = t[y]; }
+}
 function markDirty(d, x0, y0, x1, y1) { if (!d.dirty) d.dirty = [x0, y0, x1, y1]; else { const q = d.dirty; q[0] = Math.min(q[0], x0); q[1] = Math.min(q[1], y0); q[2] = Math.max(q[2], x1); q[3] = Math.max(q[3], y1); } req(); }
 
 /* ---------- drawing objects ---------- */
@@ -2796,7 +2825,7 @@ const store = {
 async function docToRecord(d, asText) {
   const layers = {};
   for (const k in d.layers) { const c = d.layers[k].cv; layers[k] = asText ? c.toDataURL('image/png') : await new Promise(res => c.toBlob(res, 'image/png')); }
-  return { app: 'kartograaf', v: 1, kind: d.kind, w: d.w, h: d.h, palette: d.palette, style: d.style, grid: d.grid, stamps: d.stamps, lines: d.lines, labels: d.labels, nid: d.nid, sample: d.sample, layers,
+  return { app: 'kartograaf', v: 1, kind: d.kind, w: d.w, h: d.h, palette: d.palette, style: d.style, grid: d.grid, blend: d.blend || 0, stamps: d.stamps, lines: d.lines, labels: d.labels, nid: d.nid, sample: d.sample, layers,
     shapes: lib.shapes.filter(sh => d.stamps.some(st => st.a === 'c:' + sh.id)), terrains: lib.terrains.filter(t => d.layers['t:u:' + t.id]), uploads: await usedUploads(d, asText) };
 }
 async function docFromRecord(rec) {
@@ -2815,6 +2844,7 @@ async function docFromRecord(rec) {
   }
   if (libChanged) saveLib();
   const d = newDoc(rec.kind, w, h, { style: rec.style === 'open' ? 'open' : 'dungeon', grid: !!rec.grid, palette: rec.palette });
+  d.blend = Math.max(0, Math.min(1, +rec.blend || 0));
   const okT = new Set(TERRAINS[rec.kind].map(t => 't:' + t.id));
   d.stamps = (rec.stamps || []).filter(s => ASSETS[s.a] && isFinite(s.x) && isFinite(s.y)).map(s => ({ id: 0, a: s.a, x: +s.x, y: +s.y, s: +s.s || ASSETS[s.a].size, r: +s.r || 0, f: !!s.f, v: Math.max(0, +s.v | 0), z: (+s.z | 0) || undefined, c: typeof s.c === 'string' && /^#[0-9a-f]{6}$/i.test(s.c) ? s.c : undefined }));
   d.lines = (rec.lines || []).filter(l => Array.isArray(l.pts) && l.pts.length >= 4).map(l => ({ id: 0, type: String(l.type), pts: l.pts.map(Number) }));
@@ -3187,7 +3217,7 @@ function paintSeg(a, b) {
   } else { drawSeg(doc.layers.base, a, b, r, A.mode === 'add' ? 'source-over' : 'destination-out'); A.keys.add('base'); }
   const x0 = Math.min(a.x, b.x) - r, y0 = Math.min(a.y, b.y) - r, x1 = Math.max(a.x, b.x) + r, y1 = Math.max(a.y, b.y) + r;
   A.bb[0] = Math.min(A.bb[0], x0); A.bb[1] = Math.min(A.bb[1], y0); A.bb[2] = Math.max(A.bb[2], x1); A.bb[3] = Math.max(A.bb[3], y1);
-  const m = A.mode === 'terrain' ? 2 : MARGIN + 2; markDirty(doc, x0 - m, y0 - m, x1 + m, y1 + m);
+  const m = A.mode === 'terrain' ? 2 + blendRadius(doc) : MARGIN + 2; markDirty(doc, x0 - m, y0 - m, x1 + m, y1 + m);
 }
 function placeStamp(p, first) {
   const a = U().asset; if (!a) return; const q = snapStamp(p), vary = $('#optVary').checked;
@@ -3278,7 +3308,7 @@ function endTool() {
 }
 function cancelAction() {
   const A = action; if (!A) return; action = null;
-  if (A.t === 'gum') { revertLayers(A.keys); markDirty(doc, A.bb[0] - 2, A.bb[1] - 2, A.bb[2] + 2, A.bb[3] + 2); if (txn != null) { restoreObjs(txn); txn = null; refreshSel(); } }
+  if (A.t === 'gum') { revertLayers(A.keys); const gm = 2 + blendRadius(doc); markDirty(doc, A.bb[0] - gm, A.bb[1] - gm, A.bb[2] + gm, A.bb[3] + gm); if (txn != null) { restoreObjs(txn); txn = null; refreshSel(); } }
   if (A.t === 'brush') { revertLayers(A.keys); markDirty(doc, A.bb[0] - MARGIN, A.bb[1] - MARGIN, A.bb[2] + MARGIN, A.bb[3] + MARGIN); }
   if ((A.t === 'scatter' || A.t === 'move' || A.t === 'nature' || A.t === 'resize' || A.t === 'turn') && txn != null) { restoreObjs(txn); txn = null; refreshSel(); }
   setCursor(); req();
@@ -4034,7 +4064,7 @@ function gumAt(A, a, b) {
     for (const k of Object.keys(doc.layers)) if (k.startsWith('t:') && (!G.terr.size || G.terr.has(k))) { drawSeg(doc.layers[k], a, b, r, 'destination-out', true); A.keys.add(k); }
     const x0 = Math.min(a.x, b.x) - r, y0 = Math.min(a.y, b.y) - r, x1 = Math.max(a.x, b.x) + r, y1 = Math.max(a.y, b.y) + r;
     A.bb[0] = Math.min(A.bb[0], x0); A.bb[1] = Math.min(A.bb[1], y0); A.bb[2] = Math.max(A.bb[2], x1); A.bb[3] = Math.max(A.bb[3], y1);
-    markDirty(doc, x0 - 2, y0 - 2, x1 + 2, y1 + 2);
+    const gm = 2 + blendRadius(doc); markDirty(doc, x0 - gm, y0 - gm, x1 + gm, y1 + gm);
   }
   if ($('#gumStamps').checked) doc.stamps = doc.stamps.filter(st => { if ((G.stamps.size && !G.stamps.has(st.a)) || segDist(st.x, st.y, a.x, a.y, b.x, b.y) >= r) return true; objDirty(st); return false; });
   if ($('#gumLabels').checked) { const n = doc.labels.length; doc.labels = doc.labels.filter(L => segDist(L.x, L.y, a.x, a.y, b.x, b.y) >= r); if (doc.labels.length !== n) objL.base = null; }
@@ -4573,6 +4603,13 @@ window.addEventListener('keyup', e => { if (e.key === ' ') { spaceDown = false; 
 /* ---------- panel UI ---------- */
 function setBrush(v) { v = Math.round(Math.max(4, Math.min(220, v))); U().brush = v; $('#brushSize').value = v; $('#brushOut').textContent = v; req(); }
 $('#brushSize').addEventListener('input', e => setBrush(+e.target.value));
+// grounds flowing into each other: stored with the map, the whole map is inked again (shortly after the slider stops)
+function blendLabel(v) { return v ? v + '%' : 'uit'; }
+let blendT = 0;
+$('#terrBlend').addEventListener('input', e => {
+  if (!doc) return; const v = +e.target.value; doc.blend = v / 100; $('#terrBlendOut').textContent = blendLabel(v);
+  clearTimeout(blendT); blendT = setTimeout(() => { fullRebuild(doc); req(); changed(); }, 120);
+});
 $('#brushRough').addEventListener('input', e => { U().rough = +e.target.value / 100; $('#brushRoughOut').textContent = e.target.value + '%'; });
 $('#textSize').addEventListener('input', e => { U().textSize = +e.target.value; $('#textSizeOut').textContent = e.target.value; });
 $('#optVary').addEventListener('change', e => { U().vary = e.target.checked; });
@@ -4599,6 +4636,7 @@ function setTool(t) {
   tool = t; U().tool = t;
   for (const b of $('#tools').querySelectorAll('.tool')) b.setAttribute('aria-pressed', b.dataset.tool === t);
   const nature = t === 'nature', brushy = t === 'paint' || t === 'erase' || t === 'terrain' || t === 'gum' || nature;
+  if (doc) { const bv = Math.round((doc.blend || 0) * 100); $('#terrBlend').value = bv; $('#terrBlendOut').textContent = blendLabel(bv); }
   $('#secBrush').hidden = !brushy; $('#secRoom').hidden = t !== 'room'; $('#secTerrain').hidden = t !== 'terrain'; $('#secLine').hidden = t !== 'line'; $('#secText').hidden = t !== 'text';
   $('#pushRow').hidden = !(kind === 'world' && t === 'paint');
   $('#secGen').hidden = t !== 'genland'; $('#secGum').hidden = t !== 'gum'; if (t === 'gum') buildGumPicks();
@@ -4895,7 +4933,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.28.1', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.29.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;
