@@ -1,5 +1,11 @@
 # Wijzigingen
 
+## 1.32.2
+
+- Geen losse rode of vreemd gekleurde pixels meer aan de rand van een kleurpotloodstreek.
+  - Het kleurpotlood en Kleur wissen hebben nu een harde rand.
+  - Oudere inkleuringen worden opgeschoond zodra je ze opnieuw opent.
+
 ## 1.32.1
 
 - **Knijpen om te zoomen** in het inkleurscherm, op een tablet of telefoon. Met twee vingers zoom je in en uit en verschuif je tegelijk.
