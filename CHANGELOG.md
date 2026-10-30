@@ -1,5 +1,10 @@
 # Wijzigingen
 
+## 1.31.1
+
+- Gedetailleerde symbolen kun je nu ook vanuit het paneel inkleuren, met het penseelknopje op de tegel of door te dubbelklikken.
+- Heeft een symbool meerdere vormen, zoals bergen en bossen, dan blader je in het inkleurscherm met **‹** en **›** naar de vorige of volgende vorm. Wat je al gekleurd hebt, wordt daarbij bewaard.
+
 ## 1.31.0
 
 - **Gedetailleerde symbolen zelf inkleuren.** Selecteer een gegraveerd symbool op de kaart en kies **Inkleuren…**. Je krijgt hetzelfde inkleurscherm als voor eigen afbeeldingen: Verfemmer, Kleurpotlood, Kleur wissen, Ongedaan maken en Alles wissen.

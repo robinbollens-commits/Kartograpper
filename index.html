@@ -490,6 +490,7 @@ body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
         <label class="row"><span>Gevoelig</span><input type="range" id="icTol" min="10" max="160" value="70"><output id="icTolOut">70</output></label>
         <label class="row"><span>Penseel</span><input type="range" id="icSize" min="1" max="100" value="10" aria-label="Grootte van Kleurpotlood en Kleur wissen ([ en ])"><output id="icSizeOut">10</output></label>
         <div class="btns"><button type="button" class="btn" id="icSpecks">Witte plekjes opvullen</button></div>
+        <div class="btns" id="icNav" hidden><button type="button" class="btn" id="icPrev" aria-label="Vorige vorm">‹</button><output id="icNavOut"></output><button type="button" class="btn" id="icNext" aria-label="Volgende vorm">›</button></div>
         <div class="btns"><button type="button" class="btn" id="icUndo">Ongedaan maken</button><button type="button" class="btn" id="icClear">Alles wissen</button></div>
         <p class="note">Tik met de Verfemmer op een deel, bv. eerst de kruin en dan de stam, elk in een eigen kleur. De emmer vult alles wat ongeveer dezelfde kleur heeft; met Gevoelig hoger vult hij meer. Donkere lijnen worden zwart, de rest krijgt precies jouw kleur. Blijven er witte stukjes tussen de lijnen over, klik dan op Witte plekjes opvullen. De kleuren zie je op een kleurenkaart.</p>
       </div>
@@ -4278,7 +4279,8 @@ function openEngColorer(key, v = 0) {
   const c = document.createElement('canvas'); c.width = b.iw; c.height = b.ih; const g = c.getContext('2d');
   if (b.sil) { g.drawImage(b.sil, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.globalCompositeOperation = 'source-over'; }
   g.drawImage(b.image, 0, 0);
-  openIc({ image: c, iw: b.iw, ih: b.ih, paintImg: b.paintImg, title: A.name + (A.imgVars.length > 1 ? ` (vorm ${v % A.imgVars.length + 1})` : '') + ' inkleuren', save: (paint, any) => {
+  const n = A.imgVars.length, vi = v % n;
+  openIc({ image: c, iw: b.iw, ih: b.ih, paintImg: b.paintImg, nav: n > 1 ? { n, i: vi, go: i => openEngColorer(key, (i + n) % n) } : null, title: A.name + (A.imgVars.length > 1 ? ` (vorm ${v % A.imgVars.length + 1})` : '') + ' inkleuren', save: (paint, any) => {
     const k = engPaintKey(key, v % A.imgVars.length); if (any) lib.engPaint[k] = paint.toDataURL('image/png'); else delete lib.engPaint[k]; saveLib();
     if (any) { b.paintImg = paint; if (doc) doc.engColor = true; } else delete b.paintImg; objEpoch++; buildAssets();
   } });
@@ -4287,6 +4289,7 @@ function openIc(T) {
   const k = Math.min(1, 800 / Math.max(T.iw, T.ih)), W = Math.max(1, Math.round(T.iw * k)), H = Math.max(1, Math.round(T.ih * k));
   const sc = document.createElement('canvas'); sc.width = W; sc.height = H; const sg = sc.getContext('2d', { willReadFrequently: true }); sg.drawImage(T.image, 0, 0, W, H);
   const paint = document.createElement('canvas'); paint.width = W; paint.height = H; $('#icTitle').textContent = T.title;
+  $('#icNav').hidden = !T.nav; if (T.nav) $('#icNavOut').textContent = `vorm ${T.nav.i + 1} van ${T.nav.n}`;
   icS = { T, W, H, src: sg.getImageData(0, 0, W, H).data, paint, hist: [], tool: 'emmer', last: null };
   const a = T;
   // the see-through surroundings of the picture: colour never goes there
@@ -4393,6 +4396,11 @@ $('#icClear').addEventListener('click', () => { if (!icS) return; icS.hist.push(
 const closeColorer = () => { $('#icModal').hidden = true; icS = null; };
 $('#icCancel').addEventListener('click', closeColorer);
 $('#icModal').addEventListener('keydown', e => { if (e.target.tagName !== 'INPUT' && brushKeys(e, '#icSize', icCursor)) return; if (e.key === 'Escape') { e.stopPropagation(); closeColorer(); } });
+// several forms (mountains, woods): keep what you coloured and go on to the next form
+for (const [id, d] of [['#icPrev', -1], ['#icNext', 1]]) $(id).addEventListener('click', () => {
+  if (!icS || !icS.T.nav) return; const { T, paint, W, H } = icS, pd = paint.getContext('2d').getImageData(0, 0, W, H).data; let any = false; for (let i = 3; i < pd.length; i += 4) if (pd[i]) { any = true; break; }
+  T.save(paint, any); T.nav.go(T.nav.i + d); req();
+});
 $('#icSave').addEventListener('click', () => {
   const { T, paint, W, H } = icS, pd = paint.getContext('2d').getImageData(0, 0, W, H).data; let any = false; for (let i = 3; i < pd.length; i += 4) if (pd[i]) { any = true; break; }
   T.save(paint, any); closeColorer(); refreshSel(); req();
@@ -4758,10 +4766,10 @@ function buildAssets() {
     const d = document.createElement('div'); d.className = 'asset'; d.dataset.key = key; d.tabIndex = 0; d.setAttribute('role', 'button'); d.setAttribute('aria-pressed', U().asset === key && tool === 'stamp');
     const s = document.createElement('span'); s.textContent = a.name; d.append(assetCanvas(key, 48), s); d.title = a.name;
     d.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); chooseAsset(key); } });
-    const edit = a.custom ? () => openPad(lib.shapes.find(sh => 'c:' + sh.id === key), false) : a.image && !a.engraved ? () => openUploads(a.upType) : null;
+    const edit = a.custom ? () => openPad(lib.shapes.find(sh => 'c:' + sh.id === key), false) : a.engraved ? () => openEngColorer(key, 0) : a.image ? () => openUploads(a.upType) : null;
     if (edit) {
-      d.title = a.name + (a.custom ? ' · potlood: bewerken of verwijderen' : ' · potlood: beheren of verwijderen'); d.addEventListener('dblclick', edit);
-      const eb = document.createElement('button'); eb.type = 'button'; eb.className = 'tile-edit'; eb.innerHTML = svg(ICONS.paint); eb.setAttribute('aria-label', (a.custom ? 'Bewerken: ' : 'Beheren: ') + a.name);
+      d.title = a.name + (a.custom ? ' · potlood: bewerken of verwijderen' : a.engraved ? ' · potlood: inkleuren' : ' · potlood: beheren of verwijderen'); d.addEventListener('dblclick', edit);
+      const eb = document.createElement('button'); eb.type = 'button'; eb.className = 'tile-edit'; eb.innerHTML = svg(ICONS.paint); eb.setAttribute('aria-label', (a.custom ? 'Bewerken: ' : a.engraved ? 'Inkleuren: ' : 'Beheren: ') + a.name);
       eb.addEventListener('click', e => { e.stopPropagation(); edit(); }); d.append(eb);
     }
     box.append(d);
@@ -4976,7 +4984,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.31.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.31.1', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;
