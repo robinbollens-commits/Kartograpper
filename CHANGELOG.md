@@ -1,5 +1,12 @@
 # Wijzigingen
 
+## 1.32.0
+
+- Het **inkleurscherm** vult nu bijna het hele venster, met de gereedschappen in een smalle kolom rechts.
+- **Zoomen:** met het muiswiel, op de plek van de muis, of met **−**, **Passend** en **+**. De toetsen `+`, `-` en `0` werken ook. Je kunt tot 1600% inzoomen.
+- **Verschuiven:** met het nieuwe gereedschap **Verschuiven**, met de rechter- of middelste muisknop, of door de spatiebalk ingedrukt te houden.
+- Bladeren tussen de vormen van een symbool bewaart je gereedschap en je zoom.
+
 ## 1.31.1
 
 - Gedetailleerde symbolen kun je nu ook vanuit het paneel inkleuren, met het penseelknopje op de tegel of door te dubbelklikken.

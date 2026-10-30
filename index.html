@@ -166,6 +166,12 @@ button.asset{font:inherit;font-size:11px;cursor:pointer}
 .item input{width:58px}
 .item .nm{min-width:0;overflow-wrap:anywhere}
 .mini{display:inline-flex;align-items:center;gap:3px;color:var(--muted)}
+.icdialog{max-width:none;width:min(1500px,97vw);height:94vh;height:94dvh;display:flex;flex-direction:column}
+.icwrap{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:16px}
+.icwrap .padside{overflow:auto;align-content:start}
+#icCv{width:100%;height:100%;min-height:0;border-radius:10px;border:1px solid var(--rule);touch-action:none;background:#fff;cursor:crosshair}
+#icCv.hand{cursor:grab}
+@media (max-width:760px){.icwrap{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto}.icwrap .padside{max-height:38vh}}
 .padwrap{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:16px;align-items:start}
 #pad{width:100%;aspect-ratio:1;border:1px solid var(--rule);border-radius:8px;background:var(--paper);touch-action:none;cursor:crosshair;display:block}
 .padside{display:grid;gap:10px;min-width:0}
@@ -480,19 +486,20 @@ body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
   </form>
 </div>
 <div class="modal" id="icModal" hidden>
-  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="icTitle" style="max-width:760px">
+  <div class="dialog icdialog" role="dialog" aria-modal="true" aria-labelledby="icTitle">
     <h2 id="icTitle">Afbeelding inkleuren</h2>
-    <div class="padwrap">
-      <canvas id="icCv" width="600" height="600" aria-label="Afbeelding om in te kleuren" style="width:100%;aspect-ratio:1;border-radius:10px;border:1px solid var(--rule);touch-action:none;background:#fff"></canvas>
+    <div class="icwrap">
+      <canvas id="icCv" width="600" height="600" aria-label="Afbeelding om in te kleuren"></canvas>
       <div class="padside">
         <div class="chips" id="icTools"></div>
+        <div class="btns" aria-label="Zoomen"><button type="button" class="btn" id="icZoomOut" aria-label="Uitzoomen">−</button><button type="button" class="btn" id="icZoomFit">Passend</button><button type="button" class="btn" id="icZoomIn" aria-label="Inzoomen">+</button><output id="icZoomOut2">100%</output></div>
         <div class="colorrow"><span>Verf</span><input type="color" id="icColor" value="#6f9c4c" aria-label="Verfkleur"></div>
         <label class="row"><span>Gevoelig</span><input type="range" id="icTol" min="10" max="160" value="70"><output id="icTolOut">70</output></label>
         <label class="row"><span>Penseel</span><input type="range" id="icSize" min="1" max="100" value="10" aria-label="Grootte van Kleurpotlood en Kleur wissen ([ en ])"><output id="icSizeOut">10</output></label>
         <div class="btns"><button type="button" class="btn" id="icSpecks">Witte plekjes opvullen</button></div>
         <div class="btns" id="icNav" hidden><button type="button" class="btn" id="icPrev" aria-label="Vorige vorm">‹</button><output id="icNavOut"></output><button type="button" class="btn" id="icNext" aria-label="Volgende vorm">›</button></div>
         <div class="btns"><button type="button" class="btn" id="icUndo">Ongedaan maken</button><button type="button" class="btn" id="icClear">Alles wissen</button></div>
-        <p class="note">Tik met de Verfemmer op een deel, bv. eerst de kruin en dan de stam, elk in een eigen kleur. De emmer vult alles wat ongeveer dezelfde kleur heeft; met Gevoelig hoger vult hij meer. Donkere lijnen worden zwart, de rest krijgt precies jouw kleur. Blijven er witte stukjes tussen de lijnen over, klik dan op Witte plekjes opvullen. De kleuren zie je op een kleurenkaart.</p>
+        <p class="note">Tik met de Verfemmer op een deel, bv. eerst de kruin en dan de stam, elk in een eigen kleur. De emmer vult alles wat ongeveer dezelfde kleur heeft; met Gevoelig hoger vult hij meer. Donkere lijnen worden zwart, de rest krijgt precies jouw kleur. Blijven er witte stukjes tussen de lijnen over, klik dan op Witte plekjes opvullen. De kleuren zie je op een kleurenkaart. Zoomen doe je met het muiswiel of + en −; verschuiven met Verschuiven, de rechtermuisknop of spatie ingedrukt.</p>
       </div>
     </div>
     <div class="btns end"><button type="button" class="btn" id="icCancel">Annuleren</button><button type="button" class="btn primary" id="icSave">Bewaren</button></div>
@@ -4264,7 +4271,7 @@ function buildUpList() {
 }
 /* ---------- colouring in an uploaded picture ---------- */
 let icS = null;
-const IC_TOOLS = [['emmer', 'Verfemmer'], ['potlood', 'Kleurpotlood'], ['kleurgum', 'Kleur wissen']];
+const IC_TOOLS = [['emmer', 'Verfemmer'], ['potlood', 'Kleurpotlood'], ['kleurgum', 'Kleur wissen'], ['hand', 'Verschuiven']];
 function openColorer(u) {
   const a = ASSETS['img:' + u.id]; if (!a) return;
   openIc({ image: a.image, iw: a.iw, ih: a.ih, paintImg: a.paintImg, title: 'Afbeelding inkleuren', save: (paint, any) => {
@@ -4290,7 +4297,8 @@ function openIc(T) {
   const sc = document.createElement('canvas'); sc.width = W; sc.height = H; const sg = sc.getContext('2d', { willReadFrequently: true }); sg.drawImage(T.image, 0, 0, W, H);
   const paint = document.createElement('canvas'); paint.width = W; paint.height = H; $('#icTitle').textContent = T.title;
   $('#icNav').hidden = !T.nav; if (T.nav) $('#icNavOut').textContent = `vorm ${T.nav.i + 1} van ${T.nav.n}`;
-  icS = { T, W, H, src: sg.getImageData(0, 0, W, H).data, paint, hist: [], tool: 'emmer', last: null };
+  const keep = icS && icS.T.nav && T.nav ? { tool: icS.tool, z: icS.z, px: icS.px, py: icS.py } : { tool: 'emmer', z: 1, px: 0, py: 0 }; // browsing forms keeps tool and view
+  icS = { T, W, H, src: sg.getImageData(0, 0, W, H).data, paint, hist: [], last: null, ...keep }; $('#icZoomOut2').textContent = Math.round(icS.z * 100) + '%';
   const a = T;
   // the see-through surroundings of the picture: colour never goes there
   const out = new Uint8Array(W * H), stack = [], clear = j => icS.src[j * 4 + 3] < 40;
@@ -4299,18 +4307,28 @@ function openIc(T) {
   while (stack.length) { const j = stack.pop(), x = j % W; for (const n of [x > 0 ? j - 1 : -1, x < W - 1 ? j + 1 : -1, j - W, j + W]) if (n >= 0 && n < W * H && !out[n] && clear(n)) { out[n] = 1; stack.push(n); } }
   icS.outside = out;
   if (a.paintImg) paint.getContext('2d').drawImage(a.paintImg, 0, 0, W, H);
-  syncIcTools(); $('#icModal').hidden = false; drawIc();
+  syncIcTools(); $('#icModal').hidden = false; sizeIc(); drawIc();
 }
 function syncIcTools() {
   const box = $('#icTools'); box.textContent = '';
   for (const [k, n] of IC_TOOLS) { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = n; b.setAttribute('aria-pressed', icS.tool === k); b.addEventListener('click', () => { icS.tool = k; syncIcTools(); }); box.append(b); }
+  $('#icCv').classList.toggle('hand', icS.tool === 'hand');
 }
-// where the picture sits on the 600 × 600 canvas
-const icFit = () => { const f = Math.min(560 / icS.W, 560 / icS.H); return { f, x: (600 - icS.W * f) / 2, y: (600 - icS.H * f) / 2 }; };
+// where the picture sits on the canvas: fitted, then zoomed (icS.z) and moved (icS.px, icS.py)
+const icFit = () => { const cv = $('#icCv'), CW = cv.width, CH = cv.height, f = Math.min((CW - 40) / icS.W, (CH - 40) / icS.H) * icS.z; return { f, x: (CW - icS.W * f) / 2 + icS.px, y: (CH - icS.H * f) / 2 + icS.py, CW, CH }; };
+// the canvas takes the size it is shown at, sharp on any screen
+function sizeIc() { const cv = $('#icCv'), r = cv.getBoundingClientRect(), d = window.devicePixelRatio || 1; if (!r.width) return; cv.width = Math.round(r.width * d); cv.height = Math.round(r.height * d); icCursor(); }
+// zoom by f around a point on the canvas (in canvas pixels), keeping that spot under the pointer
+function icZoom(f, cx, cy) {
+  if (!icS) return; const F = icFit(); cx ??= F.CW / 2; cy ??= F.CH / 2;
+  const ix = (cx - F.x) / F.f, iy = (cy - F.y) / F.f; icS.z = Math.max(.5, Math.min(16, icS.z * f));
+  const G = icFit(); icS.px += cx - (G.x + ix * G.f); icS.py += cy - (G.y + iy * G.f);
+  $('#icZoomOut2').textContent = Math.round(icS.z * 100) + '%'; icCursor();
+}
+function icFitView() { if (!icS) return; icS.z = 1; icS.px = icS.py = 0; $('#icZoomOut2').textContent = '100%'; icCursor(); }
+window.addEventListener('resize', () => { if (icS) sizeIc(); });
 function drawIc() {
   if (!icS) return; const cv = $('#icCv'), g = cv.getContext('2d'), F = icFit();
-  g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = '#fff'; g.fillRect(0, 0, 600, 600);
-  g.fillStyle = '#eef0f3'; for (let y = 0; y < 600; y += 20) for (let x = (y / 20) % 2 * 20; x < 600; x += 40) g.fillRect(x, y, 20, 20); // a checkerboard shows see-through parts
   const c = document.createElement('canvas'); c.width = icS.W; c.height = icS.H; const cg = c.getContext('2d'), img = cg.createImageData(icS.W, icS.H);
   img.data.set(icS.src); colourize(img.data, icS.paint.getContext('2d').getImageData(0, 0, icS.W, icS.H).data, null); cg.putImageData(img, 0, 0);
   icS.view = c; icCursor();
@@ -4318,12 +4336,13 @@ function drawIc() {
 // the picture as last coloured, plus a circle that shows where and how big the colour brush paints
 function icCursor() {
   if (!icS || !icS.view) return; const g = $('#icCv').getContext('2d'), F = icFit();
-  g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = '#fff'; g.fillRect(0, 0, 600, 600);
-  g.fillStyle = '#eef0f3'; for (let y = 0; y < 600; y += 20) for (let x = (y / 20) % 2 * 20; x < 600; x += 40) g.fillRect(x, y, 20, 20);
-  g.imageSmoothingEnabled = true; g.drawImage(icS.view, F.x, F.y, icS.W * F.f, icS.H * F.f);
-  if (icS.hover && icS.tool !== 'emmer') { g.strokeStyle = 'rgba(42,154,214,.9)'; g.lineWidth = 1.5; g.beginPath(); g.arc(F.x + icS.hover.x * F.f, F.y + icS.hover.y * F.f, icBrushW() / 2 * F.f, 0, 7); g.stroke(); }
+  g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = '#fff'; g.fillRect(0, 0, F.CW, F.CH);
+  g.fillStyle = '#eef0f3'; for (let y = 0; y < F.CH; y += 20) for (let x = (y / 20) % 2 * 20; x < F.CW; x += 40) g.fillRect(x, y, 20, 20); // a checkerboard shows see-through parts
+  g.imageSmoothingEnabled = F.f < 3; g.imageSmoothingQuality = 'high'; g.drawImage(icS.view, F.x, F.y, icS.W * F.f, icS.H * F.f);
+  if (icS.hover && icS.tool !== 'emmer' && icS.tool !== 'hand' && !icS.pan) { g.strokeStyle = 'rgba(42,154,214,.9)'; g.lineWidth = 1.5 * (window.devicePixelRatio || 1); g.beginPath(); g.arc(F.x + icS.hover.x * F.f, F.y + icS.hover.y * F.f, icBrushW() / 2 * F.f, 0, 7); g.stroke(); }
 }
-function icPt(e) { const r = $('#icCv').getBoundingClientRect(), F = icFit(), x = (e.clientX - r.left) / r.width * 600, y = (e.clientY - r.top) / r.height * 600; return { x: (x - F.x) / F.f, y: (y - F.y) / F.f }; }
+function icCanvasPt(e) { const cv = $('#icCv'), r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * cv.width, y: (e.clientY - r.top) / r.height * cv.height }; }
+function icPt(e) { const F = icFit(), c = icCanvasPt(e); return { x: (c.x - F.x) / F.f, y: (c.y - F.y) / F.f }; }
 function icBucket(p) {
   const { W, H, src } = icS, x0 = Math.floor(p.x), y0 = Math.floor(p.y); if (x0 < 0 || y0 < 0 || x0 >= W || y0 >= H) return;
   const s0 = (y0 * W + x0) * 4, tol = +$('#icTol').value, clear = src[s0 + 3] < 40;
@@ -4379,15 +4398,23 @@ function icDab(a, b) {
 }
 const icCv = $('#icCv');
 icCv.addEventListener('pointerdown', e => {
-  if (!icS) return; try { icCv.setPointerCapture(e.pointerId); } catch {} const p = icPt(e);
+  if (!icS) return; try { icCv.setPointerCapture(e.pointerId); } catch {}
+  // move the picture: the Verschuiven tool, the middle or right mouse button, or space held down
+  if (icS.tool === 'hand' || e.button === 1 || e.button === 2 || icS.space) { e.preventDefault(); icS.pan = { x: e.clientX, y: e.clientY, px: icS.px, py: icS.py }; icCv.style.cursor = 'grabbing'; return; }
+  const p = icPt(e);
   icS.hist.push(icS.paint.getContext('2d').getImageData(0, 0, icS.W, icS.H));
   if (icS.tool === 'emmer') icBucket(p); else { icS.last = p; icDab(p, p); }
   drawIc();
 });
-icCv.addEventListener('pointermove', e => { if (!icS) return; const p = icPt(e); icS.hover = p; if (!icS.last) { icCursor(); return; } icDab(icS.last, p); icS.last = p; drawIc(); });
+icCv.addEventListener('pointermove', e => { if (!icS) return;
+  if (icS.pan) { const k = icCv.width / icCv.getBoundingClientRect().width; icS.px = icS.pan.px + (e.clientX - icS.pan.x) * k; icS.py = icS.pan.py + (e.clientY - icS.pan.y) * k; icCursor(); return; }
+  const p = icPt(e); icS.hover = p; if (!icS.last) { icCursor(); return; } icDab(icS.last, p); icS.last = p; drawIc(); });
 icCv.addEventListener('pointerleave', () => { if (icS) { icS.hover = null; icCursor(); } });
 $('#icSize').addEventListener('input', e => { $('#icSizeOut').textContent = e.target.value; icCursor(); });
-const icUp = () => { if (icS) icS.last = null; };
+const icUp = () => { if (icS) { icS.last = null; if (icS.pan) { icS.pan = null; icCv.style.cursor = ''; } } };
+icCv.addEventListener('contextmenu', e => e.preventDefault());
+icCv.addEventListener('wheel', e => { if (!icS) return; e.preventDefault(); const c = icCanvasPt(e); icZoom(Math.exp(-e.deltaY * .0015), c.x, c.y); }, { passive: false });
+$('#icZoomIn').addEventListener('click', () => icZoom(1.4)); $('#icZoomOut').addEventListener('click', () => icZoom(1 / 1.4)); $('#icZoomFit').addEventListener('click', icFitView);
 icCv.addEventListener('pointerup', icUp); icCv.addEventListener('pointercancel', icUp);
 $('#icSpecks').addEventListener('click', () => { if (!icS) return; icS.hist.push(icS.paint.getContext('2d').getImageData(0, 0, icS.W, icS.H)); if (!icFillSpecks()) icS.hist.pop(); drawIc(); });
 $('#icTol').addEventListener('input', e => { $('#icTolOut').textContent = e.target.value; });
@@ -4395,7 +4422,9 @@ $('#icUndo').addEventListener('click', () => { if (icS && icS.hist.length) { icS
 $('#icClear').addEventListener('click', () => { if (!icS) return; icS.hist.push(icS.paint.getContext('2d').getImageData(0, 0, icS.W, icS.H)); icS.paint.getContext('2d').clearRect(0, 0, icS.W, icS.H); drawIc(); });
 const closeColorer = () => { $('#icModal').hidden = true; icS = null; };
 $('#icCancel').addEventListener('click', closeColorer);
-$('#icModal').addEventListener('keydown', e => { if (e.target.tagName !== 'INPUT' && brushKeys(e, '#icSize', icCursor)) return; if (e.key === 'Escape') { e.stopPropagation(); closeColorer(); } });
+$('#icModal').addEventListener('keyup', e => { if (e.key === ' ' && icS) { icS.space = false; icCv.classList.toggle('hand', icS.tool === 'hand'); } });
+$('#icModal').addEventListener('keydown', e => { if (e.target.tagName !== 'INPUT' && icS) { if (e.key === ' ') { e.preventDefault(); icS.space = true; icCv.classList.add('hand'); return; } if (e.key === '+' || e.key === '=') { icZoom(1.4); return; } if (e.key === '-') { icZoom(1 / 1.4); return; } if (e.key === '0') { icFitView(); return; } }
+  if (e.target.tagName !== 'INPUT' && brushKeys(e, '#icSize', icCursor)) return; if (e.key === 'Escape') { e.stopPropagation(); closeColorer(); } });
 // several forms (mountains, woods): keep what you coloured and go on to the next form
 for (const [id, d] of [['#icPrev', -1], ['#icNext', 1]]) $(id).addEventListener('click', () => {
   if (!icS || !icS.T.nav) return; const { T, paint, W, H } = icS, pd = paint.getContext('2d').getImageData(0, 0, W, H).data; let any = false; for (let i = 3; i < pd.length; i += 4) if (pd[i]) { any = true; break; }
@@ -4984,7 +5013,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.31.1', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.32.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;
