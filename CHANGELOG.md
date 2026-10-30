@@ -1,5 +1,10 @@
 # Wijzigingen
 
+## 1.32.1
+
+- **Knijpen om te zoomen** in het inkleurscherm, op een tablet of telefoon. Met twee vingers zoom je in en uit en verschuif je tegelijk.
+- Zet je de tweede vinger neer, dan wordt de streep die de eerste vinger net begonnen was teruggedraaid. Er komen dus geen ongewenste vlekken bij.
+
 ## 1.32.0
 
 - Het **inkleurscherm** vult nu bijna het hele venster, met de gereedschappen in een smalle kolom rechts.

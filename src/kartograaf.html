@@ -478,7 +478,7 @@ body.dragging .stage{outline:3px dashed var(--accent);outline-offset:-6px}
         <div class="btns"><button type="button" class="btn" id="icSpecks">Witte plekjes opvullen</button></div>
         <div class="btns" id="icNav" hidden><button type="button" class="btn" id="icPrev" aria-label="Vorige vorm">‹</button><output id="icNavOut"></output><button type="button" class="btn" id="icNext" aria-label="Volgende vorm">›</button></div>
         <div class="btns"><button type="button" class="btn" id="icUndo">Ongedaan maken</button><button type="button" class="btn" id="icClear">Alles wissen</button></div>
-        <p class="note">Tik met de Verfemmer op een deel, bv. eerst de kruin en dan de stam, elk in een eigen kleur. De emmer vult alles wat ongeveer dezelfde kleur heeft; met Gevoelig hoger vult hij meer. Donkere lijnen worden zwart, de rest krijgt precies jouw kleur. Blijven er witte stukjes tussen de lijnen over, klik dan op Witte plekjes opvullen. De kleuren zie je op een kleurenkaart. Zoomen doe je met het muiswiel of + en −; verschuiven met Verschuiven, de rechtermuisknop of spatie ingedrukt.</p>
+        <p class="note">Tik met de Verfemmer op een deel, bv. eerst de kruin en dan de stam, elk in een eigen kleur. De emmer vult alles wat ongeveer dezelfde kleur heeft; met Gevoelig hoger vult hij meer. Donkere lijnen worden zwart, de rest krijgt precies jouw kleur. Blijven er witte stukjes tussen de lijnen over, klik dan op Witte plekjes opvullen. De kleuren zie je op een kleurenkaart. Zoomen doe je met het muiswiel, + en − of door met twee vingers te knijpen; verschuiven met Verschuiven, de rechtermuisknop of spatie ingedrukt.</p>
       </div>
     </div>
     <div class="btns end"><button type="button" class="btn" id="icCancel">Annuleren</button><button type="button" class="btn primary" id="icSave">Bewaren</button></div>
@@ -4376,21 +4376,43 @@ function icDab(a, b) {
   }
 }
 const icCv = $('#icCv');
+// two fingers on the picture: pinch to zoom and move; a stroke the first finger had begun is taken back
+const icPtrs = new Map();
+function icPinchStart() {
+  const [a, b] = [...icPtrs.values()], m = icCanvasPt({ clientX: (a.x + b.x) / 2, clientY: (a.y + b.y) / 2 }), F = icFit();
+  icS.pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, z: icS.z, ix: (m.x - F.x) / F.f, iy: (m.y - F.y) / F.f };
+}
+function icPinchMove() {
+  const [a, b] = [...icPtrs.values()], P = icS.pinch, m = icCanvasPt({ clientX: (a.x + b.x) / 2, clientY: (a.y + b.y) / 2 });
+  icS.z = Math.max(.5, Math.min(16, P.z * Math.hypot(a.x - b.x, a.y - b.y) / P.d));
+  const G = icFit(); icS.px += m.x - (G.x + P.ix * G.f); icS.py += m.y - (G.y + P.iy * G.f);
+  $('#icZoomOut2').textContent = Math.round(icS.z * 100) + '%'; icCursor();
+}
 icCv.addEventListener('pointerdown', e => {
   if (!icS) return; try { icCv.setPointerCapture(e.pointerId); } catch {}
+  icPtrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (icPtrs.size === 2) { if (icS.stroked) { icS.paint.getContext('2d').putImageData(icS.hist.pop(), 0, 0); icS.stroked = false; drawIc(); } icS.last = null; icS.pan = null; icPinchStart(); return; }
+  if (icPtrs.size > 2 || icS.pinch || icS.afterPinch) return;
   // move the picture: the Verschuiven tool, the middle or right mouse button, or space held down
   if (icS.tool === 'hand' || e.button === 1 || e.button === 2 || icS.space) { e.preventDefault(); icS.pan = { x: e.clientX, y: e.clientY, px: icS.px, py: icS.py }; icCv.style.cursor = 'grabbing'; return; }
   const p = icPt(e);
   icS.hist.push(icS.paint.getContext('2d').getImageData(0, 0, icS.W, icS.H));
+  icS.stroked = true;
   if (icS.tool === 'emmer') icBucket(p); else { icS.last = p; icDab(p, p); }
   drawIc();
 });
 icCv.addEventListener('pointermove', e => { if (!icS) return;
+  if (icPtrs.has(e.pointerId)) icPtrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (icS.pinch) { if (icPtrs.size >= 2) icPinchMove(); return; }
+  if (icS.afterPinch) return;
   if (icS.pan) { const k = icCv.width / icCv.getBoundingClientRect().width; icS.px = icS.pan.px + (e.clientX - icS.pan.x) * k; icS.py = icS.pan.py + (e.clientY - icS.pan.y) * k; icCursor(); return; }
   const p = icPt(e); icS.hover = p; if (!icS.last) { icCursor(); return; } icDab(icS.last, p); icS.last = p; drawIc(); });
 icCv.addEventListener('pointerleave', () => { if (icS) { icS.hover = null; icCursor(); } });
 $('#icSize').addEventListener('input', e => { $('#icSizeOut').textContent = e.target.value; icCursor(); });
-const icUp = () => { if (icS) { icS.last = null; if (icS.pan) { icS.pan = null; icCv.style.cursor = ''; } } };
+const icUp = e => { icPtrs.delete(e.pointerId); if (!icS) return; icS.last = null; icS.stroked = false;
+  if (icS.pinch && icPtrs.size < 2) { icS.pinch = null; icS.afterPinch = icPtrs.size > 0; } // the finger left behind does not start painting
+  if (!icPtrs.size) icS.afterPinch = false;
+  if (icS.pan) { icS.pan = null; icCv.style.cursor = ''; } };
 icCv.addEventListener('contextmenu', e => e.preventDefault());
 icCv.addEventListener('wheel', e => { if (!icS) return; e.preventDefault(); const c = icCanvasPt(e); icZoom(Math.exp(-e.deltaY * .0015), c.x, c.y); }, { passive: false });
 $('#icZoomIn').addEventListener('click', () => icZoom(1.4)); $('#icZoomOut').addEventListener('click', () => icZoom(1 / 1.4)); $('#icZoomFit').addEventListener('click', icFitView);
@@ -4399,7 +4421,7 @@ $('#icSpecks').addEventListener('click', () => { if (!icS) return; icS.hist.push
 $('#icTol').addEventListener('input', e => { $('#icTolOut').textContent = e.target.value; });
 $('#icUndo').addEventListener('click', () => { if (icS && icS.hist.length) { icS.paint.getContext('2d').putImageData(icS.hist.pop(), 0, 0); drawIc(); } });
 $('#icClear').addEventListener('click', () => { if (!icS) return; icS.hist.push(icS.paint.getContext('2d').getImageData(0, 0, icS.W, icS.H)); icS.paint.getContext('2d').clearRect(0, 0, icS.W, icS.H); drawIc(); });
-const closeColorer = () => { $('#icModal').hidden = true; icS = null; };
+const closeColorer = () => { $('#icModal').hidden = true; icS = null; icPtrs.clear(); };
 $('#icCancel').addEventListener('click', closeColorer);
 $('#icModal').addEventListener('keyup', e => { if (e.key === ' ' && icS) { icS.space = false; icCv.classList.toggle('hand', icS.tool === 'hand'); } });
 $('#icModal').addEventListener('keydown', e => { if (e.target.tagName !== 'INPUT' && icS) { if (e.key === ' ') { e.preventDefault(); icS.space = true; icCv.classList.add('hand'); return; } if (e.key === '+' || e.key === '=') { icZoom(1.4); return; } if (e.key === '-') { icZoom(1 / 1.4); return; } if (e.key === '0') { icFitView(); return; } }
@@ -4992,7 +5014,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.32.0', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.32.1', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;
