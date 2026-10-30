@@ -1,5 +1,14 @@
 # Wijzigingen
 
+## 1.31.0
+
+- **Gedetailleerde symbolen zelf inkleuren.** Selecteer een gegraveerd symbool op de kaart en kies **Inkleuren…**. Je krijgt hetzelfde inkleurscherm als voor eigen afbeeldingen: Verfemmer, Kleurpotlood, Kleur wissen, Ongedaan maken en Alles wissen.
+  - De kleur blijft binnen de tekening, en de inktlijnen blijven erover liggen.
+  - Elke vorm van een symbool kleur je apart in. Overal waar die vorm op je kaarten staat, krijgt hij jouw kleuren.
+  - De kleuren worden bewaard in je bibliotheek, in de back-up van je bibliotheek en in kaartbestanden die het symbool gebruiken.
+- De knoppen onder Gedetailleerd heten nu **Eigen kleuren** en **Sepia**. Met Sepia toon je dezelfde kaart weer helemaal in sepia, zonder je kleuren kwijt te raken.
+- De automatische kleuren per volk uit 1.30.0 zijn weg. Wat je nog niet hebt ingekleurd, houdt de lichte sepiavulling, of de kleur die je voor dat ene symbool kiest.
+
 ## 1.30.0
 
 - De gegraveerde symbolen van **Gedetailleerd** kunnen nu **in kleur**. Kies onder de stijlknoppen tussen *In kleur* en *Sepia*. De keuze wordt per kaart bewaard. In de kaartstijl Kleur staat kleur standaard aan.
