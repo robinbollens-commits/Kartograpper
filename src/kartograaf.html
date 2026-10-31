@@ -1895,6 +1895,9 @@ function loadEngraved(A, sub, src, first) {
     if (!ENGRAVED_PANELS.has(A.key)) {
       const d = g.getImageData(0, 0, W, H), s = g.createImageData(W, H), p = d.data;
       for (let i = 0; i < p.length; i += 4) { const a = p[i + 3]; s.data[i + 3] = a > 250 ? 255 : 0; p[i + 3] = Math.round(a * (1 - p[i] / 255)); p[i] = p[i + 1] = p[i + 2] = 0; }
+      if (engTight(A) || A.cat === 'boom') { // sparse drawings: the silhouette follows the ink, so the ground shows between trunks and ships
+        const m = new Uint8Array(W * H); for (let j = 0; j < W * H; j++) m[j] = p[j * 4 + 3] > 60 ? 1 : 0;
+        const ok = inkShape(m, W, H, engTight(A)); for (let j = 0; j < W * H; j++) if (!ok[j]) s.data[j * 4 + 3] = 0; }
       g.putImageData(d, 0, 0); const sc = document.createElement('canvas'); sc.width = W; sc.height = H; sc.getContext('2d').putImageData(s, 0, 0); sub.sil = sc;
     }
     Object.assign(sub, { image: c, iw: W, ih: H, mono: {} });
@@ -4260,6 +4263,21 @@ function openColorer(u) {
   } });
 }
 // colour in one drawing of the detailed pack: it is shown as white paper with black ink, the paint is kept per variant
+// the shape of a sparse drawing: its ink grown a little, small holes filled, shrunk back; big open bits (sky between
+// branches, open air between trunks or ships) stay outside
+function inkShape(m, W, H, tight) {
+  const r = Math.max(2, Math.round(Math.max(W, H) * (tight ? .012 : .025))), big = grow(m, W, r), out = new Uint8Array(W * H), st = [];
+  for (let x = 0; x < W; x++) for (const j of [x, (H - 1) * W + x]) if (!big[j] && !out[j]) { out[j] = 1; st.push(j); }
+  for (let y = 0; y < H; y++) for (const j of [y * W, y * W + W - 1]) if (!big[j] && !out[j]) { out[j] = 1; st.push(j); }
+  while (st.length) { const j = st.pop(), x = j % W; for (const n of [x > 0 ? j - 1 : -1, x < W - 1 ? j + 1 : -1, j - W, j + W]) if (n >= 0 && n < W * H && !big[n] && !out[n]) { out[n] = 1; st.push(n); } }
+  const seen = new Uint8Array(W * H), lim = (tight ? 3 : 16) * r * r;
+  for (let s0 = 0; s0 < W * H; s0++) if (!big[s0] && !out[s0] && !seen[s0]) { const comp = [s0]; seen[s0] = 1;
+    for (let q = 0; q < comp.length; q++) { const j = comp[q], x = j % W; for (const n of [x > 0 ? j - 1 : -1, x < W - 1 ? j + 1 : -1, j - W, j + W]) if (n >= 0 && n < W * H && !big[n] && !out[n] && !seen[n]) { seen[n] = 1; comp.push(n); } }
+    if (comp.length > lim) for (const j of comp) out[j] = 1; }
+  const away = grow(out, W, r), ok = new Uint8Array(W * H); for (let j = 0; j < W * H; j++) ok[j] = !away[j] || m[j] ? 1 : 0;
+  return ok;
+}
+const engTight = A => ENG_TIGHT.has(A.key) || ['zee', 'deco'].includes(A.cat) && !ENGRAVED_PANELS.has(A.key);
 // woods (and other loose drawings) whose open spaces stay uncoloured in the colourer
 const ENG_TIGHT = new Set(['e-duisterbos', 'e-doodbos', 'e-elfenbos', 'e-magischwoud', 'e-paddenstoelen', 'e-elfbomen', 'e-kronkel', 'e-bosdorp', 'e-ruinemark', 'e-steencirkel']);
 function openEngColorer(key, v = 0) {
@@ -4271,21 +4289,10 @@ function openEngColorer(key, v = 0) {
     //  mountains and buildings: everything between the lines, across and down (the open foot of a mountain, a courtyard)
     //  woods, ships, the sea and ornaments: only small gaps and enclosed bits, so the open air between trunks or ships stays clear
     const W = c.width, H = c.height, img = g.getImageData(0, 0, W, H), d = img.data, on = j => d[j * 4 + 3] > 40, ok = new Uint8Array(W * H);
-    const tight = ENG_TIGHT.has(key) || ['zee', 'deco'].includes(A.cat) && !['e-cartouche', 'e-kader'].includes(key);
+    const tight = engTight(A);
     if (tight || A.cat === 'boom') { // follow the ink: the paper behind sparse drawings (the air between trunks, the sea around ships) is left out
-      const r = Math.max(3, Math.round(Math.max(W, H) * (tight ? .02 : .025))), m = new Uint8Array(W * H);
-      if (b.image) { const ik = b.image.getContext('2d').getImageData(0, 0, W, H).data; for (let j = 0; j < W * H; j++) m[j] = ik[j * 4 + 3] > 60 ? 1 : 0; }
-      const big = grow(m, W, r), out = new Uint8Array(W * H), st = [];
-      for (let x = 0; x < W; x++) for (const j of [x, (H - 1) * W + x]) if (!big[j] && !out[j]) { out[j] = 1; st.push(j); }
-      for (let y = 0; y < H; y++) for (const j of [y * W, y * W + W - 1]) if (!big[j] && !out[j]) { out[j] = 1; st.push(j); }
-      while (st.length) { const j = st.pop(), x = j % W; for (const n of [x > 0 ? j - 1 : -1, x < W - 1 ? j + 1 : -1, j - W, j + W]) if (n >= 0 && n < W * H && !big[n] && !out[n]) { out[n] = 1; st.push(n); } }
-      if (tight) { // big enclosed bits (the sky between branches) count as outside too; only small holes are filled
-        const seen = new Uint8Array(W * H), lim = 16 * r * r;
-        for (let s0 = 0; s0 < W * H; s0++) if (!big[s0] && !out[s0] && !seen[s0]) { const comp = [s0]; seen[s0] = 1;
-          for (let q = 0; q < comp.length; q++) { const j = comp[q], x = j % W; for (const n of [x > 0 ? j - 1 : -1, x < W - 1 ? j + 1 : -1, j - W, j + W]) if (n >= 0 && n < W * H && !big[n] && !out[n] && !seen[n]) { seen[n] = 1; comp.push(n); } }
-          if (comp.length > lim) for (const j of comp) out[j] = 1; }
-      }
-      const away = grow(out, W, r); for (let j = 0; j < W * H; j++) ok[j] = !away[j] || m[j] ? 1 : 0; // closed shape: grown, holes filled, shrunk back
+      const m = new Uint8Array(W * H); if (b.image) { const ik = b.image.getContext('2d').getImageData(0, 0, W, H).data; for (let j = 0; j < W * H; j++) m[j] = ik[j * 4 + 3] > 60 ? 1 : 0; }
+      ok.set(inkShape(m, W, H, tight));
     } else {
       const rs = new Uint8Array(W * H), cs = new Uint8Array(W * H);
       for (let y = 0; y < H; y++) { let l = -1, r = -1; for (let x = 0; x < W; x++) if (on(y * W + x)) { if (l < 0) l = x; r = x; } for (let x = l; l >= 0 && x <= r; x++) rs[y * W + x] = 1; }
@@ -5047,7 +5054,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.32.4', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.32.5', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;

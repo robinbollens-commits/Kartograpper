@@ -1,5 +1,14 @@
 # Wijzigingen
 
+## 1.32.5
+
+- Gedetailleerde bossen laten nu op de kaart de ondergrond zien tussen stammen, takken en schepen, in plaats van een papieren vlak. Dat geldt voor:
+  - dode, duistere en magische wouden;
+  - elfenbossen en paddenstoelenwouden;
+  - gewone bossen en bomen;
+  - schepen en zee.
+- Het inkleurscherm gebruikt dezelfde, strakkere vorm.
+
 ## 1.32.4
 
 - Bij de gedetailleerde bossen, dode bossen, duistere bossen, schepen, zee en versiering volgt het kleurbare gebied in het inkleurscherm nu de tekening zelf. De lucht tussen kale stammen en de open ruimte rond schepen kun je niet meer per ongeluk inkleuren. Kleine gaatjes tussen de lijnen wel.
