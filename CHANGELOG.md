@@ -1,5 +1,10 @@
 # Wijzigingen
 
+## 1.32.4
+
+- Bij de gedetailleerde bossen, dode bossen, duistere bossen, schepen, zee en versiering volgt het kleurbare gebied in het inkleurscherm nu de tekening zelf. De lucht tussen kale stammen en de open ruimte rond schepen kun je niet meer per ongeluk inkleuren. Kleine gaatjes tussen de lijnen wel.
+- Bergen en gebouwen houden het ruime gebied, zodat de voet van een berg en de binnenplaatsen inkleurbaar blijven.
+
 ## 1.32.3
 
 - In het inkleurscherm van de gedetailleerde symbolen kun je nu alles tussen de lijnen inkleuren, ook de open voet van een berg en de witte stukken tussen toppen of bomen. Voordien gold dat als doorzichtige achtergrond, en daar kon je niet kleuren.
