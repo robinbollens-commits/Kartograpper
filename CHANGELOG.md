@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## 1.32.3
+
+- In het inkleurscherm van de gedetailleerde symbolen kun je nu alles tussen de lijnen inkleuren, ook de open voet van een berg en de witte stukken tussen toppen of bomen. Voordien gold dat als doorzichtige achtergrond, en daar kon je niet kleuren.
+
 ## 1.32.2
 
 - Geen losse rode of vreemd gekleurde pixels meer aan de rand van een kleurpotloodstreek.

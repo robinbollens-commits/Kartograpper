@@ -4265,6 +4265,13 @@ function openEngColorer(key, v = 0) {
   const c = document.createElement('canvas'); c.width = b.iw; c.height = b.ih; const g = c.getContext('2d');
   if (b.sil) { g.drawImage(b.sil, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.globalCompositeOperation = 'source-over'; }
   g.drawImage(b.image, 0, 0);
+  { // everything that lies between the lines, across and down, may be coloured: also the open foot of a mountain and gaps between peaks
+    const W = c.width, H = c.height, img = g.getImageData(0, 0, W, H), d = img.data, on = j => d[j * 4 + 3] > 40, rs = new Uint8Array(W * H), cs = new Uint8Array(W * H);
+    for (let y = 0; y < H; y++) { let l = -1, r = -1; for (let x = 0; x < W; x++) if (on(y * W + x)) { if (l < 0) l = x; r = x; } for (let x = l; l >= 0 && x <= r; x++) rs[y * W + x] = 1; }
+    for (let x = 0; x < W; x++) { let t = -1, u = -1; for (let y = 0; y < H; y++) if (on(y * W + x)) { if (t < 0) t = y; u = y; } for (let y = t; t >= 0 && y <= u; y++) cs[y * W + x] = 1; }
+    for (let j = 0; j < W * H; j++) if (rs[j] && cs[j] && d[j * 4 + 3] < 255) { const a = d[j * 4 + 3] / 255; for (let k = 0; k < 3; k++) d[j * 4 + k] = Math.round(d[j * 4 + k] * a + 255 * (1 - a)); d[j * 4 + 3] = 255; }
+    g.putImageData(img, 0, 0);
+  }
   const n = A.imgVars.length, vi = v % n;
   openIc({ image: c, iw: b.iw, ih: b.ih, paintImg: b.paintImg, nav: n > 1 ? { n, i: vi, go: i => openEngColorer(key, (i + n) % n) } : null, title: A.name + (A.imgVars.length > 1 ? ` (vorm ${v % A.imgVars.length + 1})` : '') + ' inkleuren', save: (paint, any) => {
     const k = engPaintKey(key, v % A.imgVars.length); if (any) lib.engPaint[k] = paint.toDataURL('image/png'); else delete lib.engPaint[k]; saveLib();
@@ -5016,7 +5023,7 @@ $('#newForm').addEventListener('submit', async e => {
 
 /* ---------- boot ---------- */
 /* Updates never throw data away: before a new version touches anything, it copies your maps and library to a restore point. */
-const APP_VERSION = '1.32.2', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
+const APP_VERSION = '1.32.3', REPO_URL = 'https://github.com/robinbollens-commits/Kartograpper';
 let firstRun = false;
 async function guardUpdate() {
   const meta = await store.get('meta'), prev = meta && meta.version || null;
